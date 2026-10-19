@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="Veltrix.API/Veltrix.API.csproj" />
+  <Project Path="Veltrix.Application/Veltrix.Application.csproj" Id="5bb10afd-c180-4a81-891f-081c9278ff7c" />
+  <Project Path="Veltrix.Domain/Veltrix.Domain.csproj" />
+  <Project Path="Veltrix.Infrastructure/Veltrix.Infrastructure.csproj" Id="b46ae53f-f4aa-4d3f-8c22-493798fc3c85" />
+</Solution>
