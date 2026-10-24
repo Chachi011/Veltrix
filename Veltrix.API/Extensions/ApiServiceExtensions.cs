@@ -1,0 +1,162 @@
+using System.Reflection;
+using System.Text;
+using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
+using FluentValidation;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using Veltrix.API.Filters;
+using Veltrix.API.Services;
+using Veltrix.Application.Common.Interfaces;
+using Veltrix.Infrastructure.Auth;
+
+namespace Veltrix.API.Extensions;
+
+public static class ApiServiceExtensions
+{
+    public const string AngularCorsPolicy = "Angular";
+    public const string AuthRateLimitPolicy = "auth";
+
+    public static IServiceCollection AddApiServices(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddControllers(options => options.Filters.Add<FluentValidationFilter>())
+            // Enums travel as strings ("Player", "BettingOpen"), which is easier to read in Angular
+            .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
+        // Validators that live in the API layer (e.g. AvatarUploadForm, which uses IFormFile)
+        services.AddValidatorsFromAssemblyContaining<FluentValidationFilter>();
+
+        services.AddHttpContextAccessor();
+        services.AddScoped<ICurrentUserService, CurrentUserService>();
+
+        services.AddJwtAuthentication();
+        services.AddSwaggerWithJwt();
+        services.AddAngularCors(configuration);
+        services.AddAuthRateLimiting();
+
+        return services;
+    }
+
+    private static void AddJwtAuthentication(this IServiceCollection services)
+    {
+        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
+
+        // Configured lazily from the validated JwtOptions, so a missing key gives a clear startup error
+        services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+            .Configure<IOptions<JwtOptions>>((options, jwtOptions) =>
+            {
+                var jwt = jwtOptions.Value;
+
+                // Keep claim names exactly as written in the token ("sub", "role"), no Microsoft URI mapping
+                options.MapInboundClaims = false;
+
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidIssuer = jwt.Issuer,
+                    ValidateAudience = true,
+                    ValidAudience = jwt.Audience,
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.Key)),
+                    ValidateLifetime = true,
+                    // Default is 5 minutes of tolerance; a 15-minute token should really expire after 15 minutes
+                    ClockSkew = TimeSpan.FromSeconds(30),
+                    NameClaimType = JwtTokenService.NicknameClaim,
+                    RoleClaimType = JwtTokenService.RoleClaim
+                };
+
+                // Return ProblemDetails for 401/403 too, so the Angular error interceptor sees one format
+                options.Events = new JwtBearerEvents
+                {
+                    OnChallenge = async context =>
+                    {
+                        context.HandleResponse();
+                        await WriteProblemAsync(context.Response, StatusCodes.Status401Unauthorized, "Unauthorized",
+                            "A valid access token is required.");
+                    },
+                    OnForbidden = context => WriteProblemAsync(context.Response, StatusCodes.Status403Forbidden, "Forbidden",
+                        "You do not have permission to perform this action.")
+                };
+            });
+
+        services.AddAuthorization();
+    }
+
+    private static void AddSwaggerWithJwt(this IServiceCollection services)
+    {
+        services.AddEndpointsApiExplorer();
+        services.AddSwaggerGen(options =>
+        {
+            options.SwaggerDoc("v1", new OpenApiInfo
+            {
+                Title = "VELTRIX API",
+                Version = "v1",
+                Description = "Real-time multiplayer Crash game with VIRTUAL points only (VLX). Educational project."
+            });
+
+            options.AddSecurityDefinition(AuthorizeOperationFilter.SchemeId, new OpenApiSecurityScheme
+            {
+                Type = SecuritySchemeType.Http,
+                Scheme = "bearer",
+                BearerFormat = "JWT",
+                In = ParameterLocation.Header,
+                Description = "Paste the accessToken from /api/auth/login (without the 'Bearer ' prefix)."
+            });
+
+            // Lock icon only on endpoints with [Authorize] (not a global requirement)
+            options.OperationFilter<AuthorizeOperationFilter>();
+
+            // Show the /// XML comments of controllers in Swagger UI
+            var xmlFile = Path.Combine(AppContext.BaseDirectory, $"{Assembly.GetExecutingAssembly().GetName().Name}.xml");
+            if (File.Exists(xmlFile))
+                options.IncludeXmlComments(xmlFile);
+        });
+    }
+
+    private static void AddAngularCors(this IServiceCollection services, IConfiguration configuration)
+    {
+        var origins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? new[] { "http://localhost:4200" };
+
+        services.AddCors(options => options.AddPolicy(AngularCorsPolicy, policy =>
+            policy.WithOrigins(origins)
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                // SignalR (Phase 2) needs credentials
+                .AllowCredentials()));
+    }
+
+    private static void AddAuthRateLimiting(this IServiceCollection services)
+    {
+        services.AddRateLimiter(options =>
+        {
+            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+            // Max 10 auth requests per minute per IP: slows down password guessing
+            options.AddPolicy(AuthRateLimitPolicy, httpContext =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 10,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueLimit = 0
+                    }));
+
+            options.OnRejected = (context, _) => new ValueTask(WriteProblemAsync(
+                context.HttpContext.Response, StatusCodes.Status429TooManyRequests, "Too many requests",
+                "Too many attempts. Please wait a minute and try again."));
+        });
+    }
+
+    private static Task WriteProblemAsync(HttpResponse response, int status, string title, string detail)
+    {
+        response.StatusCode = status;
+        return response.WriteAsJsonAsync(
+            new ProblemDetails { Status = status, Title = title, Detail = detail, Type = $"https://httpstatuses.io/{status}" },
+            (System.Text.Json.JsonSerializerOptions?)null,
+            "application/problem+json");
+    }
+}

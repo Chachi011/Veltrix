@@ -1,26 +1,29 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using Veltrix.Domain.Enums;
 
-namespace Veltrix.Domain.Entities
+namespace Veltrix.Domain.Entities;
+
+public class GameRound
 {
-    public class GameRound
-    {
-        public Guid Id { get; set; }
-        public Guid GameId { get; set; }
-        public RoundStatus Status { get; set; }
-        public decimal CrashPoint { get; set; }
-        public decimal CurrentMultiplier { get; set; } = 1.00m;
-        public string ServerSeedHash { get; set; } = string.Empty;
-        public string? ServerSeed { get; set; }
-        public string? ClientSeed { get; set; }
-        public long Nonce { get; set; }
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public DateTime? BettingOpenedAt { get; set; }
-        public DateTime? BettingClosedAt { get; set; }
-        public DateTime? StartedAt { get; set; }
-        public DateTime? CrashedAt { get; set; }
-        public DateTime? FinishedAt { get; set; }
-    }
+    public int Id { get; set; }
+    public int GameId { get; set; }
+    public long RoundNumber { get; set; }
+    public RoundState State { get; set; } = RoundState.Waiting;
+
+    /// <summary>Secret random seed. Revealed to players only after the round has crashed.</summary>
+    public string ServerSeed { get; set; } = string.Empty;
+
+    /// <summary>SHA-256(ServerSeed). Published BEFORE the round, so the result cannot be changed later.</summary>
+    public string ServerSeedHash { get; set; } = string.Empty;
+
+    /// <summary>Calculated from ServerSeed before the round starts.</summary>
+    public decimal CrashPoint { get; set; }
+
+    public DateTime CreatedAt { get; set; }
+    public DateTime? BettingEndsAt { get; set; }
+    public DateTime? StartedAt { get; set; }
+    public DateTime? CrashedAt { get; set; }
+    public DateTime? EndedAt { get; set; }
+
+    public Game? Game { get; set; }
+    public ICollection<Bet> Bets { get; set; } = new List<Bet>();
 }
