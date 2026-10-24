@@ -97,7 +97,7 @@ public static class ApiServiceExtensions
                 Description = "Real-time multiplayer Crash game with VIRTUAL points only (VLX). Educational project."
             });
 
-            options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+            options.AddSecurityDefinition(AuthorizeOperationFilter.SchemeId, new OpenApiSecurityScheme
             {
                 Type = SecuritySchemeType.Http,
                 Scheme = "bearer",
@@ -106,16 +106,8 @@ public static class ApiServiceExtensions
                 Description = "Paste the accessToken from /api/auth/login (without the 'Bearer ' prefix)."
             });
 
-            options.AddSecurityRequirement(new OpenApiSecurityRequirement
-            {
-                {
-                    new OpenApiSecurityScheme
-                    {
-                        Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
-                    },
-                    Array.Empty<string>()
-                }
-            });
+            // Lock icon only on endpoints with [Authorize] (not a global requirement)
+            options.OperationFilter<AuthorizeOperationFilter>();
 
             // Show the /// XML comments of controllers in Swagger UI
             var xmlFile = Path.Combine(AppContext.BaseDirectory, $"{Assembly.GetExecutingAssembly().GetName().Name}.xml");
