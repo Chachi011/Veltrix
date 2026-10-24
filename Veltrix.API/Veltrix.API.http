@@ -31,3 +31,38 @@ Content-Type: application/json
   "dateOfBirth": "2000-05-20",
   "isAdultConfirmed": true
 }
+
+### ---------- Phase 2: game ----------
+
+### Current round of "crash" (guest)
+GET {{host}}/api/games/crash/rounds/current
+
+### Last 20 finished rounds
+GET {{host}}/api/games/crash/rounds?pageSize=20
+
+### Place a bet (only while state = BettingOpen)
+# @name bet
+POST {{host}}/api/bets
+Authorization: Bearer {{login.response.body.$.accessToken}}
+Content-Type: application/json
+
+{ "gameSlug": "crash", "amount": 10, "autoCashOutAt": 2.0 }
+
+### Cash out (only while state = Running)
+POST {{host}}/api/bets/{{bet.response.body.$.bet.id}}/cashout
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+### My wallet / ledger / daily bonus
+GET {{host}}/api/wallet
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+###
+GET {{host}}/api/wallet/transactions?pageSize=10
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+###
+POST {{host}}/api/wallet/daily-bonus
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+### Provably fair check of round 1
+GET {{host}}/api/fairness/rounds/1

@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Veltrix.Application.Common.Exceptions;
+using Veltrix.Domain.Common;
 
 namespace Veltrix.API.Middleware;
 
@@ -46,6 +47,10 @@ public sealed class ExceptionHandlingMiddleware
         var problem = exception switch
         {
             AppException app => Create(app.StatusCode, app.Title, app.Message),
+
+            // Business rules from the Domain layer ("betting is closed", "insufficient balance")
+            InvalidRoundTransitionException transition => Create(StatusCodes.Status409Conflict, "Conflict", transition.Message),
+            DomainException domain => Create(StatusCodes.Status400BadRequest, "Request rejected", domain.Message),
 
             // RowVersion mismatch: someone else changed the same row at the same moment
             DbUpdateConcurrencyException => Create(StatusCodes.Status409Conflict, "Conflict",
