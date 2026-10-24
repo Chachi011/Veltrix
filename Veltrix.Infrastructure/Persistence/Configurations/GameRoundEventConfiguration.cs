@@ -14,7 +14,7 @@ public class GameRoundEventConfiguration : IEntityTypeConfiguration<GameRoundEve
         builder.HasIndex(x => new { x.RoundId, x.OccurredAt });
 
         builder.HasOne(x => x.Round)
-            .WithMany()
+            .WithMany(x => x.Events)
             .HasForeignKey(x => x.RoundId)
             .OnDelete(DeleteBehavior.Cascade);
     }

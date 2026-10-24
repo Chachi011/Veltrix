@@ -5,6 +5,7 @@ using Veltrix.Application.Common.Interfaces;
 using Veltrix.Application.Interfaces;
 using Veltrix.Infrastructure.Auth;
 using Veltrix.Infrastructure.Email;
+using Veltrix.Infrastructure.Engine;
 using Veltrix.Infrastructure.Persistence;
 using Veltrix.Infrastructure.Services;
 using Veltrix.Infrastructure.Storage;
@@ -42,8 +43,28 @@ public static class DependencyInjection
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IGameService, GameService>();
         services.AddScoped<IProfileService, ProfileService>();
+        services.AddScoped<IRoundService, RoundService>();
+        services.AddScoped<IBetService, BetService>();
+        services.AddScoped<IWalletService, WalletService>();
+        services.AddScoped<IFairnessService, FairnessService>();
         services.AddScoped<DatabaseInitializer>();
 
+        AddCrashEngine(services, configuration);
+
         return services;
+    }
+
+    private static void AddCrashEngine(IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddOptions<CrashEngineOptions>().Bind(configuration.GetSection(CrashEngineOptions.SectionName));
+        services.AddScoped<RoundSettlementService>();
+
+        // ONE engine instance, reachable both as the hosted background loop and as IRoundEngineControl
+        services.AddSingleton<CrashGameEngine>();
+        services.AddSingleton<IRoundEngineControl>(sp => sp.GetRequiredService<CrashGameEngine>());
+
+        var enabled = configuration.GetValue(CrashEngineOptions.SectionName + ":" + nameof(CrashEngineOptions.Enabled), true);
+        if (enabled)
+            services.AddHostedService(sp => sp.GetRequiredService<CrashGameEngine>());
     }
 }
