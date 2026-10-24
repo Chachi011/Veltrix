@@ -1,26 +1,26 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using Veltrix.Domain.Enums;
 
-namespace Veltrix.Domain.Entities
+namespace Veltrix.Domain.Entities;
+
+public class WalletTransaction
 {
-    public class WalletTransaction
-    {
-        public Guid Id { get; set; }
-        public Guid WalletId { get; set; }
-        public Guid PlayerId { get; set; }
-        public Guid? BetId { get; set; }
-        public Guid? GameRoundId { get; set; }
-        public TransactionType Type { get; set; }
-        public TransactionStatus Status { get; set; }
-        public decimal Amount { get; set; }
-        public decimal BalanceBefore { get; set; }
-        public decimal BalanceAfter { get; set; }
-        public string Currency { get; set; } = "GEL";
-        public string? ExternalTransactionId { get; set; }
-        public string? Description { get; set; }
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public DateTime? CompletedAt { get; set; }
-    }
+    public int Id { get; set; }
+    public int WalletId { get; set; }
+    public TransactionType Type { get; set; }
+
+    /// <summary>Signed amount: negative for Bet, positive for Win/Refund/Bonus. BalanceAfter = BalanceBefore + Amount.</summary>
+    public decimal Amount { get; set; }
+
+    public decimal BalanceBefore { get; set; }
+    public decimal BalanceAfter { get; set; }
+    public int? BetId { get; set; }
+
+    /// <summary>Unique key of the operation, so the same operation can never be applied twice.</summary>
+    public string IdempotencyKey { get; set; } = string.Empty;
+
+    public string? Reason { get; set; }
+    public DateTime CreatedAt { get; set; }
+
+    public Wallet? Wallet { get; set; }
+    public Bet? Bet { get; set; }
 }
