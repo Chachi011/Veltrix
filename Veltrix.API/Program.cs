@@ -1,24 +1,72 @@
-using Microsoft.EntityFrameworkCore;
+using Serilog;
+using Veltrix.API.Extensions;
+using Veltrix.API.Middleware;
+using Veltrix.Application;
+using Veltrix.Infrastructure;
 using Veltrix.Infrastructure.Persistence;
-using Veltrix.Application.Interfaces;
-using Veltrix.Infrastructure.Services;
 
-var builder = WebApplication.CreateBuilder(args);
+// Bootstrap logger: catches errors that happen before the real Serilog config is loaded
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
 
+try
+{
+    var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+    // Serilog settings (console + rolling file) come from the "Serilog" section of appsettings.json
+    builder.Host.UseSerilog((context, services, logger) => logger
+        .ReadFrom.Configuration(context.Configuration)
+        .ReadFrom.Services(services)
+        .Enrich.FromLogContext());
 
+    // Each layer registers its own services
+    builder.Services
+        .AddApplication()
+        .AddInfrastructure(builder.Configuration)
+        .AddApiServices(builder.Configuration);
 
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection")));
+    var app = builder.Build();
 
-builder.Services.AddScoped<IGameService, GameService>();
+    // Order matters: the exception middleware must wrap everything after it
+    app.UseMiddleware<ExceptionHandlingMiddleware>();
+    app.UseSerilogRequestLogging();
 
-var app = builder.Build();
+    if (app.Environment.IsDevelopment())
+    {
+        app.UseSwagger();
+        app.UseSwaggerUI(options =>
+        {
+            options.SwaggerEndpoint("/swagger/v1/swagger.json", "VELTRIX API v1");
+            options.DocumentTitle = "VELTRIX API";
+        });
+    }
+    else
+    {
+        app.UseHttpsRedirection();
+    }
 
-app.UseHttpsRedirection();
+    app.UseCors(ApiServiceExtensions.AngularCorsPolicy);
+    app.UseAuthentication();
+    app.UseAuthorization();
+    app.UseRateLimiter();
 
-app.MapControllers();
+    app.MapControllers();
 
-app.Run();
+    // Apply migrations + seed test users (controlled by the "Database" config section)
+    await using (var scope = app.Services.CreateAsyncScope())
+    {
+        await scope.ServiceProvider.GetRequiredService<DatabaseInitializer>().InitializeAsync();
+    }
+
+    app.Run();
+}
+catch (Exception ex) when (ex is not HostAbortedException)
+{
+    // HostAbortedException is thrown on purpose by "dotnet ef" tools; it is not a real crash
+    Log.Fatal(ex, "VELTRIX API terminated unexpectedly");
+}
+finally
+{
+    Log.CloseAndFlush();
+}

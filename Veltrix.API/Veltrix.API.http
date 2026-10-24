@@ -1,6 +1,33 @@
-@Veltrix.API_HostAddress = http://localhost:5295
+@host = http://localhost:5295
 
-GET {{Veltrix.API_HostAddress}}/weatherforecast/
-Accept: application/json
+### Login as player1
+# @name login
+POST {{host}}/api/auth/login
+Content-Type: application/json
 
-###
+{ "email": "player1@veltrix.dev", "password": "Player123!" }
+
+### My profile (uses the token from the login above)
+GET {{host}}/api/profile
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+### Refresh tokens
+POST {{host}}/api/auth/refresh
+Content-Type: application/json
+
+{ "refreshToken": "{{login.response.body.$.refreshToken}}" }
+
+### Game catalog (guest)
+GET {{host}}/api/games
+
+### Register a new player
+POST {{host}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "newplayer@veltrix.dev",
+  "nickname": "newplayer",
+  "password": "Secret123!",
+  "dateOfBirth": "2000-05-20",
+  "isAdultConfirmed": true
+}
