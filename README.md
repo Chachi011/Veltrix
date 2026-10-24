@@ -60,7 +60,18 @@ Each account starts with 1000 VLX. The `crash` game and the system settings come
 
 ## Database
 
-There are 11 tables: `Users, RefreshTokens, Wallets, WalletTransactions, Games, GameRounds, Bets, PlayerLimits, Notifications, AuditLogs, SystemSettings`.
+There are 30 tables, created by two migrations (`InitialCreate`, then `AddExtendedModels`):
+
+| Area | Tables |
+|---|---|
+| Core (spec §6) | `Users, RefreshTokens, Wallets, WalletTransactions, Games, GameRounds, Bets, PlayerLimits, Notifications, AuditLogs, SystemSettings` |
+| Security | `PasswordResetCodes, EmailVerificationCodes, UserTwoFactors, LoginAttempts` |
+| Responsible play | `PlaySessions, SelfExclusions` |
+| Profile and progress | `UserPreferences, PlayerStats, Levels, Achievements, UserAchievements` |
+| Game engine | `AutoBetConfigs, GameRoundEvents, RoundCancellations` |
+| Admin and content | `BalanceAdjustments, ChatMessages, ChatMutes, DailyStatistics, StaticPages` |
+
+Seeded reference data: the `crash` game, system settings, 10 levels, 5 achievements, and 2 content pages.
 
 Integrity is enforced in the database itself, not only in C#:
 

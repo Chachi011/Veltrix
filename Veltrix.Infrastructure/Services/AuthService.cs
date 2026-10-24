@@ -15,13 +15,13 @@ namespace Veltrix.Infrastructure.Services;
 public sealed class AuthService : IAuthService
 {
     private const decimal DefaultStartingBalance = 1000m;
-    private const int MaxResetCodeAttempts = 5;
     private static readonly TimeSpan ResetCodeLifetime = TimeSpan.FromMinutes(15);
 
     private readonly ApplicationDbContext _db;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IJwtTokenService _jwt;
     private readonly IEmailSender _emailSender;
+    private readonly ICurrentUserService _currentUser;
     private readonly TimeProvider _time;
     private readonly ILogger<AuthService> _logger;
 
@@ -30,6 +30,7 @@ public sealed class AuthService : IAuthService
         IPasswordHasher passwordHasher,
         IJwtTokenService jwt,
         IEmailSender emailSender,
+        ICurrentUserService currentUser,
         TimeProvider time,
         ILogger<AuthService> logger)
     {
@@ -37,6 +38,7 @@ public sealed class AuthService : IAuthService
         _passwordHasher = passwordHasher;
         _jwt = jwt;
         _emailSender = emailSender;
+        _currentUser = currentUser;
         _time = time;
         _logger = logger;
     }
@@ -92,18 +94,28 @@ public sealed class AuthService : IAuthService
 
         // Same message for "no such user" and "wrong password": do not reveal which emails exist
         if (user is null)
+        {
+            await RecordLoginAttemptAsync(null, email, "UnknownEmail", ct);
             throw new UnauthorizedException("Invalid email or password.");
+        }
 
         if (user.IsBlocked)
+        {
+            await RecordLoginAttemptAsync(user.Id, email, "Blocked", ct);
             throw new ForbiddenException("Your account is blocked. Contact support.");
+        }
 
         if (user.IsLockedOut(Now))
+        {
+            await RecordLoginAttemptAsync(user.Id, email, "LockedOut", ct);
             throw new AccountLockedException(user.LockoutUntil!.Value);
+        }
 
         if (!_passwordHasher.Verify(request.Password, user.PasswordHash))
         {
             user.RegisterFailedLogin(Now);
-            await _db.SaveChangesAsync(ct);
+            // Saves the failed-login counter and the attempt row together
+            await RecordLoginAttemptAsync(user.Id, email, "WrongPassword", ct);
 
             if (user.IsLockedOut(Now))
             {
@@ -116,6 +128,7 @@ public sealed class AuthService : IAuthService
 
         user.RegisterSuccessfulLogin(Now);
         var response = IssueTokens(user);
+        AddLoginAttempt(user.Id, email, failureReason: null);
         await _db.SaveChangesAsync(ct);
 
         _logger.LogInformation("User {UserId} logged in", user.Id);
@@ -180,9 +193,18 @@ public sealed class AuthService : IAuthService
 
         var code = RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6");
 
-        user.PasswordResetCodeHash = _passwordHasher.Hash(code);
-        user.PasswordResetCodeExpiresAt = Now.Add(ResetCodeLifetime);
-        user.PasswordResetAttempts = 0;
+        // Only the newest code is valid: a new request invalidates the older ones
+        await _db.PasswordResetCodes
+            .Where(c => c.UserId == user.Id && c.UsedAt == null)
+            .ExecuteUpdateAsync(s => s.SetProperty(c => c.UsedAt, Now), ct);
+
+        _db.PasswordResetCodes.Add(new PasswordResetCode
+        {
+            UserId = user.Id,
+            CodeHash = _passwordHasher.Hash(code),
+            CreatedAt = Now,
+            ExpiresAt = Now.Add(ResetCodeLifetime)
+        });
         await _db.SaveChangesAsync(ct);
 
         await _emailSender.SendAsync(
@@ -197,25 +219,27 @@ public sealed class AuthService : IAuthService
         const string invalidCodeMessage = "The reset code is invalid or has expired.";
 
         var email = NormalizeEmail(request.Email);
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email, ct);
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email, ct)
+            ?? throw new BadRequestException(invalidCodeMessage);
 
-        if (user?.PasswordResetCodeHash is null
-            || user.PasswordResetCodeExpiresAt <= Now
-            || user.PasswordResetAttempts >= MaxResetCodeAttempts)
-        {
+        var resetCode = await _db.PasswordResetCodes
+            .Where(c => c.UserId == user.Id)
+            .OrderByDescending(c => c.CreatedAt)
+            .FirstOrDefaultAsync(ct);
+
+        if (resetCode is null || !resetCode.CanBeUsed(Now))
             throw new BadRequestException(invalidCodeMessage);
-        }
 
-        if (!_passwordHasher.Verify(request.Code, user.PasswordResetCodeHash))
+        if (!_passwordHasher.Verify(request.Code, resetCode.CodeHash))
         {
             // Only 5 guesses per code, so a 6-digit code cannot be brute-forced
-            user.PasswordResetAttempts++;
+            resetCode.Attempts++;
             await _db.SaveChangesAsync(ct);
             throw new BadRequestException(invalidCodeMessage);
         }
 
+        resetCode.UsedAt = Now;
         user.PasswordHash = _passwordHasher.Hash(request.NewPassword);
-        user.ClearPasswordResetCode();
         user.FailedLoginCount = 0;
         user.LockoutUntil = null;
         await _db.SaveChangesAsync(ct);
@@ -258,6 +282,24 @@ public sealed class AuthService : IAuthService
                 AvatarUrl = user.AvatarUrl
             }
         };
+    }
+
+    private void AddLoginAttempt(int? userId, string email, string? failureReason) =>
+        _db.LoginAttempts.Add(new LoginAttempt
+        {
+            UserId = userId,
+            Email = email,
+            IpAddress = _currentUser.IpAddress,
+            UserAgent = _currentUser.UserAgent,
+            Succeeded = failureReason is null,
+            FailureReason = failureReason,
+            CreatedAt = Now
+        });
+
+    private Task RecordLoginAttemptAsync(int? userId, string email, string failureReason, CancellationToken ct)
+    {
+        AddLoginAttempt(userId, email, failureReason);
+        return _db.SaveChangesAsync(ct);
     }
 
     private Task RevokeAllTokensAsync(int userId, CancellationToken ct)

@@ -27,4 +27,16 @@ public sealed class CurrentUserService : ICurrentUserService
     public bool IsInRole(string role) => _httpContextAccessor.HttpContext?.User.IsInRole(role) == true;
 
     public bool IsStaff => IsInRole(RoleNames.Operator) || IsInRole(RoleNames.Admin);
+
+    public string? IpAddress => _httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString();
+
+    public string? UserAgent
+    {
+        get
+        {
+            var userAgent = _httpContextAccessor.HttpContext?.Request.Headers.UserAgent.ToString();
+            // Column is 512 chars; some clients send very long User-Agent strings
+            return string.IsNullOrEmpty(userAgent) ? null : userAgent[..Math.Min(userAgent.Length, 512)];
+        }
+    }
 }

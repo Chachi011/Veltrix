@@ -11,4 +11,7 @@ public interface ICurrentUserService
 
     /// <summary>Operator or Admin.</summary>
     bool IsStaff { get; }
+
+    string? IpAddress { get; }
+    string? UserAgent { get; }
 }

@@ -22,6 +22,95 @@ namespace Veltrix.Infrastructure.Persistence.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("Veltrix.Domain.Entities.Achievement", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Icon")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("XpReward")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("Achievements", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Achievements_XpReward", "[XpReward] >= 0");
+                        });
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Code = "FIRST_BET",
+                            Description = "Place your first bet.",
+                            Icon = "rocket",
+                            Title = "First bet",
+                            XpReward = 10
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Code = "FIRST_CASHOUT",
+                            Description = "Cash out before the crash for the first time.",
+                            Icon = "coins",
+                            Title = "First cash-out",
+                            XpReward = 20
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Code = "CASHOUT_10X",
+                            Description = "Cash out at 10.00x or higher.",
+                            Icon = "bolt",
+                            Title = "To the moon",
+                            XpReward = 100
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Code = "BETS_100",
+                            Description = "Place 100 bets.",
+                            Icon = "trophy",
+                            Title = "Regular",
+                            XpReward = 50
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Code = "BIG_WIN_1000",
+                            Description = "Win 1000 VLX or more in a single bet.",
+                            Icon = "star",
+                            Title = "Big win",
+                            XpReward = 100
+                        });
+                });
+
             modelBuilder.Entity("Veltrix.Domain.Entities.AuditLog", b =>
                 {
                     b.Property<int>("Id")
@@ -64,6 +153,107 @@ namespace Veltrix.Infrastructure.Persistence.Migrations
                     b.HasIndex("CreatedAt");
 
                     b.ToTable("AuditLogs", (string)null);
+                });
+
+            modelBuilder.Entity("Veltrix.Domain.Entities.AutoBetConfig", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("AutoCashOutAt")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("GameId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("RoundsPlayed")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("StoppedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("TotalRounds")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GameId");
+
+                    b.HasIndex("UserId", "GameId")
+                        .IsUnique()
+                        .HasFilter("[IsActive] = 1");
+
+                    b.ToTable("AutoBetConfigs", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_AutoBetConfigs_Amount", "[Amount] > 0");
+
+                            t.HasCheckConstraint("CK_AutoBetConfigs_CashOut", "[AutoCashOutAt] >= 1.01");
+
+                            t.HasCheckConstraint("CK_AutoBetConfigs_Rounds", "[TotalRounds] BETWEEN 1 AND 1000 AND [RoundsPlayed] BETWEEN 0 AND [TotalRounds]");
+                        });
+                });
+
+            modelBuilder.Entity("Veltrix.Domain.Entities.BalanceAdjustment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AdminUserId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WalletTransactionId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AdminUserId");
+
+                    b.HasIndex("WalletTransactionId")
+                        .IsUnique();
+
+                    b.HasIndex("UserId", "CreatedAt");
+
+                    b.ToTable("BalanceAdjustments", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_BalanceAdjustments_Amount", "[Amount] <> 0");
+
+                            t.HasCheckConstraint("CK_BalanceAdjustments_Reason", "LEN([Reason]) >= 5");
+                        });
                 });
 
             modelBuilder.Entity("Veltrix.Domain.Entities.Bet", b =>
@@ -125,6 +315,150 @@ namespace Veltrix.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("CK_Bets_Slot", "[Slot] IN (1, 2)");
                         });
+                });
+
+            modelBuilder.Entity("Veltrix.Domain.Entities.ChatMessage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("DeletedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("SentAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DeletedByUserId");
+
+                    b.HasIndex("SentAt");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("ChatMessages", (string)null);
+                });
+
+            modelBuilder.Entity("Veltrix.Domain.Entities.ChatMute", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("MutedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("MutedUntil")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MutedByUserId");
+
+                    b.HasIndex("UserId", "MutedUntil");
+
+                    b.ToTable("ChatMutes", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ChatMutes_Until", "[MutedUntil] > [CreatedAt]");
+                        });
+                });
+
+            modelBuilder.Entity("Veltrix.Domain.Entities.DailyStatistic", b =>
+                {
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<int>("ActiveUsers")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("AverageCrashPoint")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<int>("BetsCount")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("BetsVolume")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("NewUsers")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("PayoutVolume")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("RoundsPlayed")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Date");
+
+                    b.ToTable("DailyStatistics", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_DailyStatistics_NonNegative", "[ActiveUsers] >= 0 AND [NewUsers] >= 0 AND [RoundsPlayed] >= 0 AND [BetsCount] >= 0 AND [BetsVolume] >= 0 AND [PayoutVolume] >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("Veltrix.Domain.Entities.EmailVerificationCode", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("UsedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "CreatedAt");
+
+                    b.ToTable("EmailVerificationCodes", (string)null);
                 });
 
             modelBuilder.Entity("Veltrix.Domain.Entities.Game", b =>
@@ -273,6 +607,169 @@ namespace Veltrix.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Veltrix.Domain.Entities.GameRoundEvent", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("FromState")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("RoundId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ToState")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RoundId", "OccurredAt");
+
+                    b.ToTable("GameRoundEvents", (string)null);
+                });
+
+            modelBuilder.Entity("Veltrix.Domain.Entities.Level", b =>
+                {
+                    b.Property<int>("Number")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("XpRequired")
+                        .HasColumnType("int");
+
+                    b.HasKey("Number");
+
+                    b.HasIndex("XpRequired")
+                        .IsUnique();
+
+                    b.ToTable("Levels", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Levels_Xp", "[XpRequired] >= 0");
+                        });
+
+                    b.HasData(
+                        new
+                        {
+                            Number = 1,
+                            Title = "Rookie",
+                            XpRequired = 0
+                        },
+                        new
+                        {
+                            Number = 2,
+                            Title = "Spotter",
+                            XpRequired = 100
+                        },
+                        new
+                        {
+                            Number = 3,
+                            Title = "Climber",
+                            XpRequired = 250
+                        },
+                        new
+                        {
+                            Number = 4,
+                            Title = "Pilot",
+                            XpRequired = 500
+                        },
+                        new
+                        {
+                            Number = 5,
+                            Title = "Navigator",
+                            XpRequired = 1000
+                        },
+                        new
+                        {
+                            Number = 6,
+                            Title = "Ace",
+                            XpRequired = 2000
+                        },
+                        new
+                        {
+                            Number = 7,
+                            Title = "Veteran",
+                            XpRequired = 3500
+                        },
+                        new
+                        {
+                            Number = 8,
+                            Title = "Elite",
+                            XpRequired = 5500
+                        },
+                        new
+                        {
+                            Number = 9,
+                            Title = "Legend",
+                            XpRequired = 8000
+                        },
+                        new
+                        {
+                            Number = 10,
+                            Title = "Mythic",
+                            XpRequired = 12000
+                        });
+                });
+
+            modelBuilder.Entity("Veltrix.Domain.Entities.LoginAttempt", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("FailureReason")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(45)
+                        .HasColumnType("nvarchar(45)");
+
+                    b.Property<bool>("Succeeded")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<int?>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("UserId", "CreatedAt");
+
+                    b.ToTable("LoginAttempts", (string)null);
+                });
+
             modelBuilder.Entity("Veltrix.Domain.Entities.Notification", b =>
                 {
                     b.Property<int>("Id")
@@ -312,6 +809,77 @@ namespace Veltrix.Infrastructure.Persistence.Migrations
                     b.ToTable("Notifications", (string)null);
                 });
 
+            modelBuilder.Entity("Veltrix.Domain.Entities.PasswordResetCode", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("UsedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "CreatedAt");
+
+                    b.ToTable("PasswordResetCodes", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_PasswordResetCodes_Attempts", "[Attempts] BETWEEN 0 AND 5");
+                        });
+                });
+
+            modelBuilder.Entity("Veltrix.Domain.Entities.PlaySession", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("EndedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("LastActivityAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("RemindersSent")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "StartedAt");
+
+                    b.ToTable("PlaySessions", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_PlaySessions_Activity", "[LastActivityAt] >= [StartedAt]");
+                        });
+                });
+
             modelBuilder.Entity("Veltrix.Domain.Entities.PlayerLimit", b =>
                 {
                     b.Property<int>("Id")
@@ -343,6 +911,58 @@ namespace Veltrix.Infrastructure.Persistence.Migrations
                             t.HasCheckConstraint("CK_PlayerLimits_DailyBetLimit", "[DailyBetLimit] IS NULL OR [DailyBetLimit] > 0");
 
                             t.HasCheckConstraint("CK_PlayerLimits_SessionReminder", "[SessionReminderMin] BETWEEN 0 AND 600");
+                        });
+                });
+
+            modelBuilder.Entity("Veltrix.Domain.Entities.PlayerStats", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("BiggestMultiplier")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<decimal>("BiggestWin")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("CashOutCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("LevelNumber")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TotalBets")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("TotalPayout")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalWagered")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Xp")
+                        .HasColumnType("int");
+
+                    b.HasKey("UserId");
+
+                    b.HasIndex("BiggestMultiplier");
+
+                    b.HasIndex("BiggestWin");
+
+                    b.HasIndex("LevelNumber");
+
+                    b.ToTable("PlayerStats", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_PlayerStats_CashOuts", "[CashOutCount] <= [TotalBets]");
+
+                            t.HasCheckConstraint("CK_PlayerStats_NonNegative", "[TotalBets] >= 0 AND [CashOutCount] >= 0 AND [TotalWagered] >= 0 AND [TotalPayout] >= 0 AND [Xp] >= 0");
                         });
                 });
 
@@ -380,6 +1000,141 @@ namespace Veltrix.Infrastructure.Persistence.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("RefreshTokens", (string)null);
+                });
+
+            modelBuilder.Entity("Veltrix.Domain.Entities.RoundCancellation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CancelledAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("CancelledByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("RefundedBetsCount")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("RefundedTotal")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("RoundId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CancelledByUserId");
+
+                    b.HasIndex("RoundId")
+                        .IsUnique();
+
+                    b.ToTable("RoundCancellations", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_RoundCancellations_Refunds", "[RefundedBetsCount] >= 0 AND [RefundedTotal] >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("Veltrix.Domain.Entities.SelfExclusion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("EndsAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Period")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("StartsAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "EndsAt");
+
+                    b.ToTable("SelfExclusions", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_SelfExclusions_Period", "[EndsAt] > [StartsAt]");
+                        });
+                });
+
+            modelBuilder.Entity("Veltrix.Domain.Entities.StaticPage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Language")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasColumnType("nvarchar(5)");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Slug", "Language")
+                        .IsUnique();
+
+                    b.ToTable("StaticPages", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_StaticPages_Language", "[Language] IN ('en', 'ka')");
+                        });
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Content = "1. During **betting** you place a bet with virtual VLX points.\n2. The round starts and the multiplier grows from **1.00x**.\n3. Press **Cash out** at any moment: you get *bet × current multiplier*.\n4. If the round **crashes** before you cash out, the bet is lost.\n5. The crash point is decided **before** the round starts. Check it on the Provably Fair page.\n\nVLX points have no monetary value and cannot be bought or withdrawn.",
+                            Language = "en",
+                            Slug = "rules",
+                            Title = "Crash game rules",
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Content = "Every round's crash point is random and independent of previous rounds.\nA long series of low crashes does **not** make a high crash more likely.\n\nThe game has a built-in house edge, so over many rounds **every** strategy\n(martingale, always 2x, waiting for \"patterns\") loses points on average.\n\nPlay for fun, use the limits and the session reminder, and take breaks.",
+                            Language = "en",
+                            Slug = "no-winning-strategy",
+                            Title = "Why there is no winning strategy",
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                        });
                 });
 
             modelBuilder.Entity("Veltrix.Domain.Entities.SystemSetting", b =>
@@ -444,6 +1199,9 @@ namespace Veltrix.Infrastructure.Persistence.Migrations
                     b.Property<bool>("IsBlocked")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsEmailVerified")
+                        .HasColumnType("bit");
+
                     b.Property<DateTime?>("LastLoginAt")
                         .HasColumnType("datetime2");
 
@@ -457,16 +1215,6 @@ namespace Veltrix.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int>("PasswordResetAttempts")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("PasswordResetCodeExpiresAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("PasswordResetCodeHash")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
@@ -484,6 +1232,80 @@ namespace Veltrix.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("Users", (string)null);
+                });
+
+            modelBuilder.Entity("Veltrix.Domain.Entities.UserAchievement", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("AchievementId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UnlockedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("UserId", "AchievementId");
+
+                    b.HasIndex("AchievementId");
+
+                    b.ToTable("UserAchievements", (string)null);
+                });
+
+            modelBuilder.Entity("Veltrix.Domain.Entities.UserPreference", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("AnimationsEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Language")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasColumnType("nvarchar(5)");
+
+                    b.Property<bool>("SoundEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Theme")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("UserPreferences", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_UserPreferences_Language", "[Language] IN ('en', 'ka')");
+                        });
+                });
+
+            modelBuilder.Entity("Veltrix.Domain.Entities.UserTwoFactor", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("EnabledAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("SecretKey")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("UserTwoFactors", (string)null);
                 });
 
             modelBuilder.Entity("Veltrix.Domain.Entities.Wallet", b =>
@@ -591,6 +1413,52 @@ namespace Veltrix.Infrastructure.Persistence.Migrations
                     b.Navigation("ActorUser");
                 });
 
+            modelBuilder.Entity("Veltrix.Domain.Entities.AutoBetConfig", b =>
+                {
+                    b.HasOne("Veltrix.Domain.Entities.Game", "Game")
+                        .WithMany()
+                        .HasForeignKey("GameId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Veltrix.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Game");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Veltrix.Domain.Entities.BalanceAdjustment", b =>
+                {
+                    b.HasOne("Veltrix.Domain.Entities.User", "AdminUser")
+                        .WithMany()
+                        .HasForeignKey("AdminUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Veltrix.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Veltrix.Domain.Entities.WalletTransaction", "WalletTransaction")
+                        .WithOne()
+                        .HasForeignKey("Veltrix.Domain.Entities.BalanceAdjustment", "WalletTransactionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("AdminUser");
+
+                    b.Navigation("User");
+
+                    b.Navigation("WalletTransaction");
+                });
+
             modelBuilder.Entity("Veltrix.Domain.Entities.Bet", b =>
                 {
                     b.HasOne("Veltrix.Domain.Entities.GameRound", "Round")
@@ -610,6 +1478,54 @@ namespace Veltrix.Infrastructure.Persistence.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Veltrix.Domain.Entities.ChatMessage", b =>
+                {
+                    b.HasOne("Veltrix.Domain.Entities.User", "DeletedByUser")
+                        .WithMany()
+                        .HasForeignKey("DeletedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Veltrix.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("DeletedByUser");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Veltrix.Domain.Entities.ChatMute", b =>
+                {
+                    b.HasOne("Veltrix.Domain.Entities.User", "MutedByUser")
+                        .WithMany()
+                        .HasForeignKey("MutedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Veltrix.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("MutedByUser");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Veltrix.Domain.Entities.EmailVerificationCode", b =>
+                {
+                    b.HasOne("Veltrix.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Veltrix.Domain.Entities.GameRound", b =>
                 {
                     b.HasOne("Veltrix.Domain.Entities.Game", "Game")
@@ -621,10 +1537,53 @@ namespace Veltrix.Infrastructure.Persistence.Migrations
                     b.Navigation("Game");
                 });
 
+            modelBuilder.Entity("Veltrix.Domain.Entities.GameRoundEvent", b =>
+                {
+                    b.HasOne("Veltrix.Domain.Entities.GameRound", "Round")
+                        .WithMany()
+                        .HasForeignKey("RoundId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Round");
+                });
+
+            modelBuilder.Entity("Veltrix.Domain.Entities.LoginAttempt", b =>
+                {
+                    b.HasOne("Veltrix.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Veltrix.Domain.Entities.Notification", b =>
                 {
                     b.HasOne("Veltrix.Domain.Entities.User", "User")
                         .WithMany("Notifications")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Veltrix.Domain.Entities.PasswordResetCode", b =>
+                {
+                    b.HasOne("Veltrix.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Veltrix.Domain.Entities.PlaySession", b =>
+                {
+                    b.HasOne("Veltrix.Domain.Entities.User", "User")
+                        .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -643,11 +1602,100 @@ namespace Veltrix.Infrastructure.Persistence.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Veltrix.Domain.Entities.PlayerStats", b =>
+                {
+                    b.HasOne("Veltrix.Domain.Entities.Level", "Level")
+                        .WithMany()
+                        .HasForeignKey("LevelNumber")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Veltrix.Domain.Entities.User", "User")
+                        .WithOne("Stats")
+                        .HasForeignKey("Veltrix.Domain.Entities.PlayerStats", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Level");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Veltrix.Domain.Entities.RefreshToken", b =>
                 {
                     b.HasOne("Veltrix.Domain.Entities.User", "User")
                         .WithMany("RefreshTokens")
                         .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Veltrix.Domain.Entities.RoundCancellation", b =>
+                {
+                    b.HasOne("Veltrix.Domain.Entities.User", "CancelledByUser")
+                        .WithMany()
+                        .HasForeignKey("CancelledByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Veltrix.Domain.Entities.GameRound", "Round")
+                        .WithMany()
+                        .HasForeignKey("RoundId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CancelledByUser");
+
+                    b.Navigation("Round");
+                });
+
+            modelBuilder.Entity("Veltrix.Domain.Entities.SelfExclusion", b =>
+                {
+                    b.HasOne("Veltrix.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Veltrix.Domain.Entities.UserAchievement", b =>
+                {
+                    b.HasOne("Veltrix.Domain.Entities.Achievement", "Achievement")
+                        .WithMany("UnlockedBy")
+                        .HasForeignKey("AchievementId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Veltrix.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Achievement");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Veltrix.Domain.Entities.UserPreference", b =>
+                {
+                    b.HasOne("Veltrix.Domain.Entities.User", "User")
+                        .WithOne("Preference")
+                        .HasForeignKey("Veltrix.Domain.Entities.UserPreference", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Veltrix.Domain.Entities.UserTwoFactor", b =>
+                {
+                    b.HasOne("Veltrix.Domain.Entities.User", "User")
+                        .WithOne("TwoFactor")
+                        .HasForeignKey("Veltrix.Domain.Entities.UserTwoFactor", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -683,6 +1731,11 @@ namespace Veltrix.Infrastructure.Persistence.Migrations
                     b.Navigation("Wallet");
                 });
 
+            modelBuilder.Entity("Veltrix.Domain.Entities.Achievement", b =>
+                {
+                    b.Navigation("UnlockedBy");
+                });
+
             modelBuilder.Entity("Veltrix.Domain.Entities.Bet", b =>
                 {
                     b.Navigation("Transactions");
@@ -706,7 +1759,13 @@ namespace Veltrix.Infrastructure.Persistence.Migrations
 
                     b.Navigation("Notifications");
 
+                    b.Navigation("Preference");
+
                     b.Navigation("RefreshTokens");
+
+                    b.Navigation("Stats");
+
+                    b.Navigation("TwoFactor");
 
                     b.Navigation("Wallet");
                 });
