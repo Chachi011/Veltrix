@@ -7,6 +7,7 @@ using Veltrix.Infrastructure.Auth;
 using Veltrix.Infrastructure.Email;
 using Veltrix.Infrastructure.Persistence;
 using Veltrix.Infrastructure.Services;
+using Veltrix.Infrastructure.Storage;
 
 namespace Veltrix.Infrastructure;
 
@@ -36,6 +37,7 @@ public static class DependencyInjection
         services.AddSingleton<IPasswordHasher, BCryptPasswordHasher>();
         services.AddSingleton<IJwtTokenService, JwtTokenService>();
         services.AddSingleton<IEmailSender, LogEmailSender>();
+        services.AddSingleton<IAvatarStorage, LocalAvatarStorage>();
 
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IGameService, GameService>();

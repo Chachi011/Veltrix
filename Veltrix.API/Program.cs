@@ -24,7 +24,8 @@ try
     builder.Services
         .AddApplication()
         .AddInfrastructure(builder.Configuration)
-        .AddApiServices(builder.Configuration);
+        .AddApiServices(builder.Configuration)
+        .AddAvatarStorage(builder.Configuration, builder.Environment);
 
     var app = builder.Build();
 
@@ -46,6 +47,7 @@ try
         app.UseHttpsRedirection();
     }
 
+    app.UseAvatarFiles();
     app.UseCors(ApiServiceExtensions.AngularCorsPolicy);
     app.UseAuthentication();
     app.UseAuthorization();

@@ -55,6 +55,11 @@ public sealed class ExceptionHandlingMiddleware
             DbUpdateException => Create(StatusCodes.Status409Conflict, "Conflict",
                 "The operation conflicts with existing data."),
 
+            // Thrown by the web server itself, e.g. 413 when an upload exceeds [RequestSizeLimit]
+            BadHttpRequestException badRequest => Create(badRequest.StatusCode,
+                badRequest.StatusCode == StatusCodes.Status413PayloadTooLarge ? "Payload too large" : "Bad request",
+                badRequest.StatusCode == StatusCodes.Status413PayloadTooLarge ? "The request body is too large." : badRequest.Message),
+
             _ => Create(StatusCodes.Status500InternalServerError, "Server error",
                 _environment.IsDevelopment() ? exception.ToString() : "An unexpected error occurred.")
         };

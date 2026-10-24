@@ -3,6 +3,7 @@ using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace Veltrix.API.Filters;
 
@@ -16,6 +17,10 @@ public sealed class FluentValidationFilter : IAsyncActionFilter
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {
         var services = context.HttpContext.RequestServices;
+
+        // A fresh dictionary, not context.ModelState: model binding already put entries like "File" there,
+        // and ModelState keys ignore case, so our camelCase "file" would be merged under "File".
+        var errors = new ModelStateDictionary();
 
         foreach (var argument in context.ActionArguments.Values)
         {
@@ -32,15 +37,15 @@ public sealed class FluentValidationFilter : IAsyncActionFilter
             foreach (var error in result.Errors)
             {
                 // "Email" -> "email", so field names match the JSON the Angular client sends
-                context.ModelState.AddModelError(JsonNamingPolicy.CamelCase.ConvertName(error.PropertyName), error.ErrorMessage);
+                errors.AddModelError(JsonNamingPolicy.CamelCase.ConvertName(error.PropertyName), error.ErrorMessage);
             }
         }
 
-        if (!context.ModelState.IsValid)
+        if (errors.ErrorCount > 0)
         {
             var factory = services.GetRequiredService<ProblemDetailsFactory>();
             var problem = factory.CreateValidationProblemDetails(
-                context.HttpContext, context.ModelState, StatusCodes.Status400BadRequest, "Validation failed");
+                context.HttpContext, errors, StatusCodes.Status400BadRequest, "Validation failed");
 
             context.Result = new BadRequestObjectResult(problem) { ContentTypes = { "application/problem+json" } };
             return;

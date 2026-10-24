@@ -16,6 +16,12 @@ public static class AuthRules
             .Matches("[a-z]").WithMessage("Password must contain a lowercase letter.")
             .Matches("[0-9]").WithMessage("Password must contain a digit.");
 
+    // Same rule for registration and profile edit, so they can never drift apart
+    public static IRuleBuilderOptions<T, string> ValidNickname<T>(this IRuleBuilder<T, string> rule) =>
+        rule.NotEmpty()
+            .Length(3, 20)
+            .Matches("^[A-Za-z0-9_]+$").WithMessage("Nickname may contain only letters, digits and underscore.");
+
     public static IRuleBuilderOptions<T, string> ValidEmail<T>(this IRuleBuilder<T, string> rule) =>
         rule.NotEmpty().EmailAddress().MaximumLength(256);
 }
@@ -26,10 +32,7 @@ public sealed class RegisterRequestValidator : AbstractValidator<RegisterRequest
     {
         RuleFor(x => x.Email).ValidEmail();
 
-        RuleFor(x => x.Nickname)
-            .NotEmpty()
-            .Length(3, 20)
-            .Matches("^[A-Za-z0-9_]+$").WithMessage("Nickname may contain only letters, digits and underscore.");
+        RuleFor(x => x.Nickname).ValidNickname();
 
         RuleFor(x => x.Password).StrongPassword();
 

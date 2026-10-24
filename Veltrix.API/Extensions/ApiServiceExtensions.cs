@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
+using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -24,6 +25,9 @@ public static class ApiServiceExtensions
         services.AddControllers(options => options.Filters.Add<FluentValidationFilter>())
             // Enums travel as strings ("Player", "BettingOpen"), which is easier to read in Angular
             .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
+        // Validators that live in the API layer (e.g. AvatarUploadForm, which uses IFormFile)
+        services.AddValidatorsFromAssemblyContaining<FluentValidationFilter>();
 
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserService, CurrentUserService>();

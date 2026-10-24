@@ -302,13 +302,8 @@ public sealed class AuthService : IAuthService
         return _db.SaveChangesAsync(ct);
     }
 
-    private Task RevokeAllTokensAsync(int userId, CancellationToken ct)
-    {
-        var now = Now;
-        return _db.RefreshTokens
-            .Where(t => t.UserId == userId && t.RevokedAt == null)
-            .ExecuteUpdateAsync(s => s.SetProperty(t => t.RevokedAt, now), ct);
-    }
+    private Task RevokeAllTokensAsync(int userId, CancellationToken ct) =>
+        _db.RefreshTokens.RevokeAllForUserAsync(userId, Now, ct);
 
     private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
 }
