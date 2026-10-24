@@ -18,22 +18,22 @@ public class User
     public int FailedLoginCount { get; set; }
     public DateTime? LockoutUntil { get; set; }
     public DateTime? LastLoginAt { get; set; }
+    public bool IsEmailVerified { get; set; }
     public DateTime CreatedAt { get; set; }
-
-    // One-time password reset code (stored hashed, never in plain text)
-    public string? PasswordResetCodeHash { get; set; }
-    public DateTime? PasswordResetCodeExpiresAt { get; set; }
-    public int PasswordResetAttempts { get; set; }
 
     public Wallet? Wallet { get; set; }
     public PlayerLimit? Limit { get; set; }
+    public UserPreference? Preference { get; set; }
+    public PlayerStats? Stats { get; set; }
+    public UserTwoFactor? TwoFactor { get; set; }
     public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
     public ICollection<Bet> Bets { get; set; } = new List<Bet>();
     public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 
     /// <summary>
     /// Creates a user together with everything every user must have:
-    /// a wallet with the starting balance (recorded as a Bonus transaction) and default limits.
+    /// a wallet with the starting balance (recorded as a Bonus transaction), default limits,
+    /// default UI preferences and an empty stats row.
     /// </summary>
     public static User Create(
         string email,
@@ -53,7 +53,9 @@ public class User
             Role = role,
             CreatedAt = now,
             Wallet = new Wallet { Balance = startingBalance },
-            Limit = new PlayerLimit { SessionReminderMin = PlayerLimit.DefaultSessionReminderMin }
+            Limit = new PlayerLimit { SessionReminderMin = PlayerLimit.DefaultSessionReminderMin },
+            Preference = new UserPreference { UpdatedAt = now },
+            Stats = new PlayerStats { LevelNumber = 1, UpdatedAt = now }
         };
 
         if (startingBalance > 0)
@@ -91,12 +93,5 @@ public class User
         FailedLoginCount = 0;
         LockoutUntil = null;
         LastLoginAt = now;
-    }
-
-    public void ClearPasswordResetCode()
-    {
-        PasswordResetCodeHash = null;
-        PasswordResetCodeExpiresAt = null;
-        PasswordResetAttempts = 0;
     }
 }
