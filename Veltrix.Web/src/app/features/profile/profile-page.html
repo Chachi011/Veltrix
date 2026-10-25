@@ -1,0 +1,82 @@
+<div class="page">
+  <h1>Profile</h1>
+
+  @if (profile(); as p) {
+    <section class="card summary">
+      <div class="avatar-big">
+        @if (preview() ?? p.avatarUrl; as src) {
+          <img [src]="src" alt="Avatar" />
+        } @else {
+          <span>{{ p.nickname.charAt(0).toUpperCase() }}</span>
+        }
+      </div>
+      <div class="who">
+        <h2>{{ p.nickname }}</h2>
+        <div class="muted">{{ p.email }}</div>
+        <div class="row tags">
+          <span class="badge badge-primary">{{ p.role }}</span>
+          <span class="muted">Member since {{ p.createdAt | date: 'mediumDate' }}</span>
+        </div>
+      </div>
+      <div class="bal">
+        <span class="muted">Balance</span>
+        <strong class="num">{{ p.balance | vlx }}</strong>
+      </div>
+    </section>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Avatar</h2>
+        <p class="muted">JPG, PNG or WEBP, up to 2 MB.</p>
+        <input type="file" class="file" accept="image/jpeg,image/png,image/webp" (change)="onFileSelected($event)" aria-label="Choose avatar image" />
+        @if (avatarError(); as message) {
+          <p class="field-error">{{ message }}</p>
+        }
+        <button type="button" class="btn btn-primary" [disabled]="!preview() || uploading()" (click)="uploadAvatar()">
+          {{ uploading() ? 'Uploading…' : 'Upload' }}
+        </button>
+      </section>
+
+      <section class="card">
+        <h2>Nickname</h2>
+        <form [formGroup]="nicknameForm" (ngSubmit)="saveNickname()" novalidate>
+          <div class="field">
+            <label for="nickname">Nickname</label>
+            <input id="nickname" class="input" formControlName="nickname" autocomplete="username" />
+            <vx-field-error [control]="nicknameForm.controls.nickname" patternMessage="3-20 letters, digits or underscore." />
+          </div>
+          <button type="submit" class="btn btn-primary" [disabled]="savingNickname() || nicknameForm.pristine">
+            {{ savingNickname() ? 'Saving…' : 'Save nickname' }}
+          </button>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Password</h2>
+        <form [formGroup]="passwordForm" (ngSubmit)="changePassword()" novalidate>
+          <div class="field">
+            <label for="current">Current password</label>
+            <input id="current" class="input" type="password" formControlName="currentPassword" autocomplete="current-password" />
+            <vx-field-error [control]="passwordForm.controls.currentPassword" />
+          </div>
+          <div class="field">
+            <label for="new">New password</label>
+            <input id="new" class="input" type="password" formControlName="newPassword" autocomplete="new-password" />
+            <vx-field-error [control]="passwordForm.controls.newPassword" />
+          </div>
+          <div class="field">
+            <label for="confirm">Confirm new password</label>
+            <input id="confirm" class="input" type="password" formControlName="confirmPassword" autocomplete="new-password" />
+            <vx-field-error [control]="passwordForm.controls.confirmPassword" />
+          </div>
+          <p class="muted hint">Changing the password logs you out on every device.</p>
+          <button type="submit" class="btn btn-primary" [disabled]="savingPassword()">
+            {{ savingPassword() ? 'Saving…' : 'Change password' }}
+          </button>
+        </form>
+      </section>
+    </div>
+  } @else {
+    <p class="empty">Loading…</p>
+  }
+</div>

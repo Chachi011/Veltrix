@@ -1,0 +1,126 @@
+<div class="page">
+  <h1>History</h1>
+
+  <div class="tabs" role="tablist">
+    <button type="button" role="tab" [class.active]="tab() === 'bets'" [attr.aria-selected]="tab() === 'bets'" (click)="selectTab('bets')">
+      My bets
+    </button>
+    <button type="button" role="tab" [class.active]="tab() === 'rounds'" [attr.aria-selected]="tab() === 'rounds'" (click)="selectTab('rounds')">
+      Rounds
+    </button>
+  </div>
+
+  @if (tab() === 'bets') {
+    <section class="card">
+      <form class="filters" (ngSubmit)="applyFilters()">
+        <div class="field">
+          <label for="status">Result</label>
+          <select id="status" name="status" class="input" [ngModel]="status()" (ngModelChange)="status.set($event)">
+            <option [ngValue]="null">All</option>
+            @for (s of statuses; track s) {
+              <option [ngValue]="s">{{ statusLabel(s) }}</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label for="from">From</label>
+          <input id="from" name="from" class="input" type="date" [ngModel]="from()" (ngModelChange)="from.set($event)" />
+        </div>
+        <div class="field">
+          <label for="to">To</label>
+          <input id="to" name="to" class="input" type="date" [ngModel]="to()" (ngModelChange)="to.set($event)" />
+        </div>
+        <div class="filter-actions">
+          <button type="submit" class="btn btn-primary">Apply</button>
+          <button type="button" class="btn btn-ghost" (click)="clearFilters()">Clear</button>
+        </div>
+      </form>
+
+      @if (bets(); as page) {
+        @if (page.items.length === 0) {
+          <p class="empty">No bets found. <a routerLink="/crash">Play a round</a></p>
+        } @else {
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Round</th>
+                  <th>Placed</th>
+                  <th class="right">Bet</th>
+                  <th class="right">Auto</th>
+                  <th>Result</th>
+                  <th class="right">Cash-out</th>
+                  <th class="right">Crash</th>
+                  <th class="right">Profit</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (bet of page.items; track bet.id) {
+                  <tr>
+                    <td><a routerLink="/fairness" [queryParams]="{ round: bet.roundId }">#{{ bet.roundNumber }}</a></td>
+                    <td>{{ bet.placedAt | date: 'MMM d, HH:mm:ss' }}</td>
+                    <td class="right num">{{ bet.amount | vlx: false }}</td>
+                    <td class="right num muted">{{ bet.autoCashOutAt | mult }}</td>
+                    <td><span class="badge" [class]="'badge ' + statusClass(bet.status)">{{ statusLabel(bet.status) }}</span></td>
+                    <td class="right num">{{ bet.cashOutMultiplier | mult }}</td>
+                    <td class="right num muted">{{ bet.crashPoint | mult }}</td>
+                    <td class="right num" [class.text-success]="(profit(bet) ?? 0) > 0" [class.text-danger]="(profit(bet) ?? 0) < 0">
+                      @if (profit(bet); as p) {
+                        {{ p > 0 ? '+' : '' }}{{ p | vlx: false }}
+                      } @else {
+                        {{ bet.status === 'Active' ? '…' : '0.00' }}
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <vx-pagination [page]="page.page" [totalPages]="page.totalPages" (pageChange)="loadBets($event)" />
+        }
+      } @else {
+        <p class="empty">Loading…</p>
+      }
+    </section>
+  } @else {
+    <section class="card">
+      @if (rounds(); as page) {
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Round</th>
+                <th>Ended</th>
+                <th class="right">Crash point</th>
+                <th>Server seed hash</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (round of page.items; track round.id) {
+                <tr>
+                  <td>#{{ round.roundNumber }}</td>
+                  <td>{{ round.endedAt | date: 'MMM d, HH:mm:ss' }}</td>
+                  <td class="right num">
+                    @if (round.state === 'Cancelled') {
+                      <span class="badge">Cancelled</span>
+                    } @else {
+                      <strong [class.text-danger]="(round.crashPoint ?? 0) < 2" [class.text-success]="(round.crashPoint ?? 0) >= 2">
+                        {{ round.crashPoint | mult }}
+                      </strong>
+                    }
+                  </td>
+                  <td class="mono muted" [title]="round.serverSeedHash">{{ round.serverSeedHash | shortHash: 12 }}</td>
+                  <td><a routerLink="/fairness" [queryParams]="{ round: round.id }">Verify</a></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <vx-pagination [page]="page.page" [totalPages]="page.totalPages" (pageChange)="loadRounds($event)" />
+      } @else {
+        <p class="empty">Loading…</p>
+      }
+    </section>
+  }
+</div>

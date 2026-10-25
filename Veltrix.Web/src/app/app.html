@@ -1,0 +1,83 @@
+<div class="loading-bar" [class.active]="loading.active()" aria-hidden="true"></div>
+
+<header class="header">
+  <div class="header-inner">
+    <a routerLink="/crash" class="brand" aria-label="VELTRIX home">
+      <span class="brand-mark">V</span>
+      <span class="brand-name">VELTRIX</span>
+    </a>
+
+    <nav class="nav" [class.open]="menuOpen()" aria-label="Main">
+      <a routerLink="/crash" routerLinkActive="active">Play</a>
+      @if (auth.isLoggedIn()) {
+        <a routerLink="/history" routerLinkActive="active">History</a>
+        <a routerLink="/wallet" routerLinkActive="active">Wallet</a>
+      }
+      <a routerLink="/fairness" routerLinkActive="active">Provably fair</a>
+
+      @if (auth.isLoggedIn()) {
+        <a routerLink="/profile" routerLinkActive="active" class="mobile-only">Profile</a>
+        <button type="button" class="link-button mobile-only" (click)="logout()">Log out</button>
+      } @else {
+        <a routerLink="/login" routerLinkActive="active" class="mobile-only">Log in</a>
+        <a routerLink="/register" routerLinkActive="active" class="mobile-only">Register</a>
+      }
+    </nav>
+
+    <div class="actions">
+      @if (auth.isLoggedIn()) {
+        <a routerLink="/wallet" class="balance num" title="Virtual balance (no monetary value)">
+          {{ wallet.balance() | vlx }}
+        </a>
+      }
+
+      <button
+        type="button"
+        class="icon-button"
+        (click)="theme.toggle()"
+        [attr.aria-label]="theme.theme() === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'"
+        [title]="theme.theme() === 'dark' ? 'Light theme' : 'Dark theme'"
+      >
+        {{ theme.theme() === 'dark' ? '☀' : '☾' }}
+      </button>
+
+      @if (auth.user(); as user) {
+        <div class="user desktop-only">
+          <a routerLink="/profile" class="avatar" [title]="user.nickname">
+            @if (user.avatarUrl) {
+              <img [src]="user.avatarUrl" alt="" />
+            } @else {
+              {{ initial() }}
+            }
+          </a>
+          <button type="button" class="btn btn-sm btn-ghost" (click)="logout()">Log out</button>
+        </div>
+      } @else {
+        <div class="desktop-only row">
+          <a routerLink="/login" class="btn btn-sm btn-ghost">Log in</a>
+          <a routerLink="/register" class="btn btn-sm btn-primary">Register</a>
+        </div>
+      }
+
+      <button
+        type="button"
+        class="icon-button menu-toggle"
+        (click)="menuOpen.set(!menuOpen())"
+        [attr.aria-expanded]="menuOpen()"
+        aria-label="Menu"
+      >
+        ☰
+      </button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <router-outlet />
+</main>
+
+<footer class="footer muted">
+  VELTRIX is an educational project. VLX points are virtual and have no monetary value; they cannot be bought or withdrawn.
+</footer>
+
+<vx-toast-container />

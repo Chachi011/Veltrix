@@ -1,0 +1,101 @@
+<section class="card panel" aria-label="Your bet">
+  @if (!loggedIn()) {
+    <h2>Play with virtual points</h2>
+    <p class="muted">Log in to place bets. You are watching the live game as a guest.</p>
+    <div class="row">
+      <a class="btn btn-primary" routerLink="/login" [queryParams]="{ returnUrl: '/crash' }">Log in</a>
+      <a class="btn" routerLink="/register">Register</a>
+    </div>
+  } @else if (!isPlayer()) {
+    <h2>Watching</h2>
+    <p class="muted">Only players can bet. Staff accounts watch and monitor rounds.</p>
+  } @else if (myBet(); as bet) {
+    <!-- I have a bet in the current round -->
+    <div class="my-bet">
+      <div class="row">
+        <span class="muted">Your bet</span>
+        <span class="spacer"></span>
+        <strong class="num">{{ bet.amount | vlx }}</strong>
+      </div>
+      @if (bet.autoCashOutAt) {
+        <div class="row">
+          <span class="muted">Auto cash-out</span>
+          <span class="spacer"></span>
+          <span class="num">{{ bet.autoCashOutAt | mult }}</span>
+        </div>
+      }
+    </div>
+
+    @switch (bet.status) {
+      @case ('Active') {
+        @if (state() === 'Running') {
+          <button
+            type="button"
+            class="btn btn-success btn-block btn-lg cashout"
+            [disabled]="!canCashOut()"
+            (click)="cashOut.emit()"
+          >
+            <span>{{ cashingOut() ? 'Cashing out…' : 'Cash out' }}</span>
+            <span class="num">{{ potentialPayout() | vlx }}</span>
+          </button>
+        } @else {
+          <button type="button" class="btn btn-block btn-lg" disabled>Waiting for the round to start…</button>
+        }
+      }
+      @case ('CashedOut') {
+        <div class="result win">
+          Cashed out at <strong>{{ bet.multiplier | mult }}</strong>
+          <span class="num">+{{ bet.payout | vlx }}</span>
+        </div>
+      }
+      @case ('Lost') {
+        <div class="result lose">Crashed before you cashed out. <span class="num">−{{ bet.amount | vlx }}</span></div>
+      }
+      @case ('Refunded') {
+        <div class="result">Round cancelled. <span class="num">{{ bet.amount | vlx }}</span> refunded.</div>
+      }
+    }
+  } @else {
+    <!-- No bet yet: the bet form -->
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <div class="field">
+        <label for="amount">Bet amount (VLX)</label>
+        <div class="amount-row">
+          <input id="amount" class="input num" type="number" step="0.01" inputmode="decimal" formControlName="amount" />
+          <button type="button" class="btn btn-sm" (click)="setAmount('half')" title="Half">½</button>
+          <button type="button" class="btn btn-sm" (click)="setAmount('double')" title="Double">2×</button>
+        </div>
+        <div class="quick">
+          <button type="button" class="btn btn-sm btn-ghost" (click)="setAmount('min')">Min</button>
+          <button type="button" class="btn btn-sm btn-ghost" (click)="setAmount('max')">Max</button>
+        </div>
+        <vx-field-error [control]="form.controls.amount" />
+      </div>
+
+      <div class="field">
+        <label class="checkbox">
+          <input type="checkbox" formControlName="autoEnabled" />
+          <span>Auto cash-out</span>
+        </label>
+        @if (form.controls.autoEnabled.value) {
+          <input class="input num" type="number" step="0.01" min="1.01" inputmode="decimal" formControlName="autoCashOutAt" aria-label="Auto cash-out multiplier" />
+          <vx-field-error [control]="form.controls.autoCashOutAt" />
+        }
+      </div>
+
+      <button class="btn btn-primary btn-block btn-lg" type="submit" [disabled]="!canBet()">
+        @if (placing()) {
+          Placing bet…
+        } @else if (state() === 'BettingOpen') {
+          Place bet
+        } @else {
+          {{ waitingLabel() }}
+        }
+      </button>
+
+      @if (game(); as g) {
+        <p class="limits muted num">Min {{ g.minBet | vlx }} · Max {{ g.maxBet | vlx }}</p>
+      }
+    </form>
+  }
+</section>

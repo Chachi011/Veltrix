@@ -1,0 +1,87 @@
+<div class="page crash">
+  <vx-history-strip [items]="store.history()" />
+
+  @if (store.loaded() && hub.status() === 'disconnected') {
+    <div class="banner" role="alert">
+      <span>Live connection lost. The game is not updating.</span>
+      <button type="button" class="btn btn-sm" (click)="reconnect()">Reconnect</button>
+    </div>
+  } @else if (hub.status() === 'reconnecting') {
+    <div class="banner" role="status">Reconnecting…</div>
+  }
+
+  <div class="layout">
+    <section class="card stage" aria-label="Crash game">
+      <header class="stage-head">
+        @if (store.round(); as round) {
+          <span class="round">Round #{{ round.roundNumber }}</span>
+          <span class="hash muted mono" [title]="'Published before the round: SHA-256 of the secret seed. ' + round.serverSeedHash">
+            Hash {{ round.serverSeedHash | shortHash }}
+          </span>
+          @if (store.serverSeed()) {
+            <a routerLink="/fairness" [queryParams]="{ round: round.id }">Verify</a>
+          }
+        }
+        <span class="spacer"></span>
+        <span class="online" [class.live]="hub.status() === 'connected'" title="Players watching">
+          <span class="dot"></span>{{ store.online() }} online
+        </span>
+      </header>
+
+      <div class="chart-area">
+        <vx-crash-chart [multiplier]="multiplier()" [elapsedMs]="elapsedMs()" [flying]="flying()" [crashed]="crashed()" />
+
+        <div class="overlay" [class.crashed]="crashed()">
+          @switch (store.state()) {
+            @case ('Running') {
+              <div class="mult num">{{ multiplier() | mult }}</div>
+            }
+            @case ('Crashed') {
+              <div class="label">Crashed</div>
+              <div class="mult num">{{ multiplier() | mult }}</div>
+            }
+            @case ('Finished') {
+              <div class="label">Crashed</div>
+              <div class="mult num">{{ multiplier() | mult }}</div>
+            }
+            @case ('BettingOpen') {
+              <div class="label">Place your bets</div>
+              <div class="countdown num">{{ secondsLeft().toFixed(1) }}s</div>
+              <div class="progress" aria-hidden="true"><span [style.width.%]="bettingProgress()"></span></div>
+            }
+            @case ('BettingClosed') {
+              <div class="label">Get ready…</div>
+            }
+            @case ('Cancelled') {
+              <div class="label">Round cancelled</div>
+              <div class="muted">All active bets were refunded</div>
+            }
+            @default {
+              <div class="label">{{ store.loaded() ? 'Next round starting…' : 'Loading…' }}</div>
+            }
+          }
+        </div>
+      </div>
+    </section>
+
+    <aside class="side">
+      <vx-bet-panel
+        [game]="store.game()"
+        [balance]="wallet.balance()"
+        [state]="store.state()"
+        [myBet]="store.myRoundBet()"
+        [multiplier]="multiplier()"
+        [loggedIn]="auth.isLoggedIn()"
+        [isPlayer]="auth.isPlayer()"
+        [canBet]="store.canBet()"
+        [canCashOut]="store.canCashOut()"
+        [placing]="store.placing()"
+        [cashingOut]="store.cashingOut()"
+        (bet)="placeBet($event)"
+        (cashOut)="cashOut()"
+      />
+
+      <vx-live-bets [bets]="store.liveBets()" [me]="auth.user()?.nickname ?? null" />
+    </aside>
+  </div>
+</div>

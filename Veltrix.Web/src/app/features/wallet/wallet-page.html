@@ -1,0 +1,84 @@
+<div class="page">
+  <h1>Wallet</h1>
+
+  <div class="top">
+    <section class="card balance-card">
+      <span class="muted">Virtual balance</span>
+      <div class="balance num">{{ store.balance() | vlx }}</div>
+      <p class="muted note">VLX points are virtual. They cannot be bought, sold, withdrawn or exchanged.</p>
+    </section>
+
+    <section class="card bonus-card">
+      <h2>Daily bonus</h2>
+      @if (store.wallet(); as wallet) {
+        <p class="muted">Claim {{ wallet.dailyBonusAmount | vlx }} once every 24 hours.</p>
+        @if (canClaim()) {
+          <button type="button" class="btn btn-primary btn-block" [disabled]="store.claiming()" (click)="store.claimDailyBonus()">
+            {{ store.claiming() ? 'Claiming…' : 'Claim ' + (wallet.dailyBonusAmount | vlx) }}
+          </button>
+        } @else {
+          <button type="button" class="btn btn-block" disabled>
+            Next bonus in <span class="num">{{ bonusCountdown() }}</span>
+          </button>
+        }
+      } @else {
+        <p class="muted">Loading…</p>
+      }
+    </section>
+  </div>
+
+  <section class="card">
+    <div class="list-head">
+      <h2>Transactions</h2>
+      <select
+        class="input type-filter"
+        aria-label="Filter by type"
+        [ngModel]="store.query().type ?? null"
+        (ngModelChange)="filterByType($event)"
+      >
+        <option [ngValue]="null">All types</option>
+        @for (type of types; track type) {
+          <option [ngValue]="type">{{ typeLabel(type) }}</option>
+        }
+      </select>
+    </div>
+
+    @if (store.transactions(); as page) {
+      @if (page.items.length === 0) {
+        <p class="empty">No transactions.</p>
+      } @else {
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Details</th>
+                <th class="right">Amount</th>
+                <th class="right">Balance before</th>
+                <th class="right">Balance after</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (tx of page.items; track tx.id) {
+                <tr>
+                  <td>{{ tx.createdAt | date: 'MMM d, HH:mm:ss' }}</td>
+                  <td><span class="badge" [class.badge-success]="tx.amount > 0" [class.badge-danger]="tx.amount < 0">{{ typeLabel(tx.type) }}</span></td>
+                  <td class="muted reason">{{ tx.reason }}</td>
+                  <td class="right num" [class.text-success]="tx.amount > 0" [class.text-danger]="tx.amount < 0">
+                    {{ tx.amount > 0 ? '+' : '' }}{{ tx.amount | vlx: false }}
+                  </td>
+                  <td class="right num muted">{{ tx.balanceBefore | vlx: false }}</td>
+                  <td class="right num">{{ tx.balanceAfter | vlx: false }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <vx-pagination [page]="page.page" [totalPages]="page.totalPages" (pageChange)="goToPage($event)" />
+      }
+    } @else {
+      <p class="empty">Loading…</p>
+    }
+  </section>
+</div>

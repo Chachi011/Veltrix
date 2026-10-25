@@ -1,0 +1,92 @@
+<div class="page">
+  <h1>Provably fair</h1>
+  <p class="muted lead">
+    Every crash point is decided <strong>before</strong> the round from a secret random seed. Before betting opens we publish
+    the seed's SHA-256 hash. After the crash we reveal the seed, so anyone can check that it matches the hash and produces
+    exactly the crash point that happened. Changing the result afterwards would break one of the two checks.
+  </p>
+
+  <div class="grid">
+    <section class="card">
+      <h2>Verify a round</h2>
+
+      @if (roundInfo(); as info) {
+        <div class="round-info">
+          <strong>Round #{{ info.roundNumber }}</strong>
+          <span class="badge">{{ info.state }}</span>
+          @if (!info.serverSeed) {
+            <p class="muted">This round is not over yet: the seed is still secret. Only the hash is public:</p>
+            <code class="mono">{{ info.serverSeedHash }}</code>
+          }
+        </div>
+      }
+
+      <form [formGroup]="form" (ngSubmit)="verify()" novalidate>
+        <div class="field">
+          <label for="seed">Server seed (revealed after the round)</label>
+          <input id="seed" class="input mono" formControlName="serverSeed" spellcheck="false" />
+          <vx-field-error [control]="form.controls.serverSeed" />
+        </div>
+        <div class="field">
+          <label for="hash">Published hash (optional)</label>
+          <input id="hash" class="input mono" formControlName="serverSeedHash" spellcheck="false" />
+          <vx-field-error [control]="form.controls.serverSeedHash" patternMessage="64 hexadecimal characters." />
+        </div>
+        <div class="field">
+          <label for="crash">Crash point (optional)</label>
+          <input id="crash" class="input num" formControlName="crashPoint" inputmode="decimal" placeholder="e.g. 2.37" />
+        </div>
+        <button class="btn btn-primary" type="submit" [disabled]="verifying()">
+          {{ verifying() ? 'Verifying…' : 'Verify' }}
+        </button>
+      </form>
+    </section>
+
+    <div class="results">
+      @if (browserResult(); as b) {
+        <section class="card result" [class]="'card result ' + verdict(b.hashMatches, b.crashPointMatches)">
+          <h2>Checked in your browser</h2>
+          <p class="muted small">Calculated locally with the Web Crypto API; no server involved.</p>
+          <dl>
+            <dt>SHA-256(seed)</dt>
+            <dd class="mono">{{ b.hash }}</dd>
+            <dt>Hash matches</dt>
+            <dd>{{ b.hashMatches === null ? 'not checked' : b.hashMatches ? '✔ yes' : '✘ NO' }}</dd>
+            <dt>Crash point from seed</dt>
+            <dd class="num">{{ b.crashPoint | mult }}</dd>
+            <dt>Crash point matches</dt>
+            <dd>{{ b.crashPointMatches === null ? 'not checked' : b.crashPointMatches ? '✔ yes' : '✘ NO' }}</dd>
+          </dl>
+        </section>
+      }
+
+      @if (serverResult(); as s) {
+        <section class="card result" [class]="'card result ' + verdict(s.hashMatches, s.crashPointMatches)">
+          <h2>Checked by the server</h2>
+          <dl>
+            <dt>Hash matches</dt>
+            <dd>{{ s.hashMatches === null ? 'not checked' : s.hashMatches ? '✔ yes' : '✘ NO' }}</dd>
+            <dt>Crash point</dt>
+            <dd class="num">{{ s.computedCrashPoint | mult }}</dd>
+            <dt>Crash point matches</dt>
+            <dd>{{ s.crashPointMatches === null ? 'not checked' : s.crashPointMatches ? '✔ yes' : '✘ NO' }}</dd>
+          </dl>
+          <p class="muted small algo">{{ s.algorithm }}</p>
+        </section>
+      }
+
+      @if (!browserResult() && !serverResult()) {
+        <section class="card">
+          <h2>How it works</h2>
+          <ol class="steps">
+            <li><code>hash = SHA-256(seed)</code> is shown before the round.</li>
+            <li><code>h</code> = first 52 bits of <code>HMAC-SHA256(seed, "VELTRIX")</code>, <code>r = h / 2^52</code>.</li>
+            <li><code>crash = max(1.00, floor(100 · 0.97 / (1 − r)) / 100)</code></li>
+            <li>The 3% house edge means every strategy returns 97% on average.</li>
+          </ol>
+          <p class="muted small">Click any crash point on the game page to open its round here.</p>
+        </section>
+      }
+    </div>
+  </div>
+</div>
