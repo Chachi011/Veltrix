@@ -155,7 +155,7 @@ public sealed class BetService : IBetService
         var total = await bets.CountAsync(ct);
         var items = await bets
             .OrderByDescending(b => b.PlacedAt).ThenByDescending(b => b.Id)
-            .Skip(query.Skip).Take(query.PageSize)
+            .Skip(query.Offset()).Take(query.PageSize)
             .Select(b => new BetDto
             {
                 Id = b.Id,

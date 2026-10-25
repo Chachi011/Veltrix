@@ -51,7 +51,7 @@ public sealed class RoundService : IRoundService
         var total = await rounds.CountAsync(ct);
         var page = await rounds
             .OrderByDescending(r => r.RoundNumber)
-            .Skip(query.Skip).Take(query.PageSize)
+            .Skip(query.Offset()).Take(query.PageSize)
             .ToListAsync(ct);
 
         var now = Now;

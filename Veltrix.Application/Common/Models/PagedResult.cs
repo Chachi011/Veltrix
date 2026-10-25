@@ -8,7 +8,11 @@ public class PageQuery
     public int Page { get; set; } = 1;
     public int PageSize { get; set; } = 20;
 
-    public int Skip => (Page - 1) * PageSize;
+    /// <summary>
+    /// Rows to skip, computed from Page and PageSize. A method on purpose: properties of a [FromQuery]
+    /// class become query parameters (bindable and listed in Swagger); methods never do.
+    /// </summary>
+    public int Offset() => (Page - 1) * PageSize;
 }
 
 /// <summary>One page of results plus what the UI needs to draw the pager.</summary>

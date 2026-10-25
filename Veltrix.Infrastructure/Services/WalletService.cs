@@ -69,7 +69,7 @@ public sealed class WalletService : IWalletService
         var total = await transactions.CountAsync(ct);
         var items = await transactions
             .OrderByDescending(t => t.CreatedAt).ThenByDescending(t => t.Id)
-            .Skip(query.Skip).Take(query.PageSize)
+            .Skip(query.Offset()).Take(query.PageSize)
             .Select(t => new WalletTransactionDto
             {
                 Id = t.Id,
