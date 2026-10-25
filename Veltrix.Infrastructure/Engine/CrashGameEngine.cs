@@ -218,15 +218,15 @@ public sealed class CrashGameEngine : BackgroundService, IRoundEngineControl
 
         try
         {
-            await _notifier.RoundStateChangedAsync(game.Slug, round.ToStateEvent());
+            await _notifier.RoundStateChangedAsync(game.Slug, round.ToStateEvent(Now));
 
             // 1. Betting
             round = await WithSettlementAsync(s => s.OpenBettingAsync(round.Id, TimeSpan.FromSeconds(game.BettingDurationSec), stoppingToken));
-            await _notifier.RoundStateChangedAsync(game.Slug, round.ToStateEvent());
+            await _notifier.RoundStateChangedAsync(game.Slug, round.ToStateEvent(Now));
             await DelayUntilAsync(round.BettingEndsAt!.Value, roundCts.Token);
 
             round = await WithSettlementAsync(s => s.CloseBettingAsync(round.Id, stoppingToken));
-            await _notifier.RoundStateChangedAsync(game.Slug, round.ToStateEvent());
+            await _notifier.RoundStateChangedAsync(game.Slug, round.ToStateEvent(Now));
 
             // Betting is closed, so this list cannot change any more
             var autoCashOuts = new Queue<AutoCashOutCandidate>(
@@ -236,7 +236,7 @@ public sealed class CrashGameEngine : BackgroundService, IRoundEngineControl
 
             // 2. Flight
             round = await WithSettlementAsync(s => s.StartAsync(round.Id, stoppingToken));
-            await _notifier.RoundStateChangedAsync(game.Slug, round.ToStateEvent());
+            await _notifier.RoundStateChangedAsync(game.Slug, round.ToStateEvent(Now));
             await FlyAsync(game, round, autoCashOuts, roundCts.Token, stoppingToken);
 
             // 3. Crash: from here the result is final and cannot be cancelled any more
@@ -255,10 +255,10 @@ public sealed class CrashGameEngine : BackgroundService, IRoundEngineControl
 
             round = await WithSettlementAsync(s => s.CrashAsync(round.Id, stoppingToken));
             await _notifier.RoundCrashedAsync(game.Slug, new RoundCrashedEvent(round.Id, round.CrashPoint, round.ServerSeed));
-            await _notifier.RoundStateChangedAsync(game.Slug, round.ToStateEvent());
+            await _notifier.RoundStateChangedAsync(game.Slug, round.ToStateEvent(Now));
 
             round = await WithSettlementAsync(s => s.FinishAsync(round.Id, stoppingToken));
-            await _notifier.RoundStateChangedAsync(game.Slug, round.ToStateEvent());
+            await _notifier.RoundStateChangedAsync(game.Slug, round.ToStateEvent(Now));
         }
         catch (OperationCanceledException) when (roundCts.IsCancellationRequested && !stoppingToken.IsCancellationRequested)
         {
@@ -268,7 +268,7 @@ public sealed class CrashGameEngine : BackgroundService, IRoundEngineControl
                 var outcome = await WithSettlementAsync(s =>
                     s.CancelAsync(round.Id, live.CancelledBy, live.CancelReason ?? "Cancelled by operator", stoppingToken));
 
-                await _notifier.RoundStateChangedAsync(game.Slug, outcome.Round.ToStateEvent());
+                await _notifier.RoundStateChangedAsync(game.Slug, outcome.Round.ToStateEvent(Now));
                 await NotifyBalancesAsync(outcome.Balances);
                 live.Cancellation.TrySetResult(outcome.Cancellation);
             }

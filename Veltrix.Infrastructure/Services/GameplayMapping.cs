@@ -28,6 +28,6 @@ internal static class GameplayMapping
         EndedAt = round.EndedAt
     };
 
-    public static RoundStateChangedEvent ToStateEvent(this GameRound round) =>
-        new(round.Id, round.RoundNumber, round.State, round.ServerSeedHash, round.BettingEndsAt, round.StartedAt);
+    public static RoundStateChangedEvent ToStateEvent(this GameRound round, DateTime serverTime) =>
+        new(round.Id, round.RoundNumber, round.State, round.ServerSeedHash, round.BettingEndsAt, round.StartedAt, serverTime);
 }

@@ -22,11 +22,13 @@ public sealed class CrashHub : Hub
 
     private readonly IRoundService _roundService;
     private readonly IGameService _gameService;
+    private readonly TimeProvider _time;
 
-    public CrashHub(IRoundService roundService, IGameService gameService)
+    public CrashHub(IRoundService roundService, IGameService gameService, TimeProvider time)
     {
         _roundService = roundService;
         _gameService = gameService;
+        _time = time;
     }
 
     public static string GroupName(string gameSlug) => $"game:{gameSlug}";
@@ -66,7 +68,8 @@ public sealed class CrashHub : Hub
         {
             var round = await _roundService.GetCurrentAsync(slug);
             await Clients.Caller.SendAsync("RoundStateChanged", new RoundStateChangedEvent(
-                round.Id, round.RoundNumber, round.State, round.ServerSeedHash, round.BettingEndsAt, round.StartedAt));
+                round.Id, round.RoundNumber, round.State, round.ServerSeedHash, round.BettingEndsAt, round.StartedAt,
+                _time.GetUtcNow().UtcDateTime));
         }
         catch (NotFoundException)
         {
