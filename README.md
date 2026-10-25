@@ -9,8 +9,8 @@ A real-time multiplayer web platform whose main module is a **Crash game**: a mu
 | Layer | Technologies |
 |---|---|
 | Backend | C#, ASP.NET Core Web API (.NET 8), EF Core 8 (Code First), SQL Server, SignalR, JWT + refresh tokens, BCrypt, FluentValidation, Serilog, Swagger |
-| Frontend | Angular (standalone), TypeScript, SCSS, NgRx SignalStore, @microsoft/signalr, Chart.js, Canvas *(Phase 3)* |
-| Tests | xUnit + Moq, Jasmine/Karma *(Phase 5)* |
+| Frontend | Angular 20 (standalone, zoneless, signals), TypeScript, SCSS, NgRx SignalStore, @microsoft/signalr, HTML Canvas |
+| Tests | xUnit + Moq (backend), Jasmine/Karma (frontend) |
 
 ## Architecture
 
@@ -19,15 +19,27 @@ Veltrix.API            → controllers, middleware, filters, auth/Swagger/CORS s
 Veltrix.Application    → DTOs, service interfaces, validators, exceptions            (depends on Domain)
 Veltrix.Infrastructure → EF Core DbContext, migrations, service implementations, JWT, BCrypt
 Veltrix.Domain         → entities, enums, business rules; no external packages
+Veltrix.Tests          → xUnit tests
+Veltrix.Web            → Angular client
 ```
 
 The dependencies point inward. The Domain project knows nothing about the database or the web, so its rules can be unit-tested in isolation.
+
+Inside `Veltrix.Web/src/app`:
+
+```
+core/      models (DTO types), api/ (HTTP services), auth/ (AuthStore, interceptor, guards),
+           http/ (error + loading interceptors), realtime/ (SignalR), state/ (WalletStore), ui/ (toasts, theme)
+features/  auth, crash (CrashStore, Canvas chart, bet panel, live bets, history strip), wallet, history, profile, fairness
+shared/    pipes, validators, pagination, field errors
+```
 
 ## Prerequisites
 
 - .NET SDK 8+ and the **ASP.NET Core 8 runtime** (`winget install Microsoft.DotNet.AspNetCore.8`)
 - SQL Server (local default instance, Windows authentication)
 - EF Core tools: `dotnet tool install --global dotnet-ef`
+- Node.js 20.19+ / 22.12+ / 24 and Angular CLI 20 (`npm install -g @angular/cli@20`)
 
 ## Setup and run (backend)
 
@@ -46,6 +58,20 @@ To apply migrations manually instead:
 ```bash
 dotnet ef database update --project Veltrix.Infrastructure --startup-project Veltrix.API
 ```
+
+## Setup and run (frontend)
+
+With the API running:
+
+```bash
+cd Veltrix.Web
+npm install
+npm start          # ng serve → http://localhost:4200
+```
+
+`proxy.conf.json` forwards `/api`, `/hubs` (WebSockets) and `/uploads` to the API at `http://localhost:5295`. The browser therefore sees one origin, and the client only uses relative URLs.
+
+Open http://localhost:4200. To demo multiplayer, use two browser windows (or one normal and one private window) logged in as `player1` and `player2`. In development, the login page has one-click buttons for the test accounts.
 
 ## Test accounts (Development seed)
 
@@ -114,6 +140,17 @@ dotnet test
 ```
 
 There are 91 xUnit tests: crash-point generation and distribution, provably fair verification, multiplier curve, round state transitions (illegal ones rejected), wallet rules (no negative balance, refunds, daily bonus), bet and cash-out rules, and a guard that no role-protected endpoint is accidentally `[AllowAnonymous]`.
+
+```bash
+cd Veltrix.Web
+npx ng test --watch=false --browsers=ChromeHeadless
+```
+
+There are 30 Jasmine tests:
+
+- `AuthStore`: login, a single refresh shared by concurrent requests, a failed refresh ends the session, logout
+- `CrashStore`: SignalR events → state (new round, crash, auto cash-out, cancel/refund), countdown on the server clock, extrapolation limit
+- Crash math: the browser reproduces 7 real server rounds (seed → SHA-256 hash → crash point), proving both implementations are identical
 
 ## Development notes
 
