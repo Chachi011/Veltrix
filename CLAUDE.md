@@ -66,8 +66,8 @@ Veltrix.Web            Angular client: core/ (api, auth, http, realtime, state, 
 |---|---|---|
 | 1 | Solution, DB, EF models + migrations, JWT auth, roles, Swagger, profile endpoints | **Done** (merged into `develop`) |
 | 2 | Round engine, bets, cash-out, wallet, SignalR, provably fair (**MVP gate**) | **Done** (merged into `develop`) |
-| 3 | Angular UI: design system, login/register, Crash page (Canvas), wallet, history, profile, responsive, dark/light | **Built** on `feature/phase3-angular-ui`, awaiting the author's review: design system + `/styleguide`, every page rebuilt with it (auth, crash, wallet, history, profile, fairness, 404), legacy CSS layer deleted. Next: author checks pages at 1440/768/375, then merge into `develop` |
-| 4 | Operator/Admin panels, leaderboard, limits/self-exclusion UI, notifications, settings, charts | Not started |
+| 3 | Angular UI: design system, login/register, Crash page (Canvas), wallet, history, profile, responsive, dark/light | **Done** (verified by the author on desktop and phone; merged into `develop`) |
+| 4 | Operator/Admin panels, leaderboard, limits/self-exclusion UI, notifications, settings, charts | **In progress** on `feature/phase4-panels`. Step A = backend (stop for Swagger testing), Step B = Angular UI |
 | 5 | Remaining tests (Moq service tests, more Jasmine), optional (*) features, README screenshots, seed script, presentation demo | Not started |
 
 Optional (*) features only after the MVP: auto-bet, two bets per round (backend supports slot 2), achievements/XP, chat with moderation, 2FA, email verification, ka/en, CSV export, Docker Compose, GitHub Actions.
