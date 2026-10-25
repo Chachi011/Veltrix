@@ -34,6 +34,10 @@ features/  auth, crash (CrashStore, Canvas chart, bet panel, live bets, history 
 shared/    pipes, validators, pagination, field errors
 ```
 
+## Design system
+
+The UI follows [docs/DESIGN.md](docs/DESIGN.md): tokens, fonts, layout, components, motion and accessibility rules. In development, `/styleguide` shows every component in both themes.
+
 ## Prerequisites
 
 - .NET SDK 8+ and the **ASP.NET Core 8 runtime** (`winget install Microsoft.DotNet.AspNetCore.8`)
@@ -86,7 +90,7 @@ Each account starts with 1000 VLX. The `crash` game and the system settings come
 
 ## Database
 
-There are 30 tables, created by two migrations (`InitialCreate`, then `AddExtendedModels`):
+There are 30 tables, created by the migrations `InitialCreate` and `AddExtendedModels` (later migrations add columns):
 
 | Area | Tables |
 |---|---|
@@ -139,18 +143,19 @@ Connect as a guest, or with `?access_token=<JWT>` to also receive your balance.
 dotnet test
 ```
 
-There are 91 xUnit tests: crash-point generation and distribution, provably fair verification, multiplier curve, round state transitions (illegal ones rejected), wallet rules (no negative balance, refunds, daily bonus), bet and cash-out rules, and a guard that no role-protected endpoint is accidentally `[AllowAnonymous]`.
+There are 104 xUnit tests: crash-point generation and distribution, provably fair verification, multiplier curve, round state transitions (illegal ones rejected), wallet rules (no negative balance, refunds, daily bonus), bet and cash-out rules, refresh-token reuse rules, a guard that no role-protected endpoint is accidentally `[AllowAnonymous]`, and which auth endpoints are rate-limited.
 
 ```bash
 cd Veltrix.Web
 npx ng test --watch=false --browsers=ChromeHeadless
 ```
 
-There are 30 Jasmine tests:
+There are 32 Jasmine tests:
 
 - `AuthStore`: login, a single refresh shared by concurrent requests, a failed refresh ends the session, logout
 - `CrashStore`: SignalR events → state (new round, crash, auto cash-out, cancel/refund), countdown on the server clock, extrapolation limit
 - Crash math: the browser reproduces 7 real server rounds (seed → SHA-256 hash → crash point), proving both implementations are identical
+- App shell: sidebar / top bar / bottom nav, guest navigation, collapsible sidebar, theme toggle
 
 ## Development notes
 
