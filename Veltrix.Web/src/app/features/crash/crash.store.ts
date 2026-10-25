@@ -168,8 +168,8 @@ export const CrashStore = signalStore(
           return;
         }
 
-        const isOver = round.state === 'Finished' || round.state === 'Cancelled' || round.state === 'Crashed';
-        const bets = isOver ? [] : await firstValueFrom(gamesApi.roundBets(round.id)).catch(() => []);
+        // Also for a round that is already over: the live list must match the result shown in the bet panel
+        const bets = await firstValueFrom(gamesApi.roundBets(round.id)).catch(() => []);
 
         patchState(store, {
           round: toRoundView(round),

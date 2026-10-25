@@ -3,7 +3,6 @@
    1. Tokens: CSS variables per theme ([data-theme] can be set on <html> or on any element)
    2. Tailwind theme: maps the tokens to utilities (bg-surface, text-muted, rounded-card...)
    3. Base, components (raw-element classes), motion
-   4. Legacy layer: TEMPORARY, keeps not-yet-rebuilt pages working
    ========================================================================== */
 
 @import 'tailwindcss';
@@ -217,8 +216,7 @@
     color: var(--text-muted);
   }
 
-  .vx-input,
-  .input {
+  .vx-input {
     width: 100%;
     height: 2.5rem;
     padding: 0 0.75rem;
@@ -258,8 +256,7 @@
     }
   }
 
-  select.vx-input,
-  select.input {
+  select.vx-input {
     appearance: none;
     padding-right: 2.25rem;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%238a93a6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
@@ -295,8 +292,7 @@
     }
   }
 
-  .vx-checkbox,
-  .checkbox {
+  .vx-checkbox {
     display: inline-flex;
     align-items: flex-start;
     gap: 0.625rem;
@@ -312,13 +308,51 @@
     }
   }
 
+  /* On/off switch: <input type="checkbox" class="vx-switch"> (keeps native checkbox semantics) */
+  .vx-switch {
+    position: relative;
+    width: 2.25rem !important;
+    height: 1.25rem !important;
+    margin: 0 !important;
+    flex-shrink: 0;
+    appearance: none;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface-2);
+    cursor: pointer;
+    transition: background-color 0.2s ease-out, border-color 0.2s ease-out;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 0.875rem;
+      height: 0.875rem;
+      border-radius: 999px;
+      background: var(--text-muted);
+      transition: transform 0.2s var(--ease-out-soft), background-color 0.2s ease-out;
+    }
+    &:checked {
+      background: var(--primary);
+      border-color: var(--primary);
+    }
+    &:checked::after {
+      transform: translateX(1rem);
+      background: var(--on-primary);
+    }
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
   .vx-table-wrap {
     overflow-x: auto;
     border-radius: var(--radius-card);
   }
 
-  .vx-table,
-  .table {
+  .vx-table {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
@@ -357,6 +391,19 @@
     }
   }
 
+  /* Dense tables in narrow columns (e.g. live bets): tighter cells */
+  .vx-table-compact {
+    & th,
+    & td {
+      padding-left: 0.75rem;
+      padding-right: 0.75rem;
+    }
+    & td {
+      padding-top: 0.5rem;
+      padding-bottom: 0.5rem;
+    }
+  }
+
   /* Skeleton shimmer background */
   .vx-skeleton {
     background: linear-gradient(
@@ -391,64 +438,4 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-}
-
-/* ==========================================================================
-   4. LEGACY LAYER (temporary)
-   Classes and variables used by the pages built before the design system.
-   Each page drops them when it is rebuilt with the new components; then this block is deleted.
-   ========================================================================== */
-
-:root,
-[data-theme] {
-  --surface-3: color-mix(in oklab, var(--surface-2) 70%, var(--border));
-  --success-soft: color-mix(in oklab, var(--success) 14%, transparent);
-  --danger-soft: color-mix(in oklab, var(--danger) 14%, transparent);
-  --curve: var(--accent);
-  --curve-fill: color-mix(in oklab, var(--accent) 20%, transparent);
-  --grid: color-mix(in oklab, var(--text-muted) 14%, transparent);
-  --gold: var(--accent);
-  --primary-contrast: var(--on-primary);
-  --shadow: var(--vx-shadow-card);
-  --radius: 12px;
-  --radius-sm: 10px;
-  --mono: var(--font-mono);
-  --font: var(--font-sans);
-}
-
-@layer components {
-  .page { padding: 0; }
-  .page-narrow { max-width: 440px; margin: 0 auto; padding: 24px 0; }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; box-shadow: var(--vx-shadow-card); }
-  .muted { color: var(--text-muted); }
-  .mono { font-family: var(--font-mono); word-break: break-all; }
-  .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-  .spacer { flex: 1; }
-  .btn {
-    display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 40px; padding: 0 16px;
-    border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); color: var(--text);
-    font: inherit; font-weight: 600; cursor: pointer; transition: background-color 0.18s ease-out; white-space: nowrap;
-  }
-  .btn:hover:not(:disabled) { background: color-mix(in oklab, var(--surface-2) 70%, var(--border)); }
-  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-  .btn-primary { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
-  .btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
-  .btn-success { background: var(--success); border-color: var(--success); color: var(--on-success); }
-  .btn-ghost { background: transparent; border-color: transparent; }
-  .btn-sm { height: 32px; padding: 0 12px; font-size: 0.8125rem; }
-  .btn-lg { height: 52px; font-size: 1rem; }
-  .btn-block { width: 100%; }
-  .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
-  .field label { font-size: 0.8125rem; font-weight: 500; color: var(--text-muted); }
-  .field-error { color: var(--danger); font-size: 0.75rem; }
-  .table-wrap { overflow-x: auto; }
-  .table .right { text-align: right; }
-  .badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; background: var(--surface-2); color: var(--text-muted); }
-  .badge-success { background: var(--success-soft); color: var(--success); }
-  .badge-danger { background: var(--danger-soft); color: var(--danger); }
-  .badge-primary { background: color-mix(in oklab, var(--primary) 16%, transparent); color: var(--primary-text); }
-  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
-  .tabs button { padding: 10px 14px; border: 0; border-bottom: 2px solid transparent; background: none; color: var(--text-muted); font: inherit; font-weight: 600; cursor: pointer; }
-  .tabs button.active { color: var(--text); border-bottom-color: var(--primary); }
-  .empty { padding: 32px 16px; text-align: center; color: var(--text-muted); }
 }

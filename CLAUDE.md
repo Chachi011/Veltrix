@@ -66,7 +66,7 @@ Veltrix.Web            Angular client: core/ (api, auth, http, realtime, state, 
 |---|---|---|
 | 1 | Solution, DB, EF models + migrations, JWT auth, roles, Swagger, profile endpoints | **Done** (merged into `develop`) |
 | 2 | Round engine, bets, cash-out, wallet, SignalR, provably fair (**MVP gate**) | **Done** (merged into `develop`) |
-| 3 | Angular UI: design system, login/register, Crash page (Canvas), wallet, history, profile, responsive, dark/light | **In progress** on `feature/phase3-angular-ui`: design system + `/styleguide` done and reviewed; next: rebuild pages with the design system in this order: login/register → crash → wallet → history → profile, with a 1440/768/375 checklist after each |
+| 3 | Angular UI: design system, login/register, Crash page (Canvas), wallet, history, profile, responsive, dark/light | **Built** on `feature/phase3-angular-ui`, awaiting the author's review: design system + `/styleguide`, every page rebuilt with it (auth, crash, wallet, history, profile, fairness, 404), legacy CSS layer deleted. Next: author checks pages at 1440/768/375, then merge into `develop` |
 | 4 | Operator/Admin panels, leaderboard, limits/self-exclusion UI, notifications, settings, charts | Not started |
 | 5 | Remaining tests (Moq service tests, more Jasmine), optional (*) features, README screenshots, seed script, presentation demo | Not started |
 

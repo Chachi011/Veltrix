@@ -1,15 +1,27 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { LucideAngularModule } from 'lucide-angular';
 import { firstValueFrom } from 'rxjs';
 import { ProfileApi } from '../../core/api/profile.api';
 import { AuthStore } from '../../core/auth/auth.store';
 import { applyServerErrors } from '../../core/http/problem';
-import { ProfileDto } from '../../core/models/api.models';
+import { ProfileDto, PublicProfileDto } from '../../core/models/api.models';
 import { WalletStore } from '../../core/state/wallet.store';
 import { ToastStore } from '../../core/ui/toast.store';
-import { FieldError } from '../../shared/field-error';
-import { VlxPipe } from '../../shared/pipes';
+import {
+  AnimatedNumber,
+  Avatar,
+  Badge,
+  Button,
+  Card,
+  Field,
+  Icons,
+  PageHeader,
+  PasswordInput,
+  Skeleton,
+  StatCard
+} from '../../shared/ui';
 import { NICKNAME_PATTERN, fieldsMatch, strongPassword } from '../../shared/validators';
 
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
@@ -17,10 +29,23 @@ const AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 @Component({
   selector: 'vx-profile-page',
-  imports: [DatePipe, ReactiveFormsModule, FieldError, VlxPipe],
+  imports: [
+    DatePipe,
+    ReactiveFormsModule,
+    LucideAngularModule,
+    AnimatedNumber,
+    Avatar,
+    Badge,
+    Button,
+    Card,
+    Field,
+    PageHeader,
+    PasswordInput,
+    Skeleton,
+    StatCard
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  templateUrl: './profile-page.html',
-  styleUrl: './profile-page.scss'
+  templateUrl: './profile-page.html'
 })
 export class ProfilePage {
   private readonly api = inject(ProfileApi);
@@ -29,13 +54,16 @@ export class ProfilePage {
   private readonly toasts = inject(ToastStore);
   private readonly fb = inject(NonNullableFormBuilder);
 
+  protected readonly icons = Icons;
   protected readonly profile = signal<ProfileDto | null>(null);
+  protected readonly stats = signal<PublicProfileDto | null>(null);
   protected readonly preview = signal<string | null>(null);
   protected readonly avatarError = signal<string | null>(null);
   protected readonly uploading = signal(false);
   protected readonly savingNickname = signal(false);
   protected readonly savingPassword = signal(false);
 
+  private readonly fileInput = viewChild<ElementRef<HTMLInputElement>>('fileInput');
   private selectedFile: File | null = null;
 
   protected readonly nicknameForm = this.fb.group({
@@ -59,14 +87,22 @@ export class ProfilePage {
 
   private async load(): Promise<void> {
     const profile = await firstValueFrom(this.api.get()).catch(() => null);
-    if (profile) {
-      this.applyProfile(profile);
+    if (!profile) {
+      return;
     }
+    this.applyProfile(profile);
+    // Level and best results come from the public profile (the same data other players see)
+    this.stats.set(await firstValueFrom(this.api.getPublic(profile.nickname)).catch(() => null));
+  }
+
+  protected chooseFile(): void {
+    this.fileInput()?.nativeElement.click();
   }
 
   protected onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0] ?? null;
+    input.value = ''; // choosing the same file again still fires (change)
     this.clearPreview();
     this.avatarError.set(null);
     this.selectedFile = null;
@@ -77,17 +113,20 @@ export class ProfilePage {
     // Quick checks in the browser; the server checks again (including the real file content)
     if (!AVATAR_TYPES.includes(file.type)) {
       this.avatarError.set('Only JPG, PNG or WEBP images.');
-      input.value = '';
       return;
     }
     if (file.size > MAX_AVATAR_BYTES) {
       this.avatarError.set('The image must be 2 MB or smaller.');
-      input.value = '';
       return;
     }
 
     this.selectedFile = file;
     this.preview.set(URL.createObjectURL(file));
+  }
+
+  protected cancelAvatar(): void {
+    this.clearPreview();
+    this.selectedFile = null;
   }
 
   protected async uploadAvatar(): Promise<void> {

@@ -9,11 +9,12 @@ import {
   signal,
   untracked
 } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { LucideAngularModule } from 'lucide-angular';
 import { AuthStore } from '../../core/auth/auth.store';
 import { CrashHub } from '../../core/realtime/crash-hub';
 import { WalletStore } from '../../core/state/wallet.store';
-import { MultiplierPipe, ShortHashPipe } from '../../shared/pipes';
+import { MultiplierPipe } from '../../shared/pipes';
+import { Badge, Button, Card, HashBadge, Icons, PageHeader, ProgressRing, Skeleton } from '../../shared/ui';
 import { BetPanel, BetRequest } from './components/bet-panel';
 import { CrashChart } from './components/crash-chart';
 import { HistoryStrip } from './components/history-strip';
@@ -22,11 +23,24 @@ import { CrashStore } from './crash.store';
 
 @Component({
   selector: 'vx-crash-page',
-  imports: [RouterLink, CrashChart, BetPanel, LiveBets, HistoryStrip, MultiplierPipe, ShortHashPipe],
+  imports: [
+    LucideAngularModule,
+    CrashChart,
+    BetPanel,
+    LiveBets,
+    HistoryStrip,
+    MultiplierPipe,
+    Badge,
+    Button,
+    Card,
+    HashBadge,
+    PageHeader,
+    ProgressRing,
+    Skeleton
+  ],
   // A fresh store for every visit; it is destroyed (and SignalR disconnected) when the user leaves the page
   providers: [CrashStore],
   templateUrl: './crash-page.html',
-  styleUrl: './crash-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CrashPage {
@@ -34,6 +48,7 @@ export class CrashPage {
   protected readonly auth = inject(AuthStore);
   protected readonly wallet = inject(WalletStore);
   protected readonly hub = inject(CrashHub);
+  protected readonly icons = Icons;
 
   /**
    * Animation clock, updated on every screen refresh (requestAnimationFrame).
@@ -45,9 +60,10 @@ export class CrashPage {
   protected readonly multiplier = computed(() => this.store.multiplier(this.frame().perf, this.frame().date));
   protected readonly secondsLeft = computed(() => Math.ceil(this.store.bettingSecondsLeft(this.frame().date) * 10) / 10);
 
+  /** 1 → 0 while betting is open (drives the countdown ring). */
   protected readonly bettingProgress = computed(() => {
     const total = this.store.game()?.bettingDurationSec ?? 10;
-    return Math.min(100, Math.max(0, (this.secondsLeft() / total) * 100));
+    return Math.min(1, Math.max(0, this.secondsLeft() / total));
   });
 
   protected readonly flying = computed(() => {

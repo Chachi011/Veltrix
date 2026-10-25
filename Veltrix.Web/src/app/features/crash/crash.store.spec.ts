@@ -215,4 +215,35 @@ describe('CrashStore', () => {
     expect(store.loaded()).toBeTrue();
     expect(hub.connect).toHaveBeenCalledWith('crash', jasmine.any(Object));
   });
+  it('loads the bets of the current round even when it is already over (list matches the bet panel)', async () => {
+    gamesApi.getGame.and.returnValue(of(GAME));
+    gamesApi.roundHistory.and.returnValue(of({ items: [], page: 1, pageSize: 20, totalCount: 0, totalPages: 0 }));
+    gamesApi.currentRound.and.returnValue(
+      of({
+        id: 9,
+        gameSlug: 'crash',
+        roundNumber: 9,
+        state: 'Finished',
+        serverSeedHash: 'hash',
+        serverSeed: 'seed',
+        crashPoint: 2.38,
+        currentMultiplier: null,
+        createdAt: '2026-10-25T10:00:00Z',
+        bettingEndsAt: null,
+        startedAt: null,
+        crashedAt: null,
+        endedAt: null
+      })
+    );
+    gamesApi.roundBets.and.returnValue(
+      of([{ betId: 1, nickname: 'me', avatarUrl: null, amount: 10, slot: 1, status: 'CashedOut', cashOutMultiplier: 1.01, payout: 10.1, placedAt: '2026-10-25T10:00:00Z' }])
+    );
+    betsApi.my.and.returnValue(of({ items: [betDto({ roundId: 9, status: 'CashedOut', cashOutMultiplier: 1.01, payout: 10.1 })], page: 1, pageSize: 5, totalCount: 1, totalPages: 1 }));
+
+    await store.init('crash');
+
+    expect(store.liveBets().length).toBe(1);
+    expect(store.liveBets()[0].status).toBe('CashedOut');
+    expect(store.myRoundBet()?.status).toBe('CashedOut');
+  });
 });

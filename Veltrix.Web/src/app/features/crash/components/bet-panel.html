@@ -1,101 +1,154 @@
-<section class="card panel" aria-label="Your bet">
-  @if (!loggedIn()) {
-    <h2>Play with virtual points</h2>
-    <p class="muted">Log in to place bets. You are watching the live game as a guest.</p>
-    <div class="row">
-      <a class="btn btn-primary" routerLink="/login" [queryParams]="{ returnUrl: '/crash' }">Log in</a>
-      <a class="btn" routerLink="/register">Register</a>
-    </div>
-  } @else if (!isPlayer()) {
-    <h2>Watching</h2>
-    <p class="muted">Only players can bet. Staff accounts watch and monitor rounds.</p>
-  } @else if (myBet(); as bet) {
-    <!-- I have a bet in the current round -->
-    <div class="my-bet">
-      <div class="row">
-        <span class="muted">Your bet</span>
-        <span class="spacer"></span>
-        <strong class="num">{{ bet.amount | vlx }}</strong>
-      </div>
-      @if (bet.autoCashOutAt) {
-        <div class="row">
-          <span class="muted">Auto cash-out</span>
-          <span class="spacer"></span>
-          <span class="num">{{ bet.autoCashOutAt | mult }}</span>
-        </div>
-      }
-    </div>
+<!--
+  Phones: fixed bottom sheet above the bottom nav (64px + safe area).
+  ≥768px: a normal card in the page flow (md:static ...).
+-->
+<section
+  class="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 rounded-t-card border-t border-border bg-surface shadow-pop
+         md:static md:z-auto md:rounded-card md:border md:shadow-card"
+  aria-label="Your bet"
+>
+  <!-- Sheet handle (phones) -->
+  <button
+    type="button"
+    class="flex w-full justify-center pt-2.5 pb-1 md:hidden"
+    (click)="expanded.set(!expanded())"
+    [attr.aria-expanded]="expanded()"
+    [attr.aria-label]="expanded() ? 'Hide bet options' : 'Show bet options'"
+  >
+    <span class="h-1 w-10 rounded-full bg-border" aria-hidden="true"></span>
+  </button>
 
-    @switch (bet.status) {
-      @case ('Active') {
-        @if (state() === 'Running') {
+  <div class="px-4 pb-4 md:p-5">
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <!-- Options: always visible on desktop, foldable on phones -->
+      <div class="flex-col gap-4 pb-4" [class]="expanded() ? 'flex' : 'hidden md:flex'">
+        <div class="flex items-baseline justify-between gap-3">
+          <h2 class="text-[15px] font-semibold">Bet</h2>
+          @if (loggedIn()) {
+            <span class="text-xs text-muted">Balance <span class="num text-text">{{ balance() | vlx }}</span></span>
+          }
+        </div>
+
+        <vx-field label="Amount" for="bet-amount" [control]="form.controls.amount">
+          <div class="vx-input-wrap">
+            <lucide-icon [img]="icons.vlx" [size]="16" class="vx-input-icon" aria-hidden="true" />
+            <input id="bet-amount" class="vx-input num h-11! text-base! font-semibold" type="number" step="0.01" inputmode="decimal" formControlName="amount" />
+            <span class="vx-input-suffix">VLX</span>
+          </div>
+        </vx-field>
+
+        <div class="-mt-2 grid grid-cols-4 gap-2">
+          <button vxButton type="button" size="sm" [disabled]="locked()" (click)="setAmount('half')" aria-label="Half the amount">½</button>
+          <button vxButton type="button" size="sm" [disabled]="locked()" (click)="setAmount('double')" aria-label="Double the amount">2×</button>
+          <button vxButton type="button" size="sm" [disabled]="locked()" (click)="setAmount('min')">Min</button>
+          <button vxButton type="button" size="sm" [disabled]="locked()" (click)="setAmount('max')">Max</button>
+        </div>
+
+        <div class="flex flex-col gap-2">
+          <label class="vx-checkbox items-center justify-between" for="auto-toggle">
+            <span class="text-[13px] font-medium text-muted">Auto cash-out</span>
+            <input id="auto-toggle" type="checkbox" class="vx-switch" formControlName="autoEnabled" />
+          </label>
+          @if (form.controls.autoEnabled.value) {
+            <vx-field [control]="form.controls.autoCashOutAt">
+              <div class="vx-input-wrap">
+                <lucide-icon [img]="icons.zap" [size]="16" class="vx-input-icon" aria-hidden="true" />
+                <input class="vx-input num" type="number" step="0.01" min="1.01" inputmode="decimal" formControlName="autoCashOutAt" aria-label="Auto cash-out multiplier" />
+                <span class="vx-input-suffix">x</span>
+              </div>
+            </vx-field>
+          }
+        </div>
+      </div>
+
+      <!-- Phones, folded: one-line summary that unfolds the sheet -->
+      @if (!expanded() && (action() === 'place' || action() === 'closed')) {
+        <button type="button" class="mb-3 flex w-full items-center justify-between text-[13px] text-muted md:hidden" (click)="expanded.set(true)">
+          <span>
+            Bet <span class="num font-semibold text-text">{{ form.controls.amount.value | vlx }}</span>
+            @if (form.controls.autoEnabled.value) {
+              · auto <span class="num text-text">{{ form.controls.autoCashOutAt.value | mult }}</span>
+            }
+          </span>
+          <span class="font-medium text-primary-text">Edit</span>
+        </button>
+      }
+
+      <!-- THE action button: its content follows the round -->
+      <div data-testid="bet-action">
+      @switch (action()) {
+        @case ('login') {
+          <a vxButton routerLink="/login" [queryParams]="{ returnUrl: '/crash' }" variant="primary" size="xl" block>Log in to play</a>
+        }
+        @case ('staff') {
+          <button vxButton type="button" size="xl" block disabled>Staff accounts watch only</button>
+        }
+        @case ('place') {
+          <button vxButton type="submit" variant="primary" size="xl" block [loading]="placing()" [disabled]="!canBet()">
+            {{ placing() ? 'Placing bet…' : 'Place bet' }}
+          </button>
+        }
+        @case ('closed') {
+          <button vxButton type="button" size="xl" block disabled>
+            <lucide-icon [img]="icons.timer" [size]="18" aria-hidden="true" />Betting opens soon
+          </button>
+        }
+        @case ('waiting') {
+          <button vxButton type="button" size="xl" block disabled>
+            <lucide-icon [img]="icons.loader" [size]="18" class="animate-spin" aria-hidden="true" />Waiting for the round…
+          </button>
+        }
+        @case ('cashout') {
           <button
+            vxButton
             type="button"
-            class="btn btn-success btn-block btn-lg cashout"
+            variant="success"
+            size="xl"
+            block
+            class="justify-between!"
+            [loading]="cashingOut()"
             [disabled]="!canCashOut()"
             (click)="cashOut.emit()"
           >
-            <span>{{ cashingOut() ? 'Cashing out…' : 'Cash out' }}</span>
-            <span class="num">{{ potentialPayout() | vlx }}</span>
+            <span>Cash out</span>
+            <span class="num text-lg">{{ potentialPayout() | vlx }}</span>
           </button>
-        } @else {
-          <button type="button" class="btn btn-block btn-lg" disabled>Waiting for the round to start…</button>
+        }
+        @case ('won') {
+          <div class="flex min-h-14 flex-wrap items-center justify-between gap-x-3 gap-y-0.5 rounded-control py-2 border border-success/25 bg-success/10 px-4 text-success" role="status">
+            <span class="text-sm font-semibold">Cashed out at <span class="num">{{ myBet()?.multiplier | mult }}</span></span>
+            <span class="num text-lg font-semibold">+{{ myBet()?.payout | vlx }}</span>
+          </div>
+        }
+        @case ('lost') {
+          <div class="flex min-h-14 flex-wrap items-center justify-between gap-x-3 gap-y-0.5 rounded-control py-2 border border-danger/25 bg-danger/10 px-4 text-danger" role="status">
+            <span class="text-sm font-semibold">Crashed at <span class="num">{{ crashPoint() | mult }}</span></span>
+            <span class="num text-lg font-semibold">−{{ myBet()?.amount | vlx }}</span>
+          </div>
+        }
+        @case ('refunded') {
+          <div class="flex min-h-14 flex-wrap items-center justify-between gap-x-3 gap-y-0.5 rounded-control py-2 border border-border bg-surface-2 px-4 text-muted" role="status">
+            <span class="text-sm font-semibold">Round cancelled</span>
+            <span class="num text-sm">{{ myBet()?.amount | vlx }} refunded</span>
+          </div>
         }
       }
-      @case ('CashedOut') {
-        <div class="result win">
-          Cashed out at <strong>{{ bet.multiplier | mult }}</strong>
-          <span class="num">+{{ bet.payout | vlx }}</span>
-        </div>
-      }
-      @case ('Lost') {
-        <div class="result lose">Crashed before you cashed out. <span class="num">−{{ bet.amount | vlx }}</span></div>
-      }
-      @case ('Refunded') {
-        <div class="result">Round cancelled. <span class="num">{{ bet.amount | vlx }}</span> refunded.</div>
-      }
-    }
-  } @else {
-    <!-- No bet yet: the bet form -->
-    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
-      <div class="field">
-        <label for="amount">Bet amount (VLX)</label>
-        <div class="amount-row">
-          <input id="amount" class="input num" type="number" step="0.01" inputmode="decimal" formControlName="amount" />
-          <button type="button" class="btn btn-sm" (click)="setAmount('half')" title="Half">½</button>
-          <button type="button" class="btn btn-sm" (click)="setAmount('double')" title="Double">2×</button>
-        </div>
-        <div class="quick">
-          <button type="button" class="btn btn-sm btn-ghost" (click)="setAmount('min')">Min</button>
-          <button type="button" class="btn btn-sm btn-ghost" (click)="setAmount('max')">Max</button>
-        </div>
-        <vx-field-error [control]="form.controls.amount" />
       </div>
 
-      <div class="field">
-        <label class="checkbox">
-          <input type="checkbox" formControlName="autoEnabled" />
-          <span>Auto cash-out</span>
-        </label>
-        @if (form.controls.autoEnabled.value) {
-          <input class="input num" type="number" step="0.01" min="1.01" inputmode="decimal" formControlName="autoCashOutAt" aria-label="Auto cash-out multiplier" />
-          <vx-field-error [control]="form.controls.autoCashOutAt" />
+      @if (myBet(); as bet) {
+        @if (action() === 'waiting' || action() === 'cashout') {
+          <p class="mt-3 flex justify-between text-xs text-muted">
+            <span>Your bet <span class="num text-text">{{ bet.amount | vlx }}</span></span>
+            @if (bet.autoCashOutAt) {
+              <span>Auto <span class="num text-text">{{ bet.autoCashOutAt | mult }}</span></span>
+            }
+          </p>
         }
-      </div>
-
-      <button class="btn btn-primary btn-block btn-lg" type="submit" [disabled]="!canBet()">
-        @if (placing()) {
-          Placing bet…
-        } @else if (state() === 'BettingOpen') {
-          Place bet
-        } @else {
-          {{ waitingLabel() }}
-        }
-      </button>
-
-      @if (game(); as g) {
-        <p class="limits muted num">Min {{ g.minBet | vlx }} · Max {{ g.maxBet | vlx }}</p>
+      } @else if (game(); as g) {
+        <p class="mt-3 hidden text-center text-xs text-muted md:block">
+          Min <span class="num">{{ g.minBet | vlx }}</span> · Max <span class="num">{{ g.maxBet | vlx }}</span>
+        </p>
       }
     </form>
-  }
+  </div>
 </section>

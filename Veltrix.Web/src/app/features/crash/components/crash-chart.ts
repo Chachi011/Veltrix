@@ -21,6 +21,16 @@ interface Size {
 
 const PAD = { left: 48, right: 18, top: 18, bottom: 28 };
 
+/** "#22d3ee" + 0.2 → "rgba(34, 211, 238, 0.2)". Canvas needs a concrete color; tokens are hex values. */
+function withAlpha(hex: string, alpha: number): string {
+  const match = /^#([0-9a-f]{6})$/i.exec(hex);
+  if (!match) {
+    return hex;
+  }
+  const n = parseInt(match[1], 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+}
+
 /** 1, 2, 5, 10, 20, 50... so the axis gets about 4-6 readable grid lines. */
 function niceStep(raw: number): number {
   const power = 10 ** Math.floor(Math.log10(raw));
@@ -99,7 +109,9 @@ export class CrashChart {
 
     const css = getComputedStyle(this.host.nativeElement);
     const color = (name: string) => css.getPropertyValue(name).trim();
-    const lineColor = crashed ? color('--danger') : color('--curve');
+    // Design system: the curve is --accent; it turns --danger after the crash
+    const lineColor = crashed ? color('--danger') : color('--accent');
+    const muted = color('--text-muted');
 
     const plotW = size.width - PAD.left - PAD.right;
     const plotH = size.height - PAD.top - PAD.bottom;
@@ -112,7 +124,7 @@ export class CrashChart {
     const x = (t: number) => PAD.left + (t / tMax) * plotW;
     const y = (m: number) => PAD.top + plotH - ((m - 1) / (mMax - 1)) * plotH;
 
-    this.drawGrid(ctx, x, y, tMax, mMax, plotW, color('--grid'), color('--text-muted'));
+    this.drawGrid(ctx, x, y, tMax, mMax, plotW, withAlpha(muted, 0.14), muted);
 
     if (!flying || elapsed <= 0) {
       return;
@@ -131,7 +143,7 @@ export class CrashChart {
 
     // Area under the curve
     const fill = ctx.createLinearGradient(0, PAD.top, 0, PAD.top + plotH);
-    fill.addColorStop(0, crashed ? color('--danger-soft') : color('--curve-fill'));
+    fill.addColorStop(0, withAlpha(lineColor, 0.24));
     fill.addColorStop(1, 'transparent');
     ctx.save();
     ctx.lineTo(headX, y(1));
@@ -176,7 +188,7 @@ export class CrashChart {
     ctx.strokeStyle = gridColor;
     ctx.fillStyle = labelColor;
     ctx.lineWidth = 1;
-    ctx.font = '12px system-ui, sans-serif';
+    ctx.font = '11px "JetBrains Mono Variable", ui-monospace, monospace';
 
     // Horizontal lines: multipliers
     const mStep = niceStep((mMax - 1) / 4);

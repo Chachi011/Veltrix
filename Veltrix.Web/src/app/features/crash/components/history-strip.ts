@@ -1,61 +1,42 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { MultiplierPill, Skeleton } from '../../../shared/ui';
 import { HistoryItem } from '../crash.store';
 
-/** Crash points of the last 20 rounds. Each one links to its provably fair check. */
+/** Crash points of the last 20 rounds, newest first. Each pill opens that round's provably fair check. */
 @Component({
   selector: 'vx-history-strip',
-  imports: [RouterLink],
+  imports: [RouterLink, MultiplierPill, Skeleton],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { class: 'flex min-w-0 items-center gap-3' },
   template: `
-    <div class="strip" aria-label="Last rounds">
-      @for (item of items(); track item.roundId) {
-        <a
-          class="pill num"
-          [class]="'pill num ' + tier(item)"
-          routerLink="/fairness"
-          [queryParams]="{ round: item.roundId }"
-          [title]="'Round #' + item.roundNumber + ': verify'"
-        >
-          {{ item.cancelled ? '—' : item.crashPoint?.toFixed(2) + 'x' }}
-        </a>
-      } @empty {
-        <span class="muted">No finished rounds yet.</span>
+    <span class="shrink-0 text-xs font-medium text-muted">Last 20</span>
+    <div class="flex min-w-0 flex-1 gap-1.5 overflow-x-auto pb-1 [scrollbar-width:thin]" aria-label="Crash points of the last rounds">
+      @if (loading()) {
+        @for (i of placeholders; track i) {
+          <vx-skeleton width="56px" height="28px" shape="circle" />
+        }
+      } @else {
+        @for (item of items(); track item.roundId) {
+          <a
+            routerLink="/fairness"
+            [queryParams]="{ round: item.roundId }"
+            class="rounded-full"
+            [title]="'Round #' + item.roundNumber + ': verify'"
+            [attr.aria-label]="'Round ' + item.roundNumber + ', ' + (item.cancelled ? 'cancelled' : item.crashPoint + 'x') + ', verify'"
+          >
+            <vx-multiplier-pill [value]="item.crashPoint" [cancelled]="item.cancelled" class="hover:border-primary/50" />
+          </a>
+        } @empty {
+          <span class="text-xs text-muted">No finished rounds yet.</span>
+        }
       }
     </div>
-  `,
-  styles: `
-    .strip {
-      display: flex;
-      gap: 6px;
-      overflow-x: auto;
-      padding-bottom: 4px;
-      scrollbar-width: thin;
-    }
-    .pill {
-      flex: 0 0 auto;
-      padding: 4px 10px;
-      border-radius: 999px;
-      font-size: 0.8rem;
-      font-weight: 700;
-      background: var(--surface-2);
-      border: 1px solid var(--border);
-      color: var(--text);
-    }
-    .pill:hover { text-decoration: none; border-color: var(--primary); }
-    .low { color: var(--danger); }
-    .mid { color: var(--success); }
-    .high { color: var(--gold); border-color: var(--gold); }
-    .cancelled { color: var(--text-muted); }
   `
 })
 export class HistoryStrip {
   readonly items = input.required<HistoryItem[]>();
+  readonly loading = input(false);
 
-  protected tier(item: HistoryItem): string {
-    if (item.cancelled || item.crashPoint === null) return 'cancelled';
-    if (item.crashPoint < 2) return 'low';
-    if (item.crashPoint < 10) return 'mid';
-    return 'high';
-  }
+  protected readonly placeholders = Array.from({ length: 12 }, (_, i) => i);
 }

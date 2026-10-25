@@ -176,6 +176,37 @@
       </div>
     </section>
 
+    <!-- Navigation & extra controls -->
+    <section>
+      <h3 class="mb-3 text-[13px] font-semibold text-muted">Tabs, pagination, password, switch</h3>
+      <div class="flex flex-col gap-4">
+        <vx-tabs [items]="tabItems" [(value)]="tab" />
+        <div class="grid gap-4 sm:grid-cols-2">
+          <vx-field label="Password (show/hide)">
+            <vx-password-input><input class="vx-input" type="password" value="Secret123!" aria-label="Password demo" /></vx-password-input>
+          </vx-field>
+          <label class="vx-checkbox items-center justify-between self-end rounded-control border border-border bg-surface px-3 py-2.5">
+            <span class="text-[13px] font-medium text-muted">Auto cash-out (switch)</span>
+            <input type="checkbox" class="vx-switch" checked />
+          </label>
+        </div>
+        <vx-card padding="none">
+          <div class="vx-table-wrap">
+            <table class="vx-table vx-table-compact">
+              <thead>
+                <tr><th>Compact table</th><th class="text-right">Bet</th><th class="text-right">At</th><th class="text-right">Payout</th></tr>
+              </thead>
+              <tbody>
+                <tr class="bg-success/5"><td>player1</td><td class="num text-right">50.00</td><td class="num text-right text-success">2.40x</td><td class="num text-right font-semibold text-success">+120.00</td></tr>
+                <tr><td>neo_x</td><td class="num text-right">250.00</td><td class="num text-right">—</td><td class="num text-right text-muted">…</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <vx-pagination [page]="page()" [totalPages]="7" [totalCount]="98" (pageChange)="page.set($event)" />
+        </vx-card>
+      </div>
+    </section>
+
     <!-- Avatars -->
     <section>
       <h3 class="mb-3 text-[13px] font-semibold text-muted">Avatars</h3>

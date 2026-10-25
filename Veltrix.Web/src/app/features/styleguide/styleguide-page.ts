@@ -18,9 +18,13 @@ import {
   Icons,
   ModalService,
   MultiplierPill,
+  Pagination,
+  PasswordInput,
   ProgressRing,
   Skeleton,
-  StatCard
+  StatCard,
+  TabItem,
+  Tabs
 } from '../../shared/ui';
 
 /**
@@ -42,9 +46,12 @@ import {
     Field,
     HashBadge,
     MultiplierPill,
+    Pagination,
+    PasswordInput,
     ProgressRing,
     Skeleton,
-    StatCard
+    StatCard,
+    Tabs
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './styleguide-page.html'
@@ -84,6 +91,13 @@ export class StyleguidePage {
   ];
 
   // ---- Interactive demos ----
+  protected readonly tabItems: TabItem[] = [
+    { value: 'bets', label: 'My bets' },
+    { value: 'rounds', label: 'All rounds' },
+    { value: 'stats', label: 'Statistics' }
+  ];
+  protected readonly tab = signal('bets');
+  protected readonly page = signal(2);
   protected readonly balance = signal(1093.4);
   protected readonly buttonLoading = signal(false);
   protected readonly crashed = signal(false);

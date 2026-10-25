@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { LucideAngularModule } from 'lucide-angular';
 import { GameDto, RoundState } from '../../../core/models/api.models';
-import { FieldError } from '../../../shared/field-error';
+import { Button, Field, Icons } from '../../../shared/ui';
 import { MultiplierPipe, VlxPipe } from '../../../shared/pipes';
 import { twoDecimals } from '../../../shared/validators';
 import { MyBet } from '../crash.store';
@@ -12,13 +13,52 @@ export interface BetRequest {
   autoCashOutAt: number | null;
 }
 
-/** Bet form, Cash out button and the result of my bet in the current round. */
+/** What the ONE big button of the panel shows. */
+export type BetAction =
+  | 'login' // guest: link to log in
+  | 'staff' // Operator / Admin: watching only
+  | 'place' // betting is open and I have no bet yet
+  | 'closed' // no bet, betting is not open
+  | 'waiting' // bet placed, round not started yet
+  | 'cashout' // round running, my bet is active
+  | 'won'
+  | 'lost'
+  | 'refunded';
+
+export interface BetActionInput {
+  loggedIn: boolean;
+  isPlayer: boolean;
+  state: RoundState | null;
+  myBet: MyBet | null;
+}
+
+/** "Place bet" → "Waiting…" → "Cash out 13.50 VLX" → result. A pure function, so it is unit-tested. */
+export function betAction({ loggedIn, isPlayer, state, myBet }: BetActionInput): BetAction {
+  if (!loggedIn) return 'login';
+  if (!isPlayer) return 'staff';
+  if (!myBet) return state === 'BettingOpen' ? 'place' : 'closed';
+
+  switch (myBet.status) {
+    case 'Active':
+      return state === 'Running' ? 'cashout' : 'waiting';
+    case 'CashedOut':
+      return 'won';
+    case 'Lost':
+      return 'lost';
+    case 'Refunded':
+      return 'refunded';
+  }
+}
+
+/**
+ * Bet form + the state-changing action button. Desktop: a card in the right column.
+ * Phones: a bottom sheet above the bottom nav; the form folds away, the button stays reachable.
+ */
 @Component({
   selector: 'vx-bet-panel',
-  imports: [ReactiveFormsModule, RouterLink, FieldError, VlxPipe, MultiplierPipe],
+  imports: [ReactiveFormsModule, RouterLink, LucideAngularModule, Button, Field, VlxPipe, MultiplierPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  templateUrl: './bet-panel.html',
-  styleUrl: './bet-panel.scss'
+  templateUrl: './bet-panel.html'
 })
 export class BetPanel {
   readonly game = input<GameDto | null>(null);
@@ -26,6 +66,7 @@ export class BetPanel {
   readonly state = input<RoundState | null>(null);
   readonly myBet = input<MyBet | null>(null);
   readonly multiplier = input(1);
+  readonly crashPoint = input<number | null>(null);
   readonly loggedIn = input(false);
   readonly isPlayer = input(false);
   readonly canBet = input(false);
@@ -35,6 +76,18 @@ export class BetPanel {
 
   readonly bet = output<BetRequest>();
   readonly cashOut = output<void>();
+
+  protected readonly icons = Icons;
+
+  /** Phones only: is the bottom sheet unfolded? (Desktop always shows everything.) */
+  protected readonly expanded = signal(false);
+
+  protected readonly action = computed(() =>
+    betAction({ loggedIn: this.loggedIn(), isPlayer: this.isPlayer(), state: this.state(), myBet: this.myBet() })
+  );
+
+  /** Form fields are locked once a bet is in the round (or for guests / staff). */
+  protected readonly locked = computed(() => !this.loggedIn() || !this.isPlayer() || this.myBet() !== null);
 
   protected readonly form = inject(NonNullableFormBuilder).group({
     amount: [10, [Validators.required, twoDecimals]],
@@ -63,6 +116,8 @@ export class BetPanel {
       amount.setValidators([Validators.required, Validators.min(min), Validators.max(Math.max(min, max)), twoDecimals]);
       amount.updateValueAndValidity({ emitEvent: false });
     });
+
+    effect(() => (this.locked() ? this.form.disable({ emitEvent: false }) : this.form.enable({ emitEvent: false })));
   }
 
   protected setAmount(kind: 'half' | 'double' | 'min' | 'max'): void {
@@ -83,24 +138,9 @@ export class BetPanel {
 
     if (amountInvalid || autoInvalid) {
       this.form.markAllAsTouched();
+      this.expanded.set(true);
       return;
     }
     this.bet.emit({ amount: Number(amount), autoCashOutAt: autoEnabled ? Number(autoCashOutAt) : null });
-  }
-
-  protected waitingLabel(): string {
-    switch (this.state()) {
-      case 'Running':
-        return 'Round in progress, wait for the next one';
-      case 'BettingClosed':
-        return 'Betting closed';
-      case 'Crashed':
-      case 'Finished':
-      case 'Cancelled':
-      case 'Waiting':
-        return 'Next round starting soon';
-      default:
-        return 'Connecting…';
-    }
   }
 }

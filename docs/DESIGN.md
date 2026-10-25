@@ -104,7 +104,8 @@ Never: gradients on text, all-caps body text, more than two font families.
 | Page padding | **24px** desktop, **16px** below 768px |
 | Breakpoint | **768px** (`md`) switches between phone and desktop layouts |
 | Sidebar (≥768px) | fixed left, 240px expanded / 72px collapsed (icons only, with `title` tooltips), `bg-surface`, right border; state remembered in `localStorage` (`vx.sidebarCollapsed`); bottom: disclaimer + collapse button |
-| Top bar | sticky, 64px, **glass**, bottom border. Left: page title (desktop) or logo (phone). Right: balance chip (animated) → daily bonus (button when claimable, countdown chip otherwise) → notifications bell → avatar menu. Guests: theme toggle, Log in, Register |
+| Top bar | sticky, 64px, **glass**, bottom border. Left: page title (desktop, visual only: `aria-hidden`, the page's own `<h1>` is the real heading) or logo (phone). Right: balance chip (animated, gem icon) → daily bonus (button when claimable, countdown chip otherwise) → notifications bell → avatar menu. Guests: theme toggle, Log in, Register |
+| Page header | every page starts with `<vx-page-header title description>`: the `<h1>` is visible on phones and visually hidden from 768px (the top bar shows the title), the description is always visible; actions go in `[page-actions]` |
 | Bottom nav (<768px) | fixed, glass, 64px + safe-area inset, 5 items (icon + 11px label); active = `text-primary-text` |
 | Page bottom padding on phones | enough for the bottom nav (`pb-28`) |
 | Bet panel on phones | becomes a **bottom sheet** (Crash page, step 3) |
@@ -125,7 +126,12 @@ Import from the barrel: `import { Button, Card } from '../../shared/ui';`
 | Card | `<vx-card title subtitle padding="default\|none">`, actions in `[card-actions]` | `padding="none"` for edge-to-edge tables |
 | Field | `<vx-field label for hint [control] patternMessage>` + projected `<input class="vx-input">` | Shows the first error once touched (same messages as `controlErrorMessage`). Uses Default change detection on purpose (form state is not a signal) |
 | Input classes | `.vx-input`, `select.vx-input`, `.vx-input-wrap` + `.vx-input-icon` / `.vx-input-suffix`, `.vx-checkbox`, `.vx-label` | Focus: primary border + 4px soft ring. Invalid + touched: danger border |
-| Table | `<div class="vx-table-wrap"><table class="vx-table">` | Sticky uppercase header, row hover, `text-right` + `num` for numeric columns |
+| Table | `<div class="vx-table-wrap"><table class="vx-table">`; add `vx-table-compact` in narrow columns | Sticky uppercase header, row hover, `text-right` + `num` for numeric columns. On phones, hide secondary columns (`hidden md:table-cell`) instead of forcing horizontal scroll |
+| Switch | `<input type="checkbox" class="vx-switch">` | On/off toggle that keeps native checkbox semantics (keyboard, forms) |
+| Password input | `<vx-password-input><input class="vx-input" type="password" …></vx-password-input>` | Adds a show/hide button; the projected input keeps `formControlName` and `autocomplete` |
+| Page header | `<vx-page-header title description>` + `[page-actions]` | See §4 |
+| Tabs | `<vx-tabs [items] [(value)]>` | Segmented control, `role="tablist"`, ← → keys move between tabs |
+| Pagination | `<vx-pagination [page] [totalPages] [totalCount] (pageChange)>` | Card footer: "Page 2 of 7 · 98 results" + Previous / Next; hidden for a single page |
 | Badge | `<vx-badge tone [dot]>` | Tones: `neutral`, `primary`, `accent`, `success`, `danger`, `warning` |
 | Avatar | `<vx-avatar [src] name size>` | `xs` 24, `sm` 32, `md` 40, `lg` 64, `xl` 96. Falls back to initials on a hue derived from the name (also when the image fails) |
 | Stat card | `<vx-stat-card label [value] decimals unit [icon] [delta] hint>` | `value = null` → skeleton. Value uses the animated number |
@@ -139,7 +145,7 @@ Import from the barrel: `import { Button, Card } from '../../shared/ui';`
 | Theme toggle | `<vx-theme-toggle>` | Sun / moon icon button |
 | Modal | `ModalService.open(Component, { data, ariaLabel, width })`, `ModalService.confirm({ title, message, confirmText, tone })`; dialogs wrap content in `<vx-modal title description>` with `[modal-footer]` | CDK Dialog: focus trap, Escape, restores focus. Glass panel, blurred backdrop |
 | Toasts | `ToastStore.success / error / info(message)` (the API error interceptor calls `error`) | Top on phones, bottom-right on desktop; icon per kind; errors use `role="alert"` and stay longer (6s vs 3.5s) |
-| Icons | `<lucide-icon [img]="icons.wallet" [size]="18" />` with `protected readonly icons = Icons` | Add new icons to `icons.ts` only. Sizes: 14 (dense), 16 (buttons, menus), 18 (nav, icon buttons), 20–22 (empty states, bottom nav) |
+| Icons | `<lucide-icon [img]="icons.wallet" [size]="18" />` with `protected readonly icons = Icons` | Add new icons to `icons.ts` only. Sizes: 14 (dense), 16 (buttons, menus), 18 (nav, icon buttons), 20–22 (empty states, bottom nav). **VLX amounts use `icons.vlx` (a gem)**: a coin would suggest money, and Lucide's coins icon reads like a chain link at 16px |
 
 Rules:
 - Use these components on new and rebuilt pages. Don't create one-off styled buttons, cards or inputs.
@@ -179,16 +185,23 @@ Rules:
 
 ---
 
-## 9. Crash game page (target for step 3)
+## 9. Crash game page
 
-- Large Canvas: the curve in `--accent` with a soft gradient fill below, faint grid, axis labels.
-- Huge centered multiplier (mono, 64–96px): glows while running; on crash it turns `--danger` and shakes once.
-- Betting phase: countdown progress ring.
-- Bet panel: amount with ½ / 2× / Min / Max, auto cash-out input, **one big button whose state changes**: "Place bet" → "Waiting…" → "Cash out 13.50 VLX" (success, live updating) → result.
-- Right column: live bets table (avatar, nickname, amount, cash-out x, payout; wins highlighted green).
-- Top strip: last 20 crash points as multiplier pills.
-- Hash badge with the current round hash and a copy button.
-- Phones: the bet panel is a bottom sheet.
+- Large Canvas: the curve in `--accent` (turns `--danger` after the crash) with a soft fill below, faint grid (muted at 14%), mono axis labels. Canvas needs concrete colors, so tokens are read with `getComputedStyle` and converted to rgba.
+- Huge centered multiplier (mono, 64px phones / 96px desktop): `--text` with the accent glow while running; on crash `--danger` + one shake, label "CRASHED".
+- Betting phase: countdown progress ring (112px) with seconds inside.
+- Bet panel: amount with ½ / 2× / Min / Max, auto cash-out switch + input. The form locks once a bet is in the round. **One big button** (`betAction()`, unit-tested): `login` → `place` "Place bet" / `closed` "Betting opens soon" → `waiting` "Waiting for the round…" → `cashout` "Cash out 13.50 VLX" (success, live) → result block `won` / `lost` / `refunded`.
+- Live bets: compact table (avatar, nickname, bet, at, payout); my nickname in `--primary-text`; wins on a green tint, losses dimmed.
+- Top strip: "Last 20" multiplier pills, each a link to its fairness check; skeleton pills while loading.
+- Stage header: round number, hash badge (copy), live dot + online count.
+- **Layout:**
+
+| Width | Layout |
+|---|---|
+| ≥ 1280px | Stage + right column (380px): bet panel above live bets |
+| 1024–1279px | Stage full width; bet panel and live bets side by side below |
+| 768–1023px | Everything stacked |
+| < 768px | Bet panel = **bottom sheet** above the bottom nav: folded shows a one-line summary ("Bet 10.00 VLX · Edit") + the big button; the handle unfolds the form. Chart height 42vh; extra bottom padding so the sheet never covers content |
 
 ---
 
@@ -215,3 +228,8 @@ After every page, check at **1440px, 768px and 375px**, in **both themes**:
 | 2026-10-25 | Default Tailwind palette disabled; only token colors exist |
 | 2026-10-25 | `vx-card` / `vx-stat-card` include `min-w-0` (prevents phone overflow inside grids) |
 | 2026-10-25 | A temporary **legacy layer** at the end of `styles.css` keeps pages built before the design system working; each page drops it when rebuilt, then the layer is deleted |
+| 2026-10-25 | All pages rebuilt with the design system; **legacy layer deleted** (and the old `FieldError` / pagination) |
+| 2026-10-25 | New components: page header, tabs, pagination, password input, `.vx-switch`, `.vx-table-compact` |
+| 2026-10-25 | VLX icon: gem instead of coins |
+| 2026-10-25 | Top bar title is visual only; the page's `vx-page-header` owns the `<h1>` (one h1 per page) |
+| 2026-10-25 | Crash page: two columns only from 1280px (at 1024px the side column was too narrow for the live bets table) |

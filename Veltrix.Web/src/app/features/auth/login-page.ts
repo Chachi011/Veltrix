@@ -1,64 +1,56 @@
 import { ChangeDetectionStrategy, Component, inject, input, isDevMode, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { LucideAngularModule } from 'lucide-angular';
 import { AuthStore } from '../../core/auth/auth.store';
 import { applyServerErrors } from '../../core/http/problem';
 import { ToastStore } from '../../core/ui/toast.store';
-import { FieldError } from '../../shared/field-error';
+import { Avatar, Button, Field, Icons, PasswordInput } from '../../shared/ui';
+import { AuthCard } from './auth-card';
 import { safeReturnUrl } from './safe-return-url';
 
 @Component({
   selector: 'vx-login-page',
-  imports: [ReactiveFormsModule, RouterLink, FieldError],
+  imports: [ReactiveFormsModule, RouterLink, LucideAngularModule, AuthCard, Avatar, Button, Field, PasswordInput],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="page-narrow">
-      <div class="card">
-        <h1>Log in</h1>
-        <p class="muted">Welcome back. Play with virtual VLX points.</p>
-
-        <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
-          <div class="field">
-            <label for="email">Email</label>
-            <input id="email" class="input" type="email" formControlName="email" autocomplete="email" />
-            <vx-field-error [control]="form.controls.email" />
+    <vx-auth-card title="Welcome back" subtitle="Log in to play with virtual VLX points." [icon]="icons.rocket">
+      <form [formGroup]="form" (ngSubmit)="submit()" novalidate class="flex flex-col gap-4">
+        <vx-field label="Email" for="email" [control]="form.controls.email">
+          <div class="vx-input-wrap">
+            <lucide-icon [img]="icons.mail" [size]="16" class="vx-input-icon" aria-hidden="true" />
+            <input id="email" class="vx-input" type="email" formControlName="email" autocomplete="email" placeholder="you@example.com" />
           </div>
+        </vx-field>
 
-          <div class="field">
-            <label for="password">Password</label>
-            <input id="password" class="input" type="password" formControlName="password" autocomplete="current-password" />
-            <vx-field-error [control]="form.controls.password" />
+        <vx-field label="Password" for="password" [control]="form.controls.password">
+          <vx-password-input>
+            <input id="password" class="vx-input" type="password" formControlName="password" autocomplete="current-password" />
+          </vx-password-input>
+        </vx-field>
+
+        <div class="-mt-1 flex justify-end">
+          <a routerLink="/forgot-password" class="text-[13px] font-medium">Forgot password?</a>
+        </div>
+
+        <button vxButton type="submit" variant="primary" size="lg" block [loading]="submitting()">Log in</button>
+      </form>
+
+      @if (devMode) {
+        <div class="mt-6 border-t border-border pt-5">
+          <p class="mb-3 text-xs font-medium text-muted">Development · test accounts</p>
+          <div class="grid grid-cols-2 gap-2">
+            @for (account of testAccounts; track account.email) {
+              <button vxButton type="button" size="sm" class="justify-start" (click)="fill(account.email, account.password)">
+                <vx-avatar [name]="account.label" size="xs" />{{ account.label }}
+              </button>
+            }
           </div>
+        </div>
+      }
 
-          <p class="forgot"><a routerLink="/forgot-password">Forgot password?</a></p>
-
-          <button class="btn btn-primary btn-block btn-lg" type="submit" [disabled]="submitting()">
-            {{ submitting() ? 'Logging in…' : 'Log in' }}
-          </button>
-        </form>
-
-        <p class="muted switch">No account yet? <a routerLink="/register">Register</a></p>
-
-        @if (devMode) {
-          <div class="dev">
-            <span class="muted">Test accounts (development only):</span>
-            <div class="row">
-              @for (account of testAccounts; track account.email) {
-                <button type="button" class="btn btn-sm" (click)="fill(account.email, account.password)">
-                  {{ account.label }}
-                </button>
-              }
-            </div>
-          </div>
-        }
-      </div>
-    </div>
-  `,
-  styles: `
-    .forgot { margin: -4px 0 16px; text-align: right; font-size: 0.9rem; }
-    .switch { margin: 16px 0 0; text-align: center; }
-    .dev { margin-top: 20px; padding-top: 16px; border-top: 1px dashed var(--border); font-size: 0.85rem; }
-    .dev .row { margin-top: 8px; }
+      <p auth-footer>No account yet? <a routerLink="/register" class="font-medium">Create one</a></p>
+    </vx-auth-card>
   `
 })
 export class LoginPage {
@@ -69,6 +61,7 @@ export class LoginPage {
   /** From ?returnUrl=... (route query params are bound to inputs). */
   readonly returnUrl = input<string>();
 
+  protected readonly icons = Icons;
   protected readonly submitting = signal(false);
   protected readonly devMode = isDevMode();
 

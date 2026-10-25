@@ -1,72 +1,74 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { LucideAngularModule } from 'lucide-angular';
 import { AuthStore } from '../../core/auth/auth.store';
 import { applyServerErrors } from '../../core/http/problem';
 import { ToastStore } from '../../core/ui/toast.store';
-import { FieldError } from '../../shared/field-error';
+import { Button, Field, Icons, PasswordInput } from '../../shared/ui';
 import { NICKNAME_PATTERN, fieldsMatch, minAge, strongPassword } from '../../shared/validators';
+import { AuthCard } from './auth-card';
 
 @Component({
   selector: 'vx-register-page',
-  imports: [ReactiveFormsModule, RouterLink, FieldError],
+  imports: [ReactiveFormsModule, RouterLink, LucideAngularModule, AuthCard, Button, Field, PasswordInput],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="page-narrow">
-      <div class="card">
-        <h1>Create account</h1>
-        <p class="muted">You start with 1,000 virtual VLX points. No real money, ever.</p>
-
-        <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
-          <div class="field">
-            <label for="email">Email</label>
-            <input id="email" class="input" type="email" formControlName="email" autocomplete="email" />
-            <vx-field-error [control]="form.controls.email" />
+    <vx-auth-card title="Create your account" subtitle="Start with 1,000 virtual VLX points. No real money, ever." [icon]="icons.user">
+      <form [formGroup]="form" (ngSubmit)="submit()" novalidate class="flex flex-col gap-4">
+        <vx-field label="Email" for="email" [control]="form.controls.email">
+          <div class="vx-input-wrap">
+            <lucide-icon [img]="icons.mail" [size]="16" class="vx-input-icon" aria-hidden="true" />
+            <input id="email" class="vx-input" type="email" formControlName="email" autocomplete="email" placeholder="you@example.com" />
           </div>
+        </vx-field>
 
-          <div class="field">
-            <label for="nickname">Nickname</label>
-            <input id="nickname" class="input" formControlName="nickname" autocomplete="username" />
-            <vx-field-error [control]="form.controls.nickname" patternMessage="3-20 letters, digits or underscore." />
+        <vx-field
+          label="Nickname"
+          for="nickname"
+          [control]="form.controls.nickname"
+          hint="3-20 letters, digits or underscore. Shown to other players."
+          patternMessage="3-20 letters, digits or underscore."
+        >
+          <div class="vx-input-wrap">
+            <lucide-icon [img]="icons.user" [size]="16" class="vx-input-icon" aria-hidden="true" />
+            <input id="nickname" class="vx-input" formControlName="nickname" autocomplete="username" />
           </div>
+        </vx-field>
 
-          <div class="field">
-            <label for="password">Password</label>
-            <input id="password" class="input" type="password" formControlName="password" autocomplete="new-password" />
-            <vx-field-error [control]="form.controls.password" />
-          </div>
+        <vx-field label="Password" for="password" [control]="form.controls.password" hint="8+ characters with upper- and lowercase letters and a digit.">
+          <vx-password-input>
+            <input id="password" class="vx-input" type="password" formControlName="password" autocomplete="new-password" />
+          </vx-password-input>
+        </vx-field>
 
-          <div class="field">
-            <label for="confirm">Confirm password</label>
-            <input id="confirm" class="input" type="password" formControlName="confirmPassword" autocomplete="new-password" />
-            <vx-field-error [control]="form.controls.confirmPassword" />
-          </div>
+        <vx-field label="Confirm password" for="confirm" [control]="form.controls.confirmPassword">
+          <vx-password-input>
+            <input id="confirm" class="vx-input" type="password" formControlName="confirmPassword" autocomplete="new-password" />
+          </vx-password-input>
+        </vx-field>
 
-          <div class="field">
-            <label for="dob">Date of birth</label>
-            <input id="dob" class="input" type="date" formControlName="dateOfBirth" [max]="maxBirthDate" />
-            <vx-field-error [control]="form.controls.dateOfBirth" />
-          </div>
+        <vx-field label="Date of birth" for="dob" [control]="form.controls.dateOfBirth">
+          <input id="dob" class="vx-input" type="date" formControlName="dateOfBirth" [max]="maxBirthDate" />
+        </vx-field>
 
-          <div class="field">
-            <label class="checkbox">
-              <input type="checkbox" formControlName="isAdultConfirmed" />
-              <span>I confirm that I am 18 years or older and understand that VLX points are virtual.</span>
-            </label>
-            <vx-field-error [control]="form.controls.isAdultConfirmed" />
-          </div>
+        <div class="flex flex-col gap-1.5">
+          <label class="vx-checkbox">
+            <input type="checkbox" formControlName="isAdultConfirmed" />
+            <span>I confirm that I am 18 years or older and understand that VLX points are virtual.</span>
+          </label>
+          @if (adultError(); as message) {
+            <p class="flex items-center gap-1.5 text-xs text-danger" role="alert">
+              <lucide-icon [img]="icons.alert" [size]="13" aria-hidden="true" />{{ message }}
+            </p>
+          }
+        </div>
 
-          <button class="btn btn-primary btn-block btn-lg" type="submit" [disabled]="submitting()">
-            {{ submitting() ? 'Creating account…' : 'Create account' }}
-          </button>
-        </form>
+        <button vxButton type="submit" variant="primary" size="lg" block [loading]="submitting()">Create account</button>
+      </form>
 
-        <p class="muted switch">Already registered? <a routerLink="/login">Log in</a></p>
-      </div>
-    </div>
-  `,
-  styles: `
-    .switch { margin: 16px 0 0; text-align: center; }
+      <p auth-footer>Already registered? <a routerLink="/login" class="font-medium">Log in</a></p>
+    </vx-auth-card>
   `
 })
 export class RegisterPage {
@@ -74,6 +76,7 @@ export class RegisterPage {
   private readonly router = inject(Router);
   private readonly toasts = inject(ToastStore);
 
+  protected readonly icons = Icons;
   protected readonly submitting = signal(false);
 
   /** The date picker does not even offer dates that are too recent. */
@@ -94,6 +97,13 @@ export class RegisterPage {
     },
     { validators: fieldsMatch('password', 'confirmPassword') }
   );
+
+  protected adultError(): string | null {
+    const control = this.form.controls.isAdultConfirmed;
+    return control.touched && control.invalid
+      ? (control.errors?.['server'] ?? 'You must confirm that you are 18 or older.')
+      : null;
+  }
 
   protected async submit(): Promise<void> {
     if (this.form.invalid) {
