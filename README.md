@@ -90,7 +90,7 @@ Each account starts with 1000 VLX. The `crash` game and the system settings come
 
 ## Database
 
-There are 30 tables, created by the migrations `InitialCreate` and `AddExtendedModels` (later migrations add columns):
+There are 30 tables, created by the migrations `InitialCreate` and `AddExtendedModels` (later migrations add columns, constraints and indexes):
 
 | Area | Tables |
 |---|---|
@@ -123,9 +123,37 @@ Waiting → BettingOpen (10 s) → BettingClosed (1 s) → Running (100 ms ticks
 - **Wallet:** every change is a `WalletTransaction` (before/after balance, unique idempotency key). `RowVersion` on wallets and `Status` on bets detect concurrent changes; the operation is then retried with fresh data.
 - **Restart safety:** on startup, unfinished rounds are cancelled and their bets refunded.
 
+## Player tools and admin panel (Phase 4)
+
+| Area | Endpoints | Who |
+|---|---|---|
+| Leaderboard | `GET /api/leaderboard?period=day\|week\|all&type=multiplier\|profit&limit=20` | everyone (guests too) |
+| Personal stats | `GET /api/stats/me?days=30` | logged in |
+| Limits | `GET /api/limits`, `PUT /api/limits`, `POST /api/limits/self-exclusion` | Player |
+| Notifications | `GET /api/notifications`, `PUT /api/notifications/{id}/read`, `PUT /api/notifications/read-all` | logged in |
+| Admin users | `GET /api/admin/users?search=&role=&isBlocked=&page=`, `GET /api/admin/users/{id}`, `PUT …/{id}/role`, `PUT …/{id}/block`, `POST …/{id}/balance-adjustment` | Admin |
+| Audit log | `GET /api/admin/audit-logs?action=&entityType=&entityId=&page=`, `GET /api/admin/audit-logs/actions` | Admin |
+| Settings | `GET /api/admin/settings`, `PUT /api/admin/settings` (starting balance, daily bonus) | Admin |
+| Dashboard | `GET /api/admin/stats/overview`, `GET /api/admin/stats/daily?from=&to=` | Admin |
+
+Rules (all in Domain entities, all unit-tested):
+
+- **Daily bet limit** (`PlayerLimit`): a lower limit applies at once; a higher limit or removing it waits **24 hours**. Otherwise a player on a losing streak could just raise it. The bet service checks it inside the same retried unit of work as the wallet debit, so two simultaneous bets cannot both slip under the limit.
+- **Self-exclusion** (24 h / 7 d / 30 d): betting is refused with 403. It can be extended but never shortened or cancelled. The player can still sign in and see their history.
+- **Balance adjustment** (`BalanceAdjustment.Apply`): a reason (5–500 characters) is required, the amount is never 0, the balance never goes negative, and an admin cannot adjust their own balance. It creates an `AdminAdjustment` ledger row, an audit entry and a notification in one transaction. An optional `requestId` makes it idempotent (a double-click cannot pay twice).
+- **Role and block** (`User`): nobody can change their own role or block themselves, so the system can never lose its last admin. Blocking signs the user out on every device and refuses their bets at once.
+- **Audit log:** every admin action (and limit changes and self-exclusions) records who did it, the old value and the new value.
+
+Background jobs (`Infrastructure/Jobs`):
+
+- `DailyBonusReminderJob` (every minute): creates a "Daily bonus available" notification once per bonus cycle and pushes it live. It skips blocked and self-excluded players.
+- `DailyStatisticsJob` (startup, then every 10 minutes): stores one `DailyStatistics` row per finished day, so the admin charts read about 30 small rows instead of scanning every bet. Today is always calculated live.
+
+The admin dashboard shows the crash points of the last 1000 rounds next to the share the formula predicts (`P(crash ≥ x) = 0.97 / x`). Over many rounds the two must match. A unit test checks this on 20,000 generated rounds.
+
 ## Real-time (SignalR) — `/hubs/crash`
 
-Connect as a guest, or with `?access_token=<JWT>` to also receive your balance.
+Connect as a guest, or with `?access_token=<JWT>` to also receive your balance and notifications.
 
 | Direction | Message | Payload |
 |---|---|---|
@@ -135,6 +163,7 @@ Connect as a guest, or with `?access_token=<JWT>` to also receive your balance.
 | server → group | `RoundCrashed` | roundId, crashPoint, serverSeed |
 | server → group | `BetPlaced` / `PlayerCashedOut` | roundId, nickname, amount / multiplier, payout |
 | server → user | `BalanceUpdated` | balance |
+| server → user | `Notification` | id, type, title, message, isRead, createdAt |
 | server → all | `OnlineCount` | count |
 
 ## Tests
@@ -143,7 +172,7 @@ Connect as a guest, or with `?access_token=<JWT>` to also receive your balance.
 dotnet test
 ```
 
-There are 104 xUnit tests: crash-point generation and distribution, provably fair verification, multiplier curve, round state transitions (illegal ones rejected), wallet rules (no negative balance, refunds, daily bonus), bet and cash-out rules, refresh-token reuse rules, a guard that no role-protected endpoint is accidentally `[AllowAnonymous]`, and which auth endpoints are rate-limited.
+There are 202 xUnit tests: crash-point generation and distribution, provably fair verification, multiplier curve, round state transitions (illegal ones rejected), wallet rules (no negative balance, refunds, daily bonus), bet and cash-out rules, refresh-token reuse rules, daily bet limit (24-hour wait before an increase), self-exclusion, admin balance adjustment, role and block rules, crash-point ranges against the theoretical distribution, guards that no role-protected endpoint is accidentally `[AllowAnonymous]` and that every `api/admin` controller requires the Admin role, and which auth endpoints are rate-limited.
 
 ```bash
 cd Veltrix.Web

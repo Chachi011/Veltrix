@@ -56,7 +56,9 @@ Veltrix.Web            Angular client: core/ (api, auth, http, realtime, state, 
 ## Security rules learned the hard way
 
 - `[AllowAnonymous]` on a controller **overrides** `[Authorize]` on its actions. Put it on individual actions; `AuthorizationAttributeTests` guards this.
-- Refresh tokens rotate. A token rotated less than 30 s ago may be reused once (concurrent tabs/reloads); any other reuse revokes all sessions. The client serializes refreshes across tabs with Web Locks.
+- Refresh tokens rotate. A token rotated less than 30 s ago may be reused once (concurrent tabs/reloads); a ROTATED token replayed later revokes all sessions (theft). A token revoked for another reason (logout, password change, block) is just dead: 401, or 403 if the user is blocked, with no theft alarm (`RefreshToken.ReplayLooksLikeTheft`). The client serializes refreshes across tabs with Web Locks.
+- Every `api/admin/*` controller has `[Authorize(Roles = Admin)]` on the CLASS (so new actions are protected automatically); `AuthorizationAttributeTests` guards this. Limits are Player-only, like bets.
+- Admins cannot change their own role, block themselves or adjust their own balance (Domain rules).
 - The `auth` rate limit (10/min/IP) covers login/register/forgot/reset only, not refresh/logout (`RateLimitAttributeTests`).
 - Secrets (JWT key) live in user-secrets, never in Git.
 
@@ -67,7 +69,7 @@ Veltrix.Web            Angular client: core/ (api, auth, http, realtime, state, 
 | 1 | Solution, DB, EF models + migrations, JWT auth, roles, Swagger, profile endpoints | **Done** (merged into `develop`) |
 | 2 | Round engine, bets, cash-out, wallet, SignalR, provably fair (**MVP gate**) | **Done** (merged into `develop`) |
 | 3 | Angular UI: design system, login/register, Crash page (Canvas), wallet, history, profile, responsive, dark/light | **Done** (verified by the author on desktop and phone; merged into `develop`) |
-| 4 | Operator/Admin panels, leaderboard, limits/self-exclusion UI, notifications, settings, charts | **In progress** on `feature/phase4-panels`. Step A = backend (stop for Swagger testing), Step B = Angular UI |
+| 4 | Operator/Admin panels, leaderboard, limits/self-exclusion UI, notifications, settings, charts | **In progress** on `feature/phase4-panels`. Step A (backend: leaderboard, stats, limits, notifications + SignalR push, admin users/audit/settings/dashboard, 2 jobs) **built**, awaiting the author's Swagger check. Step B = Angular UI |
 | 5 | Remaining tests (Moq service tests, more Jasmine), optional (*) features, README screenshots, seed script, presentation demo | Not started |
 
 Optional (*) features only after the MVP: auto-bet, two bets per round (backend supports slot 2), achievements/XP, chat with moderation, 2FA, email verification, ka/en, CSV export, Docker Compose, GitHub Actions.
