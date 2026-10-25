@@ -52,15 +52,13 @@ public sealed class BetService : IBetService
         var player = await _db.Users
             .AsNoTracking()
             .Where(u => u.Id == userId)
-            .Select(u => new { u.Nickname, u.IsBlocked, u.Limit })
+            .Select(u => new { u.Nickname, u.IsBlocked })
             .FirstOrDefaultAsync(ct)
             ?? throw new UnauthorizedException("User not found.");
 
         // The JWT stays valid for up to 15 minutes, so a block must also be checked here
         if (player.IsBlocked)
             throw new ForbiddenException("Your account is blocked.");
-
-        await EnforcePlayerLimitsAsync(userId, player.Limit, request.Amount, ct);
 
         var (bet, round, balance) = await ConcurrencyRetry.ExecuteAsync(_db, async () =>
         {
@@ -74,6 +72,16 @@ public sealed class BetService : IBetService
                 .OrderByDescending(r => r.RoundNumber)
                 .FirstOrDefaultAsync(ct)
                 ?? throw new BadRequestException("There is no round to bet on yet.");
+
+            // Responsible play (domain rules in PlayerLimit): self-exclusion and the daily bet limit.
+            // Checked INSIDE the retried unit: two simultaneous bets both change the same wallet row, so one of them
+            // fails (RowVersion conflict or deadlock victim) and is retried, and the retry sees the other bet in today's total.
+            var limit = await _db.PlayerLimits.AsNoTracking().FirstOrDefaultAsync(l => l.UserId == userId, ct);
+            if (limit is not null)
+            {
+                var betToday = limit.EffectiveDailyBetLimit(now) is null ? 0 : await _db.Bets.TotalBetTodayAsync(userId, now, ct);
+                limit.EnsureCanBet(request.Amount, betToday, now);
+            }
 
             if (await _db.Bets.AnyAsync(b => b.RoundId == currentRound.Id && b.UserId == userId && b.Slot == request.Slot, ct))
                 throw new ConflictException($"You already have a bet in slot {request.Slot} of this round.");
@@ -178,29 +186,6 @@ public sealed class BetService : IBetService
             .ToListAsync(ct);
 
         return new PagedResult<BetDto> { Items = items, Page = query.Page, PageSize = query.PageSize, TotalCount = total };
-    }
-
-    /// <summary>Self-exclusion and the daily bet limit (responsible play tools).</summary>
-    private async Task EnforcePlayerLimitsAsync(int userId, PlayerLimit? limit, decimal amount, CancellationToken ct)
-    {
-        if (limit is null)
-            return;
-
-        var now = Now;
-        if (limit.SelfExcludedUntil > now)
-            throw new ForbiddenException($"You are self-excluded until {limit.SelfExcludedUntil:yyyy-MM-dd HH:mm} UTC.");
-
-        if (limit.DailyBetLimit is { } dailyLimit)
-        {
-            var startOfDay = now.Date;
-            var betToday = await _db.Bets
-                .Where(b => b.UserId == userId && b.PlacedAt >= startOfDay && b.Status != BetStatus.Refunded)
-                .SumAsync(b => (decimal?)b.Amount, ct) ?? 0;
-
-            if (betToday + amount > dailyLimit)
-                throw new BadRequestException(
-                    $"Daily bet limit reached: {betToday:0.00} of {dailyLimit:0.00} VLX used today.");
-        }
     }
 
     private static BetDto ToDto(Bet bet, GameRound round, string slug) => new()

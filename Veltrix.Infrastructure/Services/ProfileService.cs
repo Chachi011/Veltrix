@@ -5,6 +5,7 @@ using Veltrix.Application.Common.Files;
 using Veltrix.Application.Common.Interfaces;
 using Veltrix.Application.DTOs.Profile;
 using Veltrix.Application.Interfaces;
+using Veltrix.Domain.Common;
 using Veltrix.Domain.Entities;
 using Veltrix.Domain.Enums;
 using Veltrix.Infrastructure.Persistence;
@@ -19,6 +20,7 @@ public sealed class ProfileService : IProfileService
     private readonly ICurrentUserService _currentUser;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IAvatarStorage _avatarStorage;
+    private readonly IGameNotifier _notifier;
     private readonly TimeProvider _time;
     private readonly ILogger<ProfileService> _logger;
 
@@ -27,6 +29,7 @@ public sealed class ProfileService : IProfileService
         ICurrentUserService currentUser,
         IPasswordHasher passwordHasher,
         IAvatarStorage avatarStorage,
+        IGameNotifier notifier,
         TimeProvider time,
         ILogger<ProfileService> logger)
     {
@@ -34,6 +37,7 @@ public sealed class ProfileService : IProfileService
         _currentUser = currentUser;
         _passwordHasher = passwordHasher;
         _avatarStorage = avatarStorage;
+        _notifier = notifier;
         _time = time;
         _logger = logger;
     }
@@ -95,10 +99,15 @@ public sealed class ProfileService : IProfileService
             throw new BadRequestException("Current password is incorrect.");
 
         user.PasswordHash = _passwordHasher.Hash(request.NewPassword);
+
+        // A security notice: if someone else changed the password, the owner sees it on the bell
+        var notification = UserNotifications.Add(_db, user.Id, NotificationTypes.PasswordChanged, "Password changed",
+            "Your password was changed and all devices were signed out. If this was not you, reset your password now.", Now);
         await _db.SaveChangesAsync(ct);
 
         // Every device must log in again with the new password
         await _db.RefreshTokens.RevokeAllForUserAsync(user.Id, Now, RefreshToken.ReasonPasswordChanged, ct);
+        await _notifier.PushAsync(notification);
 
         _logger.LogInformation("User {UserId} changed their password; all refresh tokens revoked", user.Id);
     }

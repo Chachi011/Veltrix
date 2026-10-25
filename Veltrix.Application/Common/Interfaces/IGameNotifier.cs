@@ -1,3 +1,4 @@
+using Veltrix.Application.DTOs.Notifications;
 using Veltrix.Application.DTOs.Realtime;
 
 namespace Veltrix.Application.Common.Interfaces;
@@ -14,4 +15,7 @@ public interface IGameNotifier
     Task BetPlacedAsync(string gameSlug, BetPlacedEvent payload);
     Task PlayerCashedOutAsync(string gameSlug, PlayerCashedOutEvent payload);
     Task BalanceUpdatedAsync(int userId, decimal balance);
+
+    /// <summary>A new bell notification, sent only to its owner (all their tabs and devices).</summary>
+    Task NotificationAsync(int userId, NotificationDto notification);
 }

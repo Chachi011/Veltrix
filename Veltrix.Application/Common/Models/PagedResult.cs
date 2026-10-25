@@ -15,8 +15,8 @@ public class PageQuery
     public int Offset() => (Page - 1) * PageSize;
 }
 
-/// <summary>One page of results plus what the UI needs to draw the pager.</summary>
-public sealed class PagedResult<T>
+/// <summary>One page of results plus what the UI needs to draw the pager. Not sealed: a page may carry extra totals.</summary>
+public class PagedResult<T>
 {
     public IReadOnlyList<T> Items { get; init; } = Array.Empty<T>();
     public int Page { get; init; }

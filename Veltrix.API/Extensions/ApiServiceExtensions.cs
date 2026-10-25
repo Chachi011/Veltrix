@@ -52,6 +52,7 @@ public static class ApiServiceExtensions
 
         services.AddSingleton<IUserIdProvider, SubClaimUserIdProvider>();
         services.AddSingleton<IGameNotifier, SignalRGameNotifier>();
+        services.AddSingleton<IOnlineCounter, HubOnlineCounter>();
     }
 
     private static void AddJwtAuthentication(this IServiceCollection services)

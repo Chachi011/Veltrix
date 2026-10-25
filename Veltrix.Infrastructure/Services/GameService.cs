@@ -5,6 +5,7 @@ using Veltrix.Application.Common.Exceptions;
 using Veltrix.Application.Common.Interfaces;
 using Veltrix.Application.DTOs.Games;
 using Veltrix.Application.Interfaces;
+using Veltrix.Domain.Common;
 using Veltrix.Domain.Entities;
 using Veltrix.Domain.Enums;
 using Veltrix.Infrastructure.Persistence;
@@ -95,7 +96,7 @@ public sealed class GameService : IGameService
         await _db.SaveChangesAsync(ct);
 
         // Second save: the audit row needs the generated game.Id
-        _db.AuditLogs.Add(AuditTrail.Entry(_currentUser.UserId, "GameCreated", nameof(Game), game.Id.ToString(), null, MapToDto(game), now));
+        _db.AuditLogs.Add(AuditTrail.Entry(_currentUser.UserId, AuditActions.GameCreated, nameof(Game), game.Id.ToString(), null, MapToDto(game), now));
         await _db.SaveChangesAsync(ct);
 
         _logger.LogInformation("Game {GameId} ({Slug}) created by user {UserId}", game.Id, game.Slug, _currentUser.UserId);
@@ -114,7 +115,7 @@ public sealed class GameService : IGameService
         game.UpdatedAt = now;
 
         var after = MapToDto(game);
-        _db.AuditLogs.Add(AuditTrail.Entry(_currentUser.UserId, "GameUpdated", nameof(Game), game.Id.ToString(), before, after, now));
+        _db.AuditLogs.Add(AuditTrail.Entry(_currentUser.UserId, AuditActions.GameUpdated, nameof(Game), game.Id.ToString(), before, after, now));
         await _db.SaveChangesAsync(ct);
 
         _logger.LogInformation("Game {GameId} updated by user {UserId}", game.Id, _currentUser.UserId);
@@ -131,7 +132,7 @@ public sealed class GameService : IGameService
         game.UpdatedAt = now;
 
         _db.AuditLogs.Add(AuditTrail.Entry(
-            _currentUser.UserId, "GameStatusChanged", nameof(Game), game.Id.ToString(),
+            _currentUser.UserId, AuditActions.GameStatusChanged, nameof(Game), game.Id.ToString(),
             new { Status = oldStatus.ToString() }, new { Status = game.Status.ToString() }, now));
         await _db.SaveChangesAsync(ct);
 

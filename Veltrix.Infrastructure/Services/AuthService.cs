@@ -14,7 +14,6 @@ namespace Veltrix.Infrastructure.Services;
 
 public sealed class AuthService : IAuthService
 {
-    private const decimal DefaultStartingBalance = 1000m;
     private static readonly TimeSpan ResetCodeLifetime = TimeSpan.FromMinutes(15);
 
     private readonly ApplicationDbContext _db;
@@ -57,7 +56,7 @@ public sealed class AuthService : IAuthService
             throw new ConflictException("This nickname is already taken.");
 
         var startingBalance = await SettingsReader.GetDecimalAsync(
-            _db, SettingKeys.StartingBalance, DefaultStartingBalance, ct);
+            _db, SettingKeys.StartingBalance, SettingDefaults.StartingBalance, ct);
 
         // Players can only register as Player. Roles are changed by an Admin.
         var user = User.Create(
@@ -159,10 +158,19 @@ public sealed class AuthService : IAuthService
                 return concurrentResponse;
             }
 
-            // Otherwise an old token is being replayed: it may have been stolen.
+            // An old ROTATED token is being replayed: it may have been stolen.
             // Safest reaction: log the user out everywhere.
-            await RevokeAllTokensAsync(stored.UserId, RefreshToken.ReasonReuseDetected, ct);
-            _logger.LogWarning("Reuse of revoked refresh token detected for user {UserId}; all sessions revoked", stored.UserId);
+            if (stored.ReplayLooksLikeTheft(Now))
+            {
+                await RevokeAllTokensAsync(stored.UserId, RefreshToken.ReasonReuseDetected, ct);
+                _logger.LogWarning("Reuse of revoked refresh token detected for user {UserId}; all sessions revoked", stored.UserId);
+                throw new UnauthorizedException("Refresh token is no longer valid. Please log in again.");
+            }
+
+            // Revoked by logout, password change or a block: simply no longer valid (not a theft alarm)
+            if (user.IsBlocked)
+                throw new ForbiddenException("Your account is blocked. Contact support.");
+
             throw new UnauthorizedException("Refresh token is no longer valid. Please log in again.");
         }
 
