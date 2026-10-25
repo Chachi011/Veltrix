@@ -1,0 +1,441 @@
+/* ==========================================================================
+   VELTRIX design system
+   1. Tokens: CSS variables per theme ([data-theme] can be set on <html> or on any element)
+   2. Tailwind theme: maps the tokens to utilities (bg-surface, text-muted, rounded-card...)
+   3. Base, components (raw-element classes), motion
+   ========================================================================== */
+
+@import 'tailwindcss';
+
+/* `dark:` variant follows our data-theme attribute instead of the OS setting */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+/* ---------- 1. Tokens ---------- */
+
+/* Dark theme first (exact values from the design spec) */
+:root,
+[data-theme='dark'] {
+  --bg: #0b0e14;
+  --surface: #121722;
+  --surface-2: #1a2130;
+  --border: #252d3d;
+  --text: #e6eaf2;
+  --text-muted: #8a93a6;
+  --primary: #7c5cff;
+  --accent: #22d3ee;
+  --success: #22c55e;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+
+  /* Derived for WCAG AA: violet text on dark cards needs a lighter shade (3.7:1 → 7.2:1),
+     bright fills need dark text on top (white on #22C55E is only 2.3:1) */
+  --primary-hover: #8f74ff;
+  --primary-text: #a996ff;
+  --on-primary: #ffffff;
+  --on-accent: #0b0e14;
+  --on-success: #0b0e14;
+  --on-danger: #0b0e14;
+  --on-warning: #0b0e14;
+
+  --vx-shadow-soft: 0 1px 2px rgb(0 0 0 / 0.3);
+  --vx-shadow-card: 0 1px 2px rgb(0 0 0 / 0.25), 0 12px 32px -16px rgb(0 0 0 / 0.55);
+  --vx-shadow-pop: 0 1px 2px rgb(0 0 0 / 0.3), 0 24px 48px -16px rgb(0 0 0 / 0.65);
+  --vx-glow: 0 0 28px rgb(34 211 238 / 0.45);
+  color-scheme: dark;
+}
+
+/* Light theme: same roles. Status colors use darker shades of the same hues so text stays AA on white */
+[data-theme='light'] {
+  --bg: #f6f7fb;
+  --surface: #ffffff;
+  --surface-2: #f1f4f9;
+  --border: #e2e8f0;
+  --text: #0f172a;
+  --text-muted: #5b6478;
+  --primary: #7c5cff;
+  --accent: #0e7490;
+  --success: #15803d;
+  --danger: #dc2626;
+  --warning: #b45309;
+
+  --primary-hover: #6a48f5;
+  --primary-text: #6a48f5;
+  --on-primary: #ffffff;
+  --on-accent: #ffffff;
+  --on-success: #ffffff;
+  --on-danger: #ffffff;
+  --on-warning: #ffffff;
+
+  --vx-shadow-soft: 0 1px 2px rgb(15 23 42 / 0.05);
+  --vx-shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 12px 32px -16px rgb(15 23 42 / 0.12);
+  --vx-shadow-pop: 0 1px 2px rgb(15 23 42 / 0.06), 0 24px 48px -16px rgb(15 23 42 / 0.2);
+  --vx-glow: 0 0 24px rgb(14 116 144 / 0.25);
+  color-scheme: light;
+}
+
+/* ---------- 2. Tailwind theme ---------- */
+
+/* `inline`: utilities use var(--surface) directly, so they follow whichever theme is active */
+@theme inline {
+  --color-*: initial; /* only design-system colors exist: no random gray-500 or blue-600 */
+  --color-white: #ffffff;
+  --color-black: #000000;
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-muted: var(--text-muted);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-text: var(--primary-text);
+  --color-on-primary: var(--on-primary);
+  --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
+  --color-success: var(--success);
+  --color-on-success: var(--on-success);
+  --color-danger: var(--danger);
+  --color-on-danger: var(--on-danger);
+  --color-warning: var(--warning);
+  --color-on-warning: var(--on-warning);
+
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, 'Cascadia Code', Consolas, monospace;
+
+  --radius-card: 12px;
+  --radius-control: 10px;
+
+  --shadow-soft: var(--vx-shadow-soft);
+  --shadow-card: var(--vx-shadow-card);
+  --shadow-pop: var(--vx-shadow-pop);
+}
+
+@theme {
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --animate-shimmer: vx-shimmer 1.6s ease-in-out infinite;
+  --animate-shake: vx-shake 0.45s ease-out;
+  --animate-pop-in: vx-pop-in 0.2s var(--ease-out-soft);
+  --animate-slide-up: vx-slide-up 0.25s var(--ease-out-soft);
+  --animate-fade-in: vx-fade-in 0.2s ease-out;
+
+  @keyframes vx-shimmer {
+    0% { background-position: 100% 0; }
+    100% { background-position: -100% 0; }
+  }
+  @keyframes vx-shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(5px); }
+    60% { transform: translateX(-3px); }
+    80% { transform: translateX(2px); }
+  }
+  @keyframes vx-pop-in {
+    from { opacity: 0; transform: translateY(4px) scale(0.98); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes vx-slide-up {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes vx-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+}
+
+/* Numbers (balance, multiplier, amounts): JetBrains Mono with equal-width digits, so they don't jump */
+@utility num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* Glass: only for the top bar, bottom nav and modals */
+@utility glass {
+  background-color: color-mix(in oklab, var(--surface) 70%, transparent);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+}
+
+/* ---------- 3. Base ---------- */
+
+@layer base {
+  [data-theme] {
+    background-color: var(--bg);
+    color: var(--text);
+  }
+
+  html {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  h1, h2, h3, h4 {
+    letter-spacing: -0.015em;
+    color: var(--text);
+  }
+
+  a {
+    color: var(--primary-text);
+    text-decoration: none;
+  }
+
+  /* One visible focus style for keyboard users everywhere */
+  :focus-visible {
+    outline: 2px solid var(--primary-text);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  /* Icon hosts behave like boxes, so transforms (e.g. animate-spin) work */
+  lucide-icon,
+  lucide-angular {
+    display: inline-flex;
+    flex-shrink: 0;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--primary) 35%, transparent);
+  }
+}
+
+@layer components {
+  .vx-label {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text-muted);
+  }
+
+  .vx-input {
+    width: 100%;
+    height: 2.5rem;
+    padding: 0 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-control);
+    background: var(--surface-2);
+    color: var(--text);
+    font: inherit;
+    font-size: 0.875rem;
+    transition: border-color 0.18s ease-out, box-shadow 0.18s ease-out, background-color 0.18s ease-out;
+    outline: none;
+
+    &::placeholder {
+      color: color-mix(in oklab, var(--text-muted) 75%, transparent);
+    }
+    &:hover:not(:disabled) {
+      border-color: color-mix(in oklab, var(--text-muted) 40%, var(--border));
+    }
+    &:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px color-mix(in oklab, var(--primary) 18%, transparent);
+    }
+    &:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+    &.ng-invalid.ng-touched,
+    &[aria-invalid='true'] {
+      border-color: var(--danger);
+      box-shadow: none;
+    }
+    &.ng-invalid.ng-touched:focus {
+      box-shadow: 0 0 0 4px color-mix(in oklab, var(--danger) 16%, transparent);
+    }
+    &.num {
+      font-size: 0.95rem;
+    }
+  }
+
+  select.vx-input {
+    appearance: none;
+    padding-right: 2.25rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%238a93a6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+  }
+
+  /* Input with an icon on the left and/or a unit on the right */
+  .vx-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+
+    & > .vx-input-icon {
+      position: absolute;
+      left: 0.75rem;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+    & > .vx-input-suffix {
+      position: absolute;
+      right: 0.75rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+    & > .vx-input-icon ~ .vx-input {
+      padding-left: 2.25rem;
+    }
+    & > .vx-input:has(~ .vx-input-suffix) {
+      padding-right: 3rem;
+    }
+  }
+
+  .vx-checkbox {
+    display: inline-flex;
+    align-items: flex-start;
+    gap: 0.625rem;
+    cursor: pointer;
+    font-size: 0.875rem;
+
+    & input {
+      width: 1rem;
+      height: 1rem;
+      margin-top: 0.15rem;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+  }
+
+  /* On/off switch: <input type="checkbox" class="vx-switch"> (keeps native checkbox semantics) */
+  .vx-switch {
+    position: relative;
+    width: 2.25rem !important;
+    height: 1.25rem !important;
+    margin: 0 !important;
+    flex-shrink: 0;
+    appearance: none;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface-2);
+    cursor: pointer;
+    transition: background-color 0.2s ease-out, border-color 0.2s ease-out;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 0.875rem;
+      height: 0.875rem;
+      border-radius: 999px;
+      background: var(--text-muted);
+      transition: transform 0.2s var(--ease-out-soft), background-color 0.2s ease-out;
+    }
+    &:checked {
+      background: var(--primary);
+      border-color: var(--primary);
+    }
+    &:checked::after {
+      transform: translateX(1rem);
+      background: var(--on-primary);
+    }
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  .vx-table-wrap {
+    overflow-x: auto;
+    border-radius: var(--radius-card);
+  }
+
+  .vx-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.8125rem;
+
+    & th {
+      position: sticky;
+      top: 0;
+      padding: 0.625rem 1rem;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 0.6875rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      text-align: left;
+      white-space: nowrap;
+    }
+    & td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+      white-space: nowrap;
+    }
+    & tbody tr {
+      transition: background-color 0.15s ease-out;
+    }
+    & tbody tr:hover {
+      background: color-mix(in oklab, var(--surface-2) 70%, transparent);
+    }
+    & tbody tr:last-child td {
+      border-bottom: 0;
+    }
+    & .text-right {
+      text-align: right;
+    }
+  }
+
+  /* Dense tables in narrow columns (e.g. live bets): tighter cells */
+  .vx-table-compact {
+    & th,
+    & td {
+      padding-left: 0.75rem;
+      padding-right: 0.75rem;
+    }
+    & td {
+      padding-top: 0.5rem;
+      padding-bottom: 0.5rem;
+    }
+  }
+
+  /* Skeleton shimmer background */
+  .vx-skeleton {
+    background: linear-gradient(
+      90deg,
+      var(--surface-2) 0%,
+      color-mix(in oklab, var(--surface-2) 55%, var(--border)) 50%,
+      var(--surface-2) 100%
+    );
+    background-size: 200% 100%;
+  }
+
+  /* CDK overlays (menus, dialogs) */
+  .vx-backdrop {
+    background: rgb(5 7 12 / 0.55);
+    backdrop-filter: blur(4px);
+  }
+
+  .vx-dialog-panel {
+    width: 100%;
+  }
+}
+
+/* ---------- Motion ---------- */
+
+/* Users who ask their OS for less motion get instant changes: no shimmer, shake or counting numbers */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

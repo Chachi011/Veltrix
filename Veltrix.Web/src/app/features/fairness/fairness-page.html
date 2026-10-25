@@ -1,0 +1,125 @@
+<vx-page-header title="Provably fair" description="Check that a round's result was fixed before anyone could bet." />
+
+<div class="grid gap-4 md:gap-6 lg:grid-cols-2">
+  <div class="flex min-w-0 flex-col gap-4 md:gap-6">
+    <vx-card title="Verify a round" subtitle="Open a round from the game or history, or paste a revealed seed.">
+      @if (roundInfo(); as info) {
+        <div class="mb-4 flex flex-wrap items-center gap-2">
+          <span class="num text-sm font-semibold">Round #{{ info.roundNumber }}</span>
+          <vx-badge [tone]="info.serverSeed ? 'success' : 'warning'" dot>{{ info.state }}</vx-badge>
+        </div>
+        @if (!info.serverSeed) {
+          <div class="mb-4 flex gap-2.5 rounded-control border border-warning/25 bg-warning/10 p-3 text-[13px]">
+            <lucide-icon [img]="icons.lock" [size]="16" class="mt-0.5 shrink-0 text-warning" aria-hidden="true" />
+            <div class="min-w-0">
+              <p class="font-medium">This round is not over yet, so its seed is still secret.</p>
+              <p class="mt-1 text-muted">Only the hash is public. Come back after the crash.</p>
+              <p class="mt-2 flex items-center gap-1">
+                <span class="num truncate text-xs">{{ info.serverSeedHash }}</span>
+                <vx-copy-button [text]="info.serverSeedHash" label="Copy hash" />
+              </p>
+            </div>
+          </div>
+        }
+      }
+
+      <form [formGroup]="form" (ngSubmit)="verify()" novalidate class="flex flex-col gap-4">
+        <vx-field label="Server seed" for="seed" [control]="form.controls.serverSeed" hint="Revealed after the round has crashed.">
+          <input id="seed" class="vx-input num text-xs!" formControlName="serverSeed" spellcheck="false" autocomplete="off" />
+        </vx-field>
+        <vx-field label="Published hash (optional)" for="hash" [control]="form.controls.serverSeedHash" patternMessage="64 hexadecimal characters.">
+          <input id="hash" class="vx-input num text-xs!" formControlName="serverSeedHash" spellcheck="false" autocomplete="off" />
+        </vx-field>
+        <vx-field label="Crash point (optional)" for="crash">
+          <div class="vx-input-wrap">
+            <input id="crash" class="vx-input num" formControlName="crashPoint" inputmode="decimal" placeholder="2.37" />
+            <span class="vx-input-suffix">x</span>
+          </div>
+        </vx-field>
+        <div>
+          <button vxButton type="submit" variant="primary" [loading]="verifying()">
+            <lucide-icon [img]="icons.shield" [size]="16" aria-hidden="true" />Verify
+          </button>
+        </div>
+      </form>
+    </vx-card>
+
+    <vx-card title="How it works">
+      <ol class="flex flex-col gap-3 text-[13px]">
+        @for (step of steps; track $index) {
+          <li class="flex gap-3">
+            <span class="num grid size-6 shrink-0 place-items-center rounded-full bg-primary/12 text-xs font-semibold text-primary-text">{{ $index + 1 }}</span>
+            <span class="pt-0.5 text-muted" [innerHTML]="step"></span>
+          </li>
+        }
+      </ol>
+    </vx-card>
+  </div>
+
+  <div class="flex min-w-0 flex-col gap-4 md:gap-6">
+    @if (browserResult(); as b) {
+      <vx-card>
+        <ng-container *ngTemplateOutlet="verdictHeader; context: { title: 'Checked in your browser', note: 'Web Crypto API. No server involved.', verdict: verdict(b.hashMatches, b.crashPointMatches) }" />
+        <dl class="mt-5 grid grid-cols-[max-content_minmax(0,1fr)] gap-x-4 gap-y-3 text-[13px]">
+          <dt class="text-muted">SHA-256(seed)</dt>
+          <dd class="num text-xs break-all">{{ b.hash }}</dd>
+          <dt class="text-muted">Hash matches</dt>
+          <dd><ng-container *ngTemplateOutlet="check; context: { value: b.hashMatches }" /></dd>
+          <dt class="text-muted">Crash point</dt>
+          <dd class="num font-semibold">{{ b.crashPoint | mult }}</dd>
+          <dt class="text-muted">Crash point matches</dt>
+          <dd><ng-container *ngTemplateOutlet="check; context: { value: b.crashPointMatches }" /></dd>
+        </dl>
+      </vx-card>
+    }
+
+    @if (serverResult(); as s) {
+      <vx-card>
+        <ng-container *ngTemplateOutlet="verdictHeader; context: { title: 'Checked by the server', note: 'POST /api/fairness/verify', verdict: verdict(s.hashMatches, s.crashPointMatches) }" />
+        <dl class="mt-5 grid grid-cols-[max-content_minmax(0,1fr)] gap-x-4 gap-y-3 text-[13px]">
+          <dt class="text-muted">Hash matches</dt>
+          <dd><ng-container *ngTemplateOutlet="check; context: { value: s.hashMatches }" /></dd>
+          <dt class="text-muted">Crash point</dt>
+          <dd class="num font-semibold">{{ s.computedCrashPoint | mult }}</dd>
+          <dt class="text-muted">Crash point matches</dt>
+          <dd><ng-container *ngTemplateOutlet="check; context: { value: s.crashPointMatches }" /></dd>
+        </dl>
+        <p class="num mt-5 rounded-control bg-surface-2 p-3 text-[11px] leading-5 text-muted">{{ s.algorithm }}</p>
+      </vx-card>
+    }
+
+    @if (!browserResult() && !serverResult()) {
+      <vx-card padding="none">
+        <vx-empty-state [icon]="icons.shield" title="Nothing checked yet" message="Click any crash point on the game page, or paste a seed and press Verify." />
+      </vx-card>
+    }
+  </div>
+</div>
+
+<ng-template #verdictHeader let-title="title" let-note="note" let-verdict="verdict">
+  <div class="flex items-start gap-3">
+    <span
+      class="grid size-10 shrink-0 place-items-center rounded-full"
+      [class]="verdict === 'ok' ? 'bg-success/12 text-success' : verdict === 'fail' ? 'bg-danger/12 text-danger' : 'bg-surface-2 text-muted'"
+    >
+      <lucide-icon [img]="verdict === 'ok' ? icons.success : verdict === 'fail' ? icons.failure : icons.info" [size]="20" aria-hidden="true" />
+    </span>
+    <div class="min-w-0">
+      <h3 class="text-[15px] font-semibold">{{ title }}</h3>
+      <p class="text-[13px] text-muted">{{ note }}</p>
+    </div>
+    <vx-badge class="ml-auto" [tone]="verdict === 'ok' ? 'success' : verdict === 'fail' ? 'danger' : 'neutral'">
+      {{ verdict === 'ok' ? 'Verified' : verdict === 'fail' ? 'Mismatch' : 'Partial' }}
+    </vx-badge>
+  </div>
+</ng-template>
+
+<ng-template #check let-value="value">
+  @if (value === null) {
+    <span class="text-muted">not checked</span>
+  } @else if (value) {
+    <span class="inline-flex items-center gap-1 font-medium text-success"><lucide-icon [img]="icons.check" [size]="14" aria-hidden="true" />Yes</span>
+  } @else {
+    <span class="inline-flex items-center gap-1 font-medium text-danger"><lucide-icon [img]="icons.close" [size]="14" aria-hidden="true" />No</span>
+  }
+</ng-template>

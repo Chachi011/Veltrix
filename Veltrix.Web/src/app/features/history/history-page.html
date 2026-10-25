@@ -1,0 +1,139 @@
+<vx-page-header title="History" description="Your bets and every finished round, each one verifiable.">
+  <vx-tabs page-actions [items]="tabs" [(value)]="tab" />
+</vx-page-header>
+
+@if (tab() === 'bets') {
+  <vx-card padding="none">
+    <!-- Filters -->
+    <form class="grid gap-3 border-b border-border p-4 sm:grid-cols-2 md:p-5 lg:grid-cols-[repeat(3,minmax(0,1fr))_auto]" (ngSubmit)="applyFilters()">
+      <div class="flex flex-col gap-1.5">
+        <label class="vx-label" for="status">Result</label>
+        <select id="status" name="status" class="vx-input" [ngModel]="status()" (ngModelChange)="status.set($event)">
+          <option [ngValue]="null">All results</option>
+          @for (s of statuses; track s) {
+            <option [ngValue]="s">{{ statusLabel(s) }}</option>
+          }
+        </select>
+      </div>
+      <div class="flex flex-col gap-1.5">
+        <label class="vx-label" for="from">From</label>
+        <input id="from" name="from" class="vx-input" type="date" [ngModel]="from()" (ngModelChange)="from.set($event)" />
+      </div>
+      <div class="flex flex-col gap-1.5">
+        <label class="vx-label" for="to">To</label>
+        <input id="to" name="to" class="vx-input" type="date" [ngModel]="to()" (ngModelChange)="to.set($event)" />
+      </div>
+      <div class="flex items-end gap-2">
+        <button vxButton type="submit" variant="primary" [loading]="loading()">Apply</button>
+        <button vxButton type="button" variant="ghost" (click)="clearFilters()">Clear</button>
+      </div>
+    </form>
+
+    @if (bets(); as page) {
+      @if (page.items.length === 0) {
+        <vx-empty-state [icon]="icons.history" title="No bets found" message="Change the filters, or play your first round.">
+          <a vxButton routerLink="/crash" variant="primary" size="sm">
+            <lucide-icon [img]="icons.rocket" [size]="14" aria-hidden="true" />Play
+          </a>
+        </vx-empty-state>
+      } @else {
+        <div class="vx-table-wrap">
+          <table class="vx-table" [class.opacity-60]="loading()">
+            <thead>
+              <tr>
+                <th>Round</th>
+                <th class="hidden sm:table-cell">Placed</th>
+                <th class="text-right">Bet</th>
+                <th class="hidden text-right lg:table-cell">Auto</th>
+                <th>Result</th>
+                <th class="hidden text-right md:table-cell">Cash-out</th>
+                <th class="hidden text-right md:table-cell">Crash</th>
+                <th class="text-right">Profit</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (bet of page.items; track bet.id) {
+                <tr>
+                  <td>
+                    <a class="num font-medium" routerLink="/fairness" [queryParams]="{ round: bet.roundId }" [title]="'Verify round #' + bet.roundNumber">
+                      #{{ bet.roundNumber }}
+                    </a>
+                  </td>
+                  <td class="hidden text-muted sm:table-cell">{{ bet.placedAt | date: 'MMM d, HH:mm' }}</td>
+                  <td class="num text-right">{{ bet.amount | vlx: false }}</td>
+                  <td class="num hidden text-right text-muted lg:table-cell">{{ bet.autoCashOutAt | mult }}</td>
+                  <td><vx-badge [tone]="statusTone(bet.status)">{{ statusLabel(bet.status) }}</vx-badge></td>
+                  <td class="num hidden text-right md:table-cell" [class.text-success]="bet.cashOutMultiplier">{{ bet.cashOutMultiplier | mult }}</td>
+                  <td class="num hidden text-right text-muted md:table-cell">{{ bet.crashPoint | mult }}</td>
+                  <td class="num text-right font-semibold" [class.text-success]="(profit(bet) ?? 0) > 0" [class.text-danger]="(profit(bet) ?? 0) < 0">
+                    @if (profit(bet); as p) {
+                      {{ p > 0 ? '+' : '' }}{{ p | vlx: false }}
+                    } @else {
+                      <span class="text-muted">{{ bet.status === 'Active' ? '…' : '0.00' }}</span>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <vx-pagination [page]="page.page" [totalPages]="page.totalPages" [totalCount]="page.totalCount" (pageChange)="loadBets($event)" />
+      }
+    } @else {
+      <div class="flex flex-col gap-3 p-5 md:p-6">
+        @for (row of skeletonRows; track row) {
+          <vx-skeleton height="1.25rem" />
+        }
+      </div>
+    }
+  </vx-card>
+} @else {
+  <vx-card padding="none">
+    @if (rounds(); as page) {
+      @if (page.items.length === 0) {
+        <vx-empty-state [icon]="icons.timer" title="No finished rounds yet" message="Rounds appear here once they are over." />
+      } @else {
+        <div class="vx-table-wrap">
+          <table class="vx-table" [class.opacity-60]="loading()">
+            <thead>
+              <tr>
+                <th>Round</th>
+                <th class="hidden sm:table-cell">Ended</th>
+                <th>Crash point</th>
+                <th class="hidden md:table-cell">Server seed hash</th>
+                <th class="text-right">Fairness</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (round of page.items; track round.id) {
+                <tr>
+                  <td class="num font-medium">#{{ round.roundNumber }}</td>
+                  <td class="hidden text-muted sm:table-cell">{{ round.endedAt | date: 'MMM d, HH:mm:ss' }}</td>
+                  <td><vx-multiplier-pill [value]="round.crashPoint" [cancelled]="round.state === 'Cancelled'" /></td>
+                  <td class="hidden md:table-cell">
+                    <span class="flex items-center gap-1">
+                      <span class="num text-xs text-muted" [title]="round.serverSeedHash">{{ shortHash(round.serverSeedHash) }}</span>
+                      <vx-copy-button [text]="round.serverSeedHash" label="Copy hash" />
+                    </span>
+                  </td>
+                  <td class="text-right">
+                    <a vxButton routerLink="/fairness" [queryParams]="{ round: round.id }" variant="ghost" size="sm">
+                      <lucide-icon [img]="icons.shield" [size]="14" aria-hidden="true" />Verify
+                    </a>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <vx-pagination [page]="page.page" [totalPages]="page.totalPages" [totalCount]="page.totalCount" (pageChange)="loadRounds($event)" />
+      }
+    } @else {
+      <div class="flex flex-col gap-3 p-5 md:p-6">
+        @for (row of skeletonRows; track row) {
+          <vx-skeleton height="1.25rem" />
+        }
+      </div>
+    }
+  </vx-card>
+}

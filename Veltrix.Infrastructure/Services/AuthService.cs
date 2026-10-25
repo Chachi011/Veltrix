@@ -145,11 +145,23 @@ public sealed class AuthService : IAuthService
         if (stored is null)
             throw new UnauthorizedException("Invalid refresh token.");
 
+        var user = stored.User!;
+
         if (stored.RevokedAt is not null)
         {
-            // A token that was already used/revoked is being reused: it may have been stolen.
+            // Two tabs refreshing at once, or a page reloaded before it got the new token:
+            // the same token arrives again seconds after its rotation. Not an attack, so issue a fresh pair.
+            if (stored.IsRecentlyRotated(Now) && !user.IsBlocked)
+            {
+                _logger.LogInformation("Refresh token of user {UserId} reused within the grace period (concurrent refresh)", user.Id);
+                var concurrentResponse = IssueTokens(user);
+                await _db.SaveChangesAsync(ct);
+                return concurrentResponse;
+            }
+
+            // Otherwise an old token is being replayed: it may have been stolen.
             // Safest reaction: log the user out everywhere.
-            await RevokeAllTokensAsync(stored.UserId, ct);
+            await RevokeAllTokensAsync(stored.UserId, RefreshToken.ReasonReuseDetected, ct);
             _logger.LogWarning("Reuse of revoked refresh token detected for user {UserId}; all sessions revoked", stored.UserId);
             throw new UnauthorizedException("Refresh token is no longer valid. Please log in again.");
         }
@@ -157,12 +169,11 @@ public sealed class AuthService : IAuthService
         if (stored.ExpiresAt <= Now)
             throw new UnauthorizedException("Refresh token has expired. Please log in again.");
 
-        var user = stored.User!;
         if (user.IsBlocked)
             throw new ForbiddenException("Your account is blocked. Contact support.");
 
         // Rotation: every refresh token can be used exactly once
-        stored.RevokedAt = Now;
+        stored.Revoke(Now, RefreshToken.ReasonRotated);
         var response = IssueTokens(user);
         await _db.SaveChangesAsync(ct);
 
@@ -176,7 +187,7 @@ public sealed class AuthService : IAuthService
 
         if (stored is { RevokedAt: null })
         {
-            stored.RevokedAt = Now;
+            stored.Revoke(Now, RefreshToken.ReasonLogout);
             await _db.SaveChangesAsync(ct);
             _logger.LogInformation("User {UserId} logged out", stored.UserId);
         }
@@ -245,7 +256,7 @@ public sealed class AuthService : IAuthService
         await _db.SaveChangesAsync(ct);
 
         // New password = log out every device that used the old one
-        await RevokeAllTokensAsync(user.Id, ct);
+        await RevokeAllTokensAsync(user.Id, RefreshToken.ReasonPasswordChanged, ct);
 
         _logger.LogInformation("User {UserId} reset their password", user.Id);
     }
@@ -302,8 +313,8 @@ public sealed class AuthService : IAuthService
         return _db.SaveChangesAsync(ct);
     }
 
-    private Task RevokeAllTokensAsync(int userId, CancellationToken ct) =>
-        _db.RefreshTokens.RevokeAllForUserAsync(userId, Now, ct);
+    private Task RevokeAllTokensAsync(int userId, string reason, CancellationToken ct) =>
+        _db.RefreshTokens.RevokeAllForUserAsync(userId, Now, reason, ct);
 
     private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
 }

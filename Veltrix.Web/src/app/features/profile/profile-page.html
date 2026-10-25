@@ -1,0 +1,119 @@
+<vx-page-header title="Profile" description="Your account, avatar, results and security." />
+
+@if (profile(); as p) {
+  <!-- Identity -->
+  <vx-card>
+    <div class="flex flex-col gap-5 sm:flex-row sm:items-center">
+      <div class="relative w-fit shrink-0">
+        <vx-avatar [src]="preview() ?? p.avatarUrl" [name]="p.nickname" size="xl" />
+        <button
+          vxButton
+          type="button"
+          variant="secondary"
+          size="icon-sm"
+          class="absolute! -right-1 -bottom-1 rounded-full! shadow-soft"
+          aria-label="Change avatar"
+          title="Change avatar"
+          (click)="chooseFile()"
+        >
+          <lucide-icon [img]="icons.camera" [size]="15" aria-hidden="true" />
+        </button>
+        <input #fileInput type="file" class="hidden" accept="image/jpeg,image/png,image/webp" (change)="onFileSelected($event)" />
+      </div>
+
+      <div class="min-w-0 flex-1">
+        <h2 class="truncate text-xl font-semibold">{{ p.nickname }}</h2>
+        <p class="truncate text-sm text-muted">{{ p.email }}</p>
+        <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted">
+          <vx-badge tone="primary">{{ p.role }}</vx-badge>
+          <span>Member since {{ p.createdAt | date: 'mediumDate' }}</span>
+        </div>
+
+        @if (preview()) {
+          <div class="mt-3 flex flex-wrap gap-2">
+            <button vxButton type="button" variant="primary" size="sm" [loading]="uploading()" (click)="uploadAvatar()">
+              <lucide-icon [img]="icons.upload" [size]="14" aria-hidden="true" />Save avatar
+            </button>
+            <button vxButton type="button" variant="ghost" size="sm" (click)="cancelAvatar()">Cancel</button>
+          </div>
+        } @else if (avatarError(); as message) {
+          <p class="mt-3 flex items-center gap-1.5 text-xs text-danger" role="alert">
+            <lucide-icon [img]="icons.alert" [size]="13" aria-hidden="true" />{{ message }}
+          </p>
+        } @else {
+          <p class="mt-3 text-xs text-muted">Avatar: JPG, PNG or WEBP, up to 2 MB.</p>
+        }
+      </div>
+
+      <div class="border-t border-border pt-4 sm:border-0 sm:pt-0 sm:text-right">
+        <p class="vx-label">Balance</p>
+        <p class="mt-1">
+          <vx-animated-number class="text-2xl font-semibold" [value]="p.balance" />
+          <span class="ml-1 text-sm text-muted">VLX</span>
+        </p>
+      </div>
+    </div>
+  </vx-card>
+
+  <!-- Results (same data other players see on the public profile) -->
+  <div class="mt-4 grid grid-cols-2 gap-4 md:mt-6 md:gap-6 lg:grid-cols-4">
+    <vx-stat-card label="Level" [value]="stats()?.level ?? null" [icon]="icons.trophy" [hint]="stats()?.levelTitle" />
+    <vx-stat-card label="Bets placed" [value]="stats()?.totalBets ?? null" [icon]="icons.history" [hint]="stats() ? stats()!.cashOutCount + ' cashed out' : undefined" />
+    <vx-stat-card label="Best multiplier" [value]="stats()?.biggestMultiplier ?? null" [decimals]="2" unit="x" [icon]="icons.zap" />
+    <vx-stat-card label="Biggest win" [value]="stats()?.biggestWin ?? null" [decimals]="2" unit="VLX" [icon]="icons.vlx" />
+  </div>
+
+  <div class="mt-4 grid gap-4 md:mt-6 md:gap-6 lg:grid-cols-2">
+    <vx-card title="Nickname" subtitle="Shown to other players in live bets and leaderboards.">
+      <form [formGroup]="nicknameForm" (ngSubmit)="saveNickname()" novalidate class="flex flex-col gap-4">
+        <vx-field label="Nickname" for="nickname" [control]="nicknameForm.controls.nickname" patternMessage="3-20 letters, digits or underscore.">
+          <div class="vx-input-wrap">
+            <lucide-icon [img]="icons.user" [size]="16" class="vx-input-icon" aria-hidden="true" />
+            <input id="nickname" class="vx-input" formControlName="nickname" autocomplete="username" />
+          </div>
+        </vx-field>
+        <div>
+          <button vxButton type="submit" variant="primary" [loading]="savingNickname()" [disabled]="nicknameForm.pristine">Save nickname</button>
+        </div>
+      </form>
+    </vx-card>
+
+    <vx-card title="Password" subtitle="Changing it logs you out on every device.">
+      <form [formGroup]="passwordForm" (ngSubmit)="changePassword()" novalidate class="flex flex-col gap-4">
+        <vx-field label="Current password" for="current" [control]="passwordForm.controls.currentPassword">
+          <vx-password-input>
+            <input id="current" class="vx-input" type="password" formControlName="currentPassword" autocomplete="current-password" />
+          </vx-password-input>
+        </vx-field>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <vx-field label="New password" for="new" [control]="passwordForm.controls.newPassword">
+            <vx-password-input>
+              <input id="new" class="vx-input" type="password" formControlName="newPassword" autocomplete="new-password" />
+            </vx-password-input>
+          </vx-field>
+          <vx-field label="Confirm" for="confirm" [control]="passwordForm.controls.confirmPassword">
+            <vx-password-input>
+              <input id="confirm" class="vx-input" type="password" formControlName="confirmPassword" autocomplete="new-password" />
+            </vx-password-input>
+          </vx-field>
+        </div>
+        <div>
+          <button vxButton type="submit" variant="primary" [loading]="savingPassword()">
+            <lucide-icon [img]="icons.lock" [size]="15" aria-hidden="true" />Change password
+          </button>
+        </div>
+      </form>
+    </vx-card>
+  </div>
+} @else {
+  <vx-card>
+    <div class="flex items-center gap-5">
+      <vx-skeleton width="96px" height="96px" shape="circle" />
+      <div class="flex flex-1 flex-col gap-2">
+        <vx-skeleton width="40%" height="1.25rem" />
+        <vx-skeleton width="60%" height="0.875rem" />
+        <vx-skeleton width="30%" height="0.875rem" />
+      </div>
+    </div>
+  </vx-card>
+}

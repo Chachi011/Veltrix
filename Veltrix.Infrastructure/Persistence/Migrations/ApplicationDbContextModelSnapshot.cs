@@ -293,6 +293,7 @@ namespace Veltrix.Infrastructure.Persistence.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("Status")
+                        .IsConcurrencyToken()
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
@@ -983,6 +984,10 @@ namespace Veltrix.Infrastructure.Persistence.Migrations
                     b.Property<DateTime?>("RevokedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("RevokedReason")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
                     b.Property<string>("TokenHash")
                         .IsRequired()
                         .HasMaxLength(64)
@@ -1540,7 +1545,7 @@ namespace Veltrix.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Veltrix.Domain.Entities.GameRoundEvent", b =>
                 {
                     b.HasOne("Veltrix.Domain.Entities.GameRound", "Round")
-                        .WithMany()
+                        .WithMany("Events")
                         .HasForeignKey("RoundId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1749,6 +1754,8 @@ namespace Veltrix.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Veltrix.Domain.Entities.GameRound", b =>
                 {
                     b.Navigation("Bets");
+
+                    b.Navigation("Events");
                 });
 
             modelBuilder.Entity("Veltrix.Domain.Entities.User", b =>

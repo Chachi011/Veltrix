@@ -40,6 +40,9 @@ public class AuthController : ControllerBase
 
     /// <summary>Exchanges a refresh token for a new token pair. The old refresh token stops working.</summary>
     [HttpPost("refresh")]
+    // Not rate-limited: it needs a random 64-byte secret (cannot be guessed), and every page reload calls it.
+    // Several browser windows on one computer share an IP and would otherwise lock each other out.
+    [DisableRateLimiting]
     [ProducesResponseType<AuthResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<AuthResponse>> Refresh(RefreshTokenRequest request, CancellationToken ct) =>
@@ -47,6 +50,7 @@ public class AuthController : ControllerBase
 
     /// <summary>Revokes the given refresh token.</summary>
     [HttpPost("logout")]
+    [DisableRateLimiting]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> Logout(RefreshTokenRequest request, CancellationToken ct)
     {

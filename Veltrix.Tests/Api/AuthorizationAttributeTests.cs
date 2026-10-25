@@ -2,6 +2,7 @@ using System.Reflection;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
+using Microsoft.AspNetCore.RateLimiting;
 using Veltrix.API.Controllers;
 
 namespace Veltrix.Tests.Api;
@@ -57,5 +58,29 @@ public class AuthorizationAttributeTests
 
         Assert.NotNull(authorize);
         Assert.Equal("Player", authorize!.Roles);
+    }
+}
+
+public class RateLimitAttributeTests
+{
+    [Theory]
+    [InlineData(nameof(AuthController.Login))]
+    [InlineData(nameof(AuthController.Register))]
+    [InlineData(nameof(AuthController.ForgotPassword))]
+    [InlineData(nameof(AuthController.ResetPassword))]
+    public void PasswordAndCodeEndpoints_AreRateLimited(string action)
+    {
+        var method = typeof(AuthController).GetMethod(action)!;
+
+        Assert.Empty(method.GetCustomAttributes<DisableRateLimitingAttribute>());
+        Assert.Contains(typeof(AuthController).GetCustomAttributes<EnableRateLimitingAttribute>(), a => a.PolicyName == "auth");
+    }
+
+    [Theory]
+    [InlineData(nameof(AuthController.Refresh))]
+    [InlineData(nameof(AuthController.Logout))]
+    public void TokenEndpoints_AreNotRateLimited(string action)
+    {
+        Assert.NotEmpty(typeof(AuthController).GetMethod(action)!.GetCustomAttributes<DisableRateLimitingAttribute>());
     }
 }

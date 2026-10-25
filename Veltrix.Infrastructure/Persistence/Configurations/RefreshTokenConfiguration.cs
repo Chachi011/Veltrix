@@ -13,6 +13,7 @@ public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
         // SHA-256 as hex = 64 characters
         builder.Property(x => x.TokenHash).HasMaxLength(64).IsFixedLength().IsRequired();
         builder.HasIndex(x => x.TokenHash).IsUnique();
+        builder.Property(x => x.RevokedReason).HasMaxLength(30);
 
         builder.HasOne(x => x.User)
             .WithMany(x => x.RefreshTokens)
