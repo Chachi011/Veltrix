@@ -19,6 +19,8 @@ public class StaticPageConfiguration : IEntityTypeConfiguration<StaticPage>
         // The same page exists once per language
         builder.HasIndex(x => new { x.Slug, x.Language }).IsUnique();
 
+        // Seed text is normalized to "\n": otherwise Git's CRLF/LF conversion of this file
+        // would change the seed data and make EF think a new migration is needed
         builder.HasData(
             new StaticPage
             {
@@ -34,7 +36,7 @@ public class StaticPageConfiguration : IEntityTypeConfiguration<StaticPage>
                     5. The crash point is decided **before** the round starts. Check it on the Provably Fair page.
 
                     VLX points have no monetary value and cannot be bought or withdrawn.
-                    """,
+                    """.ReplaceLineEndings("\n"),
                 UpdatedAt = SeedData.CreatedAt
             },
             new StaticPage
@@ -51,7 +53,7 @@ public class StaticPageConfiguration : IEntityTypeConfiguration<StaticPage>
                     (martingale, always 2x, waiting for "patterns") loses points on average.
 
                     Play for fun, use the limits and the session reminder, and take breaks.
-                    """,
+                    """.ReplaceLineEndings("\n"),
                 UpdatedAt = SeedData.CreatedAt
             });
     }

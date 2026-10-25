@@ -79,6 +79,42 @@ Integrity is enforced in the database itself, not only in C#:
 - Unique indexes: email, nickname, game slug, wallet per user, transaction idempotency key, `(RoundId, UserId, Slot)` for bets
 - `RowVersion` on `Wallets` for optimistic concurrency
 
+## Crash game engine
+
+A `BackgroundService` (`CrashGameEngine`) runs one loop per Crash game. The browser never drives the game.
+
+```
+Waiting → BettingOpen (10 s) → BettingClosed (1 s) → Running (100 ms ticks) → Crashed → Finished → pause (5 s)
+                    any unfinished state ──────────────────────────────────→ Cancelled (all active bets refunded)
+```
+
+- **Provably fair:** before the round, the server picks a random 32-byte `serverSeed` and publishes `SHA-256(serverSeed)`. The crash point is `max(1, floor(100 · 0.97 / (1 − r)) / 100)`, where `r` is the first 52 bits of `HMAC-SHA256(serverSeed, "VELTRIX")` divided by 2^52. After the crash, the seed is revealed. Check any round with `GET /api/fairness/rounds/{id}` or `POST /api/fairness/verify`.
+- **Multiplier:** `m(t) = e^(0.00006·ms)`, rounded down to 2 decimals. Cash-out uses the server's clock, never a value from the client.
+- **Wallet:** every change is a `WalletTransaction` (before/after balance, unique idempotency key). `RowVersion` on wallets and `Status` on bets detect concurrent changes; the operation is then retried with fresh data.
+- **Restart safety:** on startup, unfinished rounds are cancelled and their bets refunded.
+
+## Real-time (SignalR) — `/hubs/crash`
+
+Connect as a guest, or with `?access_token=<JWT>` to also receive your balance.
+
+| Direction | Message | Payload |
+|---|---|---|
+| client → server | `JoinGame(slug)`, `LeaveGame(slug)` | |
+| server → group | `RoundStateChanged` | roundId, roundNumber, state, serverSeedHash, bettingEndsAt, startedAt |
+| server → group | `MultiplierTick` | roundId, multiplier, elapsedMs |
+| server → group | `RoundCrashed` | roundId, crashPoint, serverSeed |
+| server → group | `BetPlaced` / `PlayerCashedOut` | roundId, nickname, amount / multiplier, payout |
+| server → user | `BalanceUpdated` | balance |
+| server → all | `OnlineCount` | count |
+
+## Tests
+
+```bash
+dotnet test
+```
+
+There are 91 xUnit tests: crash-point generation and distribution, provably fair verification, multiplier curve, round state transitions (illegal ones rejected), wallet rules (no negative balance, refunds, daily bonus), bet and cash-out rules, and a guard that no role-protected endpoint is accidentally `[AllowAnonymous]`.
+
 ## Development notes
 
 - The password reset code is "emailed" to the API console and log file (`Veltrix.API/Logs/`) in development.

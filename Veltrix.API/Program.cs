@@ -1,5 +1,6 @@
 using Serilog;
 using Veltrix.API.Extensions;
+using Veltrix.API.Hubs;
 using Veltrix.API.Middleware;
 using Veltrix.Application;
 using Veltrix.Infrastructure;
@@ -54,6 +55,7 @@ try
     app.UseRateLimiter();
 
     app.MapControllers();
+    app.MapHub<CrashHub>(ApiServiceExtensions.HubsPath + "/crash");
 
     // Apply migrations + seed test users (controlled by the "Database" config section)
     await using (var scope = app.Services.CreateAsyncScope())

@@ -5,6 +5,7 @@ using System.Threading.RateLimiting;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -19,6 +20,8 @@ public static class ApiServiceExtensions
 {
     public const string AngularCorsPolicy = "Angular";
     public const string AuthRateLimitPolicy = "auth";
+    public const string BetsRateLimitPolicy = "bets";
+    public const string HubsPath = "/hubs";
 
     public static IServiceCollection AddApiServices(this IServiceCollection services, IConfiguration configuration)
     {
@@ -35,9 +38,20 @@ public static class ApiServiceExtensions
         services.AddJwtAuthentication();
         services.AddSwaggerWithJwt();
         services.AddAngularCors(configuration);
-        services.AddAuthRateLimiting();
+        services.AddRateLimiting();
+        services.AddRealtime();
 
         return services;
+    }
+
+    private static void AddRealtime(this IServiceCollection services)
+    {
+        services.AddSignalR()
+            // Same enum-as-string format as the REST API
+            .AddJsonProtocol(options => options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
+        services.AddSingleton<IUserIdProvider, SubClaimUserIdProvider>();
+        services.AddSingleton<IGameNotifier, SignalRGameNotifier>();
     }
 
     private static void AddJwtAuthentication(this IServiceCollection services)
@@ -71,6 +85,16 @@ public static class ApiServiceExtensions
                 // Return ProblemDetails for 401/403 too, so the Angular error interceptor sees one format
                 options.Events = new JwtBearerEvents
                 {
+                    // WebSockets cannot send an Authorization header, so the SignalR client
+                    // puts the token in the query string. Accept it there for hub URLs only.
+                    OnMessageReceived = context =>
+                    {
+                        var accessToken = context.Request.Query["access_token"];
+                        if (!string.IsNullOrEmpty(accessToken) && context.HttpContext.Request.Path.StartsWithSegments(HubsPath))
+                            context.Token = accessToken;
+
+                        return Task.CompletedTask;
+                    },
                     OnChallenge = async context =>
                     {
                         context.HandleResponse();
@@ -128,11 +152,24 @@ public static class ApiServiceExtensions
                 .AllowCredentials()));
     }
 
-    private static void AddAuthRateLimiting(this IServiceCollection services)
+    private static void AddRateLimiting(this IServiceCollection services)
     {
         services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+            // Max 20 bet/cash-out requests per 10 seconds per user: stops scripted spamming
+            options.AddPolicy(BetsRateLimitPolicy, httpContext =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    httpContext.User.FindFirst(Microsoft.IdentityModel.JsonWebTokens.JwtRegisteredClaimNames.Sub)?.Value
+                        ?? httpContext.Connection.RemoteIpAddress?.ToString()
+                        ?? "unknown",
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 20,
+                        Window = TimeSpan.FromSeconds(10),
+                        QueueLimit = 0
+                    }));
 
             // Max 10 auth requests per minute per IP: slows down password guessing
             options.AddPolicy(AuthRateLimitPolicy, httpContext =>
@@ -147,7 +184,7 @@ public static class ApiServiceExtensions
 
             options.OnRejected = (context, _) => new ValueTask(WriteProblemAsync(
                 context.HttpContext.Response, StatusCodes.Status429TooManyRequests, "Too many requests",
-                "Too many attempts. Please wait a minute and try again."));
+                "Too many requests. Please wait a moment and try again."));
         });
     }
 
