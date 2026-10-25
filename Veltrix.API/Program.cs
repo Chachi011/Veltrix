@@ -30,9 +30,11 @@ try
 
     var app = builder.Build();
 
-    // Order matters: the exception middleware must wrap everything after it
-    app.UseMiddleware<ExceptionHandlingMiddleware>();
+    // Order matters. Request logging is outermost, so it logs the FINAL status code (e.g. 401), after the
+    // exception middleware has turned an exception into a ProblemDetails response; the exception
+    // middleware wraps everything else.
     app.UseSerilogRequestLogging();
+    app.UseMiddleware<ExceptionHandlingMiddleware>();
 
     if (app.Environment.IsDevelopment())
     {

@@ -1,5 +1,5 @@
 import { provideHttpClient } from '@angular/common/http';
-import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { HttpTestingController, TestRequest, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
@@ -22,6 +22,22 @@ function authResponse(accessToken: string, refreshToken = 'refresh-1'): AuthResp
     refreshTokenExpiresAt: new Date(Date.now() + 7 * 86_400_000).toISOString(),
     user: { id: 1, email: 'player1@veltrix.dev', nickname: 'player1', role: 'Player', avatarUrl: null }
   };
+}
+
+/**
+ * The refresh runs inside a Web Lock (shared by all tabs), granted asynchronously by the browser.
+ * Wait until the refresh request has actually been sent, then return it.
+ */
+async function refreshRequest(http: HttpTestingController): Promise<TestRequest> {
+  for (let attempt = 0; attempt < 100; attempt++) {
+    const found = http.match('/api/auth/refresh');
+    if (found.length > 0) {
+      expect(found.length).withContext('number of refresh requests').toBe(1);
+      return found[0];
+    }
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  throw new Error('No refresh request was sent');
 }
 
 describe('AuthStore', () => {
@@ -71,7 +87,7 @@ describe('AuthStore', () => {
     const first = store.getValidAccessToken();
     const second = store.getValidAccessToken();
 
-    const refresh = http.expectOne('/api/auth/refresh'); // fails if there were two requests
+    const refresh = await refreshRequest(http); // fails if there were two requests
     expect(refresh.request.body).toEqual({ refreshToken: 'refresh-1' });
     const renewed = fakeJwt(900, 'new');
     refresh.flush(authResponse(renewed, 'refresh-2'));
@@ -84,7 +100,7 @@ describe('AuthStore', () => {
   it('a failed refresh ends the session', async () => {
     saveRefreshToken('revoked-token');
     const restore = store.restoreSession();
-    http.expectOne('/api/auth/refresh').flush({ title: 'Unauthorized' }, { status: 401, statusText: 'Unauthorized' });
+    (await refreshRequest(http)).flush({ title: 'Unauthorized' }, { status: 401, statusText: 'Unauthorized' });
     await restore;
 
     expect(store.isLoggedIn()).toBeFalse();

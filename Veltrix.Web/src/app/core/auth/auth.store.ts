@@ -53,21 +53,21 @@ export const AuthStore = signalStore(
         return refreshInFlight;
       }
 
-      const refreshToken = readRefreshToken();
-      if (!refreshToken) {
-        return Promise.resolve(false);
-      }
-
-      refreshInFlight = firstValueFrom(api.refresh(refreshToken))
-        .then((response) => {
-          setSession(response);
+      // Other TABS of the same browser share the refresh token (localStorage). The lock makes them take
+      // turns, and the token is read INSIDE the lock, so a tab always uses the token the previous one saved.
+      refreshInFlight = withCrossTabLock(async () => {
+        const refreshToken = readRefreshToken();
+        if (!refreshToken) {
+          return false;
+        }
+        try {
+          setSession(await firstValueFrom(api.refresh(refreshToken)));
           return true;
-        })
-        .catch(() => {
+        } catch {
           clearSession();
           return false;
-        })
-        .finally(() => (refreshInFlight = null));
+        }
+      }).finally(() => (refreshInFlight = null));
 
       return refreshInFlight;
     };
@@ -130,6 +130,18 @@ export const AuthStore = signalStore(
     };
   })
 );
+
+/** Web Locks API: one holder at a time across all tabs of this site. Older browsers simply run without it. */
+function withCrossTabLock<T>(work: () => Promise<T>): Promise<T> {
+  const locks = typeof navigator !== 'undefined' ? navigator.locks : undefined;
+  if (!locks) {
+    return work();
+  }
+  // The lock is held until the promise returned by the callback settles, i.e. until `work` is done
+  return new Promise<T>((resolve, reject) => {
+    void locks.request('vx-auth-refresh', () => work().then(resolve, reject));
+  });
+}
 
 /**
  * Expiry on THIS computer's clock: now + the token lifetime (exp - iat from the JWT payload).

@@ -98,7 +98,7 @@ public sealed class ProfileService : IProfileService
         await _db.SaveChangesAsync(ct);
 
         // Every device must log in again with the new password
-        await _db.RefreshTokens.RevokeAllForUserAsync(user.Id, Now, ct);
+        await _db.RefreshTokens.RevokeAllForUserAsync(user.Id, Now, RefreshToken.ReasonPasswordChanged, ct);
 
         _logger.LogInformation("User {UserId} changed their password; all refresh tokens revoked", user.Id);
     }
