@@ -1,3 +1,4 @@
+import { isDevMode } from '@angular/core';
 import { Routes } from '@angular/router';
 import { authGuard, guestGuard } from './core/auth/auth.guards';
 
@@ -50,6 +51,13 @@ export const routes: Routes = [
     path: 'fairness',
     title: 'Provably fair · VELTRIX',
     loadComponent: () => import('./features/fairness/fairness-page').then((m) => m.FairnessPage)
+  },
+  {
+    // Living documentation of the design system (development builds only)
+    path: 'styleguide',
+    title: 'Styleguide · VELTRIX',
+    canMatch: [() => isDevMode()],
+    loadComponent: () => import('./features/styleguide/styleguide-page').then((m) => m.StyleguidePage)
   },
   {
     path: '**',

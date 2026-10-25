@@ -1,0 +1,272 @@
+<div class="mb-6">
+  <h1 class="text-2xl font-semibold">Design system</h1>
+  <p class="mt-1 max-w-2xl text-sm text-muted">
+    Every component in both themes. Tokens are CSS variables on <code class="num text-text">[data-theme]</code>, so each column
+    below is themed independently of the app. Interactive demos (toasts, modal) open over the whole page.
+  </p>
+</div>
+
+<div class="grid gap-6 xl:grid-cols-2">
+  @for (theme of themes; track theme) {
+    <section [attr.data-theme]="theme" class="min-w-0 rounded-card border border-border p-4 md:p-6" [attr.aria-label]="theme + ' theme'">
+      <div class="mb-6 flex items-center gap-2">
+        <lucide-icon [img]="theme === 'dark' ? icons.moon : icons.sun" [size]="16" class="text-muted" aria-hidden="true" />
+        <h2 class="text-sm font-semibold tracking-wider text-muted uppercase">{{ theme }} theme</h2>
+      </div>
+      <ng-container [ngTemplateOutlet]="demos" />
+    </section>
+  }
+</div>
+
+<ng-template #demos>
+  <div class="flex flex-col gap-8">
+    <!-- Colors -->
+    <section>
+      <h3 class="mb-3 text-[13px] font-semibold text-muted">Colors</h3>
+      <div class="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
+        @for (token of colorTokens; track token.name) {
+          <div class="overflow-hidden rounded-control border border-border">
+            <div class="h-10" [style.background]="token.css"></div>
+            <div class="bg-surface px-2 py-1.5 text-[11px] text-muted num">{{ token.name }}</div>
+          </div>
+        }
+      </div>
+    </section>
+
+    <!-- Typography -->
+    <section>
+      <h3 class="mb-3 text-[13px] font-semibold text-muted">Typography · Inter / JetBrains Mono</h3>
+      <div class="flex flex-col gap-2">
+        <p class="text-[28px] leading-tight font-semibold tracking-tight">Cash out before the crash</p>
+        <p class="text-lg font-semibold">Section title</p>
+        <p class="text-sm">Body text: the multiplier grows from 1.00x until the round crashes.</p>
+        <p class="text-[13px] text-muted">Muted helper text for descriptions and hints.</p>
+        <p class="flex flex-wrap items-baseline gap-x-6 gap-y-1">
+          <span class="num text-2xl font-semibold">1,093.40 <span class="text-sm text-muted">VLX</span></span>
+          <span class="num text-2xl font-semibold text-accent">2.34x</span>
+          <span class="num text-sm text-muted">0123456789</span>
+        </p>
+        <a href="#" class="w-fit text-sm font-medium" (click)="$event.preventDefault()">Link style</a>
+      </div>
+    </section>
+
+    <!-- Buttons -->
+    <section>
+      <h3 class="mb-3 text-[13px] font-semibold text-muted">Buttons</h3>
+      <div class="flex flex-col gap-3">
+        <div class="flex flex-wrap gap-2">
+          @for (v of variants; track v) {
+            <button vxButton type="button" [variant]="v">{{ v }}</button>
+          }
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          @for (s of sizes; track s) {
+            <button vxButton type="button" variant="primary" [size]="s">Size {{ s }}</button>
+          }
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <button vxButton type="button" variant="primary" [loading]="buttonLoading()" (click)="simulateLoading()">
+            {{ buttonLoading() ? 'Placing bet…' : 'Click: loading state' }}
+          </button>
+          <button vxButton type="button" variant="primary" disabled>Disabled</button>
+          <button vxButton type="button" variant="secondary">
+            <lucide-icon [img]="icons.upload" [size]="16" aria-hidden="true" /> With icon
+          </button>
+          <button vxButton type="button" variant="ghost" size="icon" aria-label="Notifications">
+            <lucide-icon [img]="icons.bell" [size]="18" aria-hidden="true" />
+          </button>
+          <button vxButton type="button" variant="secondary" size="icon" aria-label="Wallet">
+            <lucide-icon [img]="icons.wallet" [size]="18" aria-hidden="true" />
+          </button>
+        </div>
+        <button vxButton type="button" variant="success" size="xl" block>
+          <span>Cash out</span><span class="num">13.50 VLX</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Form controls -->
+    <section [formGroup]="form">
+      <h3 class="mb-3 text-[13px] font-semibold text-muted">Form controls</h3>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <vx-field label="Email" [control]="form.controls.email" hint="Valid value with a leading icon.">
+          <div class="vx-input-wrap">
+            <lucide-icon [img]="icons.mail" [size]="16" class="vx-input-icon" aria-hidden="true" />
+            <input class="vx-input" type="email" formControlName="email" />
+          </div>
+        </vx-field>
+        <vx-field label="Bet amount" [control]="form.controls.amount" hint="Number with a unit on the right.">
+          <div class="vx-input-wrap">
+            <input class="vx-input num" type="number" formControlName="amount" />
+            <span class="vx-input-suffix">VLX</span>
+          </div>
+        </vx-field>
+        <vx-field label="Nickname" [control]="form.controls.nickname" patternMessage="3-20 letters, digits or underscore.">
+          <input class="vx-input" formControlName="nickname" />
+        </vx-field>
+        <vx-field label="Result">
+          <select class="vx-input" formControlName="status">
+            <option value="all">All results</option>
+            <option value="won">Cashed out</option>
+            <option value="lost">Lost</option>
+          </select>
+        </vx-field>
+      </div>
+      <label class="vx-checkbox mt-4">
+        <input type="checkbox" checked />
+        <span>I confirm that I am 18 or older and understand that VLX points are virtual.</span>
+      </label>
+    </section>
+
+    <!-- Cards & stats -->
+    <section>
+      <h3 class="mb-3 text-[13px] font-semibold text-muted">Cards & stat cards</h3>
+      <div class="grid gap-3 sm:grid-cols-3">
+        <vx-stat-card label="Balance" [value]="balance()" [decimals]="2" unit="VLX" [icon]="icons.wallet" [delta]="4.2" hint="vs. last week" />
+        <vx-stat-card label="Win rate" [value]="61.5" [decimals]="1" unit="%" [icon]="icons.trophy" [delta]="-2.3" hint="vs. last week" />
+        <vx-stat-card label="Loading" [value]="null" [icon]="icons.zap" hint="Skeleton while data loads" />
+      </div>
+      <vx-card class="mt-3" title="Card title" subtitle="Optional subtitle with one line of context.">
+        <button card-actions vxButton type="button" variant="ghost" size="sm">Action</button>
+        <p class="text-sm text-muted">Card body. 24px padding on desktop, 20px on phones, 12px radius, 1px border, soft shadow.</p>
+      </vx-card>
+    </section>
+
+    <!-- Badges -->
+    <section>
+      <h3 class="mb-3 text-[13px] font-semibold text-muted">Badges</h3>
+      <div class="flex flex-wrap gap-2">
+        @for (t of tones; track t) {
+          <vx-badge [tone]="t" dot>{{ t }}</vx-badge>
+        }
+        <vx-badge tone="success">Cashed out</vx-badge>
+        <vx-badge tone="danger">Lost</vx-badge>
+        <vx-badge>Refunded</vx-badge>
+      </div>
+    </section>
+
+    <!-- Game elements -->
+    <section>
+      <h3 class="mb-3 text-[13px] font-semibold text-muted">Game elements</h3>
+      <div class="flex flex-col gap-4">
+        <div class="flex flex-wrap gap-1.5">
+          @for (p of pills; track p) {
+            <vx-multiplier-pill [value]="p" />
+          }
+          <vx-multiplier-pill cancelled />
+        </div>
+        <vx-hash-badge [hash]="hash" [roundId]="118" />
+
+        <div class="grid items-center gap-4 rounded-card border border-border bg-surface p-6 sm:grid-cols-[auto_1fr]">
+          <vx-progress-ring [value]="ringValue()" [size]="88" [stroke]="6">
+            <span class="num block text-lg leading-none font-semibold">{{ countdown().toFixed(1) }}</span>
+            <span class="text-[10px] text-muted uppercase">sec</span>
+          </vx-progress-ring>
+          <div class="flex flex-col items-center gap-3 sm:items-start">
+            <span
+              class="num text-[64px] leading-none font-semibold md:text-[80px]"
+              [class]="crashed() ? 'text-danger animate-shake' : 'text-text [text-shadow:var(--vx-glow)]'"
+              >{{ crashed() ? '1.84x' : '2.34x' }}</span
+            >
+            <button vxButton type="button" size="sm" (click)="crashed() ? crashed.set(false) : toggleCrash()">
+              {{ crashed() ? 'Back to running (glow)' : 'Crash it (shake)' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Avatars -->
+    <section>
+      <h3 class="mb-3 text-[13px] font-semibold text-muted">Avatars</h3>
+      <div class="flex flex-wrap items-end gap-3">
+        <vx-avatar name="player1" size="xs" />
+        <vx-avatar name="neo_x" size="sm" />
+        <vx-avatar name="luna" size="md" />
+        <vx-avatar name="kaito_77" size="lg" />
+        <vx-avatar name="Saba Admin" size="xl" />
+        <vx-avatar name="broken" src="/does-not-exist.png" size="md" />
+      </div>
+    </section>
+
+    <!-- Table -->
+    <section>
+      <h3 class="mb-3 text-[13px] font-semibold text-muted">Table</h3>
+      <vx-card padding="none">
+        <div class="vx-table-wrap">
+          <table class="vx-table">
+            <thead>
+              <tr>
+                <th>Player</th>
+                <th class="text-right">Bet</th>
+                <th class="text-right">Cash-out</th>
+                <th class="text-right">Payout</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (b of bets; track b.nickname) {
+                <tr [class.bg-success/5]="b.payout">
+                  <td>
+                    <span class="flex items-center gap-2.5">
+                      <vx-avatar [name]="b.nickname" size="xs" />
+                      <span class="font-medium">{{ b.nickname }}</span>
+                    </span>
+                  </td>
+                  <td class="num text-right">{{ b.amount.toFixed(2) }}</td>
+                  <td class="num text-right" [class.text-success]="b.multiplier">{{ b.multiplier ? b.multiplier.toFixed(2) + 'x' : '—' }}</td>
+                  <td class="num text-right font-semibold" [class.text-success]="b.payout" [class.text-muted]="!b.payout">
+                    {{ b.payout ? '+' + b.payout.toFixed(2) : '…' }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </vx-card>
+    </section>
+
+    <!-- Feedback -->
+    <section>
+      <h3 class="mb-3 text-[13px] font-semibold text-muted">Loading, empty, toasts, modal, counters</h3>
+      <div class="grid gap-3 sm:grid-cols-2">
+        <vx-card>
+          <div class="flex items-center gap-3">
+            <vx-skeleton shape="circle" width="40px" height="40px" />
+            <div class="flex flex-1 flex-col gap-2">
+              <vx-skeleton width="60%" height="0.75rem" />
+              <vx-skeleton width="35%" height="0.75rem" />
+            </div>
+          </div>
+          <vx-skeleton class="mt-4" shape="rect" height="72px" />
+        </vx-card>
+        <vx-card padding="none">
+          <vx-empty-state [icon]="icons.history" title="No bets yet" message="Your bets appear here after your first round.">
+            <a vxButton href="#" variant="primary" size="sm" (click)="$event.preventDefault()">Play a round</a>
+          </vx-empty-state>
+        </vx-card>
+      </div>
+
+      <div class="mt-4 flex flex-wrap items-center gap-2">
+        <button vxButton type="button" size="sm" (click)="toast('success')">
+          <lucide-icon [img]="icons.success" [size]="14" class="text-success" aria-hidden="true" /> Success toast
+        </button>
+        <button vxButton type="button" size="sm" (click)="toast('error')">
+          <lucide-icon [img]="icons.alert" [size]="14" class="text-danger" aria-hidden="true" /> Error toast
+        </button>
+        <button vxButton type="button" size="sm" (click)="toast('info')">
+          <lucide-icon [img]="icons.info" [size]="14" aria-hidden="true" /> Info toast
+        </button>
+        <button vxButton type="button" size="sm" variant="outline" (click)="openModal()">Open modal</button>
+      </div>
+
+      <div class="mt-4 flex flex-wrap items-center gap-3 rounded-card border border-border bg-surface p-4">
+        <span class="text-[13px] text-muted">Animated balance</span>
+        <vx-animated-number class="text-xl font-semibold" [value]="balance()" suffix=" VLX" />
+        <span class="ml-auto flex gap-2">
+          <button vxButton type="button" size="sm" variant="success" (click)="changeBalance(23.4)">+23.40</button>
+          <button vxButton type="button" size="sm" variant="danger" (click)="changeBalance(-50)">−50.00</button>
+        </span>
+      </div>
+    </section>
+  </div>
+</ng-template>
