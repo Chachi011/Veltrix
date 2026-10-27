@@ -11,6 +11,14 @@ public sealed class UpdateProfileRequestValidator : AbstractValidator<UpdateProf
     }
 }
 
+public sealed class UpdatePreferencesRequestValidator : AbstractValidator<UpdatePreferencesRequest>
+{
+    public UpdatePreferencesRequestValidator()
+    {
+        RuleFor(x => x.Theme).IsInEnum().WithMessage("Choose System, Dark or Light.");
+    }
+}
+
 public sealed class ChangePasswordRequestValidator : AbstractValidator<ChangePasswordRequest>
 {
     public ChangePasswordRequestValidator()

@@ -169,6 +169,42 @@ public sealed class ProfileService : IProfileService
         return profile ?? throw new NotFoundException($"Player '{nickname}' was not found.");
     }
 
+    public async Task<UserPreferencesDto> GetMyPreferencesAsync(CancellationToken ct = default)
+    {
+        var userId = CurrentUserId;
+        var preference = await _db.UserPreferences.AsNoTracking().FirstOrDefaultAsync(p => p.UserId == userId, ct)
+            ?? new UserPreference { UserId = userId, UpdatedAt = Now }; // every account gets a row at registration
+
+        return ToDto(preference);
+    }
+
+    public async Task<UserPreferencesDto> UpdateMyPreferencesAsync(UpdatePreferencesRequest request, CancellationToken ct = default)
+    {
+        var userId = CurrentUserId;
+        var preference = await _db.UserPreferences.FirstOrDefaultAsync(p => p.UserId == userId, ct);
+        if (preference is null)
+        {
+            preference = new UserPreference { UserId = userId };
+            _db.UserPreferences.Add(preference);
+        }
+
+        preference.Theme = request.Theme;
+        preference.SoundEnabled = request.SoundEnabled;
+        preference.AnimationsEnabled = request.AnimationsEnabled;
+        preference.UpdatedAt = Now;
+        await _db.SaveChangesAsync(ct);
+
+        return ToDto(preference);
+    }
+
+    private static UserPreferencesDto ToDto(UserPreference preference) => new()
+    {
+        Theme = preference.Theme,
+        SoundEnabled = preference.SoundEnabled,
+        AnimationsEnabled = preference.AnimationsEnabled,
+        UpdatedAt = preference.UpdatedAt
+    };
+
     private async Task<User> LoadCurrentUserAsync(CancellationToken ct)
     {
         var userId = CurrentUserId;

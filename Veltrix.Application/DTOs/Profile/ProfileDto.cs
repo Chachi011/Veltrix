@@ -44,6 +44,27 @@ public sealed class PublicProfileDto
     public IReadOnlyList<BestCashOutDto> BestCashOuts { get; set; } = Array.Empty<BestCashOutDto>();
 }
 
+/// <summary>UI settings stored per account, so they follow the user to any device.</summary>
+public sealed class UserPreferencesDto
+{
+    /// <summary>System (follow the device), Dark or Light.</summary>
+    public ThemePreference Theme { get; set; }
+
+    public bool SoundEnabled { get; set; }
+
+    /// <summary>False = reduce motion (no counting numbers, no chart animations, no shake).</summary>
+    public bool AnimationsEnabled { get; set; }
+
+    public DateTime UpdatedAt { get; set; }
+}
+
+public sealed class UpdatePreferencesRequest
+{
+    public ThemePreference Theme { get; set; }
+    public bool SoundEnabled { get; set; } = true;
+    public bool AnimationsEnabled { get; set; } = true;
+}
+
 public sealed class BestCashOutDto
 {
     public decimal Multiplier { get; set; }
