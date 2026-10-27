@@ -69,7 +69,7 @@ Veltrix.Web            Angular client: core/ (api, auth, http, realtime, state, 
 | 1 | Solution, DB, EF models + migrations, JWT auth, roles, Swagger, profile endpoints | **Done** (merged into `develop`) |
 | 2 | Round engine, bets, cash-out, wallet, SignalR, provably fair (**MVP gate**) | **Done** (merged into `develop`) |
 | 3 | Angular UI: design system, login/register, Crash page (Canvas), wallet, history, profile, responsive, dark/light | **Done** (verified by the author on desktop and phone; merged into `develop`) |
-| 4 | Operator/Admin panels, leaderboard, limits/self-exclusion UI, notifications, settings, charts | **Built** on `feature/phase4-panels`, awaiting the author's review. Step A (backend) checked by the author in Swagger. Step B (Angular): leaderboard, profile statistics (Chart.js), responsible play + session reminder, bell, operator panel, admin panel, role guards. Next: author checks the pages, then merge into `develop` |
+| 4 | Operator/Admin panels, leaderboard, limits/self-exclusion UI, notifications, settings, charts | **Done** (checked by the author; merged into `develop`) |
 | 5 | Remaining tests (Moq service tests, more Jasmine), optional (*) features, README screenshots, seed script, presentation demo | Not started |
 
 Optional (*) features only after the MVP: auto-bet, two bets per round (backend supports slot 2), achievements/XP, chat with moderation, 2FA, email verification, ka/en, CSV export, Docker Compose, GitHub Actions.
