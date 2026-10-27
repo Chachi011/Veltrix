@@ -10,7 +10,7 @@ A real-time multiplayer web platform whose main module is a **Crash game**: a mu
 |---|---|
 | Backend | C#, ASP.NET Core Web API (.NET 8), EF Core 8 (Code First), SQL Server, SignalR, JWT + refresh tokens, BCrypt, FluentValidation, Serilog, Swagger |
 | Frontend | Angular 20 (standalone, zoneless, signals), TypeScript, NgRx SignalStore, @microsoft/signalr, Chart.js, HTML Canvas, Tailwind CSS v4, Angular CDK |
-| Tests | xUnit + Moq (backend), Jasmine/Karma (frontend) |
+| Tests | xUnit + Moq + WebApplicationFactory integration tests (backend), Jasmine/Karma (frontend) |
 
 ## Architecture
 
@@ -201,20 +201,28 @@ Connect as a guest, or with `?access_token=<JWT>` to also receive your balance a
 dotnet test
 ```
 
-There are 218 xUnit tests. **Service tests with Moq** (`Veltrix.Tests/Services`) run the real services against EF Core's in-memory database, with Moq fakes for "who is calling" and the SignalR notifier, and check both the saved data and the live events sent (wallet, limits, admin actions, preferences, content pages, the daily-bonus job). Domain and API tests cover crash-point generation and distribution, provably fair verification, multiplier curve, round state transitions (illegal ones rejected), wallet rules (no negative balance, refunds, daily bonus), bet and cash-out rules, refresh-token reuse rules, daily bet limit (24-hour wait before an increase), self-exclusion, admin balance adjustment, role and block rules, crash-point ranges against the theoretical distribution, guards that no role-protected endpoint is accidentally `[AllowAnonymous]` and that every `api/admin` controller requires the Admin role, and which auth endpoints are rate-limited.
+There are 245 xUnit tests in three groups:
+
+- **Integration tests** (`Veltrix.Tests/Integration`, 27 tests): `WebApplicationFactory` starts the real API in memory (same `Program.cs`, middleware, JWT, validation, rate limits, EF Core) against a **throwaway SQL Server database** `Veltrix_Tests_<random>`, created by the migrations and dropped at the end, and calls it over HTTP. The crash engine's background loop is off, so each test moves its own round through the states with `RoundSettlementService` (the engine's own code) and a clock it can stop. Covered: register / login / validation errors per field / duplicate email; 401 without or with a forged token; refresh-token rotation, logout, the 30-second reuse window and the theft alarm (an old token replayed later logs out every session); the auth rate limit (11th login from one IP → 429, refresh not limited); a bet takes the stake and writes a ledger row; bets refused after betting closes, below the minimum, with 3 decimals, twice in one slot, or above the balance; cash-out pays the stake × the **server's** multiplier at the moment of the request; too late after the crash point; the crash settles the bet as lost and reveals the crash point; an operator's cancel refunds active bets while cash-outs keep their payout; only players can bet; a blocked player is refused even with a token issued before the block; a self-excluded player cannot bet; every `api/admin` endpoint answers 401 / 403 / 403 / 200 to guest / player / operator / admin; only staff can cancel a round; an admin cannot change their own role, block themselves or adjust their own balance; a balance adjustment writes a ledger row and an audit entry; a promoted player gets the new role at the next login. They need a SQL Server: `localhost` with Windows login by default, or set `VELTRIX_TEST_SQL` to another connection string (without a database name).
+- **Service tests with Moq** (`Veltrix.Tests/Services`) run the real services against EF Core's in-memory database, with Moq fakes for "who is calling" and the SignalR notifier, and check both the saved data and the live events sent (wallet, limits, admin actions, preferences, content pages, the daily-bonus job).
+- **Domain and API tests** cover crash-point generation and distribution, provably fair verification, multiplier curve, round state transitions (illegal ones rejected), wallet rules (no negative balance, refunds, daily bonus), bet and cash-out rules, refresh-token reuse rules, daily bet limit (24-hour wait before an increase), self-exclusion, admin balance adjustment, role and block rules, crash-point ranges against the theoretical distribution, guards that no role-protected endpoint is accidentally `[AllowAnonymous]` and that every `api/admin` controller requires the Admin role, and which auth endpoints are rate-limited.
 
 ```bash
 cd Veltrix.Web
 npx ng test --watch=false --browsers=ChromeHeadless
 ```
 
-There are 95 Jasmine tests:
+There are 112 Jasmine tests:
 
 - `AuthStore`: login, a single refresh shared by concurrent requests, a failed refresh ends the session, logout
 - `WalletStore`, `LimitsStore`: balance, daily bonus (success / refused), filters, self-exclusion, refused updates
 - `PreferencesStore`: animations off = reduced motion, guests keep settings locally, logged-in players save them, the account's settings win after login
 - `ToastStore`, `ThemeService`: max 4 toasts, errors stay longer; System / Dark / Light
 - HTTP interceptors: ProblemDetails message as a toast, quiet for 401 and silent requests, loading bar counting
+- Auth interceptor: the access token goes to API calls only (not to /api/auth or other files), a 401 triggers ONE refresh and a retry with the new token, a failed refresh ends the session, no refresh for guests or for 403
+- ProblemDetails helpers: any error becomes one toast sentence, server validation errors appear next to the matching form fields
+- Form validators (same rules as the server): nickname, strong password, 18+, password confirmation, 2 decimals
+- `SoundService`, `LayoutService`: silent while sounds are off, one audio context; the collapsed sidebar is remembered
 - Markdown (rules pages): lists, bold / italic, HTML stays text, no extra spaces
 - `CrashStore`: SignalR events → state (new round, crash, auto cash-out, cancel/refund), countdown on the server clock, extrapolation limit, game sounds (once per result)
 - `CrashHub`: one shared SignalR connection for the user and the game page, the online count handed to a page that joins later, leave / logout, a new connection for a new identity, personal vs game events

@@ -1,19 +1,19 @@
 # VELTRIX: specification coverage
 
-Audit of the project against the specification **VELTRIX-პროექტის-აღწერა.pdf** (14 pages, Oct 23, 2026; kept on the author's Desktop, not in this repository), section by section.
+Audit of the project against the specification **VELTRIX-პროექტის-აღწერა.pdf** (14 pages, Oct 23, 2026), a copy of which is kept in this repository as [`docs/SPEC.pdf`](SPEC.pdf), section by section.
 
-- Audited on **2026-10-27** as **Phase 5 · Step 1**, branch `feature/phase5` (Phases 1–4 done and merged into `develop`). Updated at the end of every Phase 5 step.
+- Audited on **2026-10-27** as **Phase 5 · Step 1**, branch `feature/phase5` (Phases 1–4 done and merged into `develop`). Updated at the end of every Phase 5 step; last update: **Step 2 (quality)**, see [§ Phase 5 Step 2](#phase-5-step-2-quality).
 - **Status:** ✅ done · 🟡 partial · ❌ missing.
 - Items marked **(\*)** in the spec are optional ("after the main part"); they are listed separately in [§ Optional (\*) items](#optional--items).
 - **Added in this pass** = the gap was found by this audit and closed in Step 1 (see [§ Gaps closed in this pass](#gaps-closed-in-this-pass)).
-- Next steps that will change this file: Step 2 (WebApplicationFactory integration tests, demo seed), Step 3 (the optional items in the author's order), Step 4 (README screenshots, `/database` script, presentation).
+- Next steps that will change this file: Step 2 (demo seed, still to do), Step 3 (the optional items in the author's order), Step 4 (README screenshots, `/database` script, presentation).
 
 ## Summary
 
 | | ✅ Done | 🟡 Partial | ❌ Missing |
 |---|---|---|---|
 | Required (non-\*) items | 147 | 5 | 0 |
-| Optional (\*) items | 1 | 3 | 14 |
+| Optional (\*) items | 2 | 3 | 13 |
 
 The 5 partial required items are all decisions or Phase 5 delivery work, not missing features: README screenshots, the standalone seed SQL script and the presentation (Phase 5 by plan), the `master` branch name (the spec says `main`) and plain CSS via Tailwind v4 instead of SCSS. Details in [§ Still open](#still-open-non-).
 
@@ -47,7 +47,7 @@ The 5 partial required items are all decisions or Phase 5 delivery work, not mis
 | Game engine as BackgroundService (IHostedService) | ✅ | `CrashGameEngine : BackgroundService` |
 | Serilog (console + file) | ✅ | `Program.cs` (`UseSerilog`), `appsettings.json` → `Serilog.WriteTo` Console + File |
 | Swagger / OpenAPI | ✅ | `API/Extensions/ApiServiceExtensions.cs` (`AddSwaggerWithJwt`), XML comments on every action |
-| Testing: xUnit + Moq | ✅ | `Veltrix.Tests` (218 tests); Moq service tests in `Veltrix.Tests/Services/*` — **Moq added in this pass** |
+| Testing: xUnit + Moq | ✅ | `Veltrix.Tests` (245 tests); Moq service tests in `Veltrix.Tests/Services/*` — **Moq added in this pass**; WebApplicationFactory integration tests in `Veltrix.Tests/Integration/*` (Step 2) |
 | Layered architecture (API → Application → Domain → Infrastructure) | ✅ | 4 projects + tests; dependencies point inward (CLAUDE.md → Architecture) |
 
 ### Front-end
@@ -64,7 +64,7 @@ The 5 partial required items are all decisions or Phase 5 delivery work, not mis
 | Reactive Forms with validation | ✅ | Auth, profile, limits, bet panel, game form, admin drawer, settings forms; `shared/validators.ts` |
 | Chart.js (statistics, multiplier curve) | ✅ | `shared/ui/chart.ts` (`vx-chart`, lazy-loaded) for statistics and dashboards; the live multiplier curve uses HTML Canvas directly (`crash-chart.ts`), which the spec lists as the animation technology |
 | HTML Canvas for the multiplier | ✅ | `features/crash/components/crash-chart.ts` |
-| Jasmine / Karma (services and stores) | ✅ | 95 tests, `*.spec.ts` — **more store/service tests added in this pass** |
+| Jasmine / Karma (services and stores) | ✅ | 112 tests, `*.spec.ts` — **more store/service tests added in this pass** and in Step 2 |
 
 ### Tools
 
@@ -298,8 +298,8 @@ Beyond the spec: 19 supporting tables (30 in total), listed in README → Databa
 | xUnit: round state transitions (illegal ones refused) | ✅ | `GameRoundStateTests` |
 | xUnit: wallet (negative balance, double operation, refund) | ✅ | `WalletTests`, `BalanceAdjustmentTests`, `AdminUserServiceTests.AdjustBalance_TheSameRequestIdTwice_IsAppliedOnlyOnce` |
 | xUnit: bet and cash-out rules (refused in the wrong phase) | ✅ | `BetTests` |
-| Jasmine: Angular stores and services | ✅ | `AuthStore`, `CrashStore`, `NotificationsStore`, `WalletStore`, `LimitsStore`, `PreferencesStore`, `ToastStore`, `ThemeService`, `CrashHub`, interceptors, guards (95 tests) |
-| Integration tests with WebApplicationFactory (\*) | ❌ | see optional items |
+| Jasmine: Angular stores and services | ✅ | `AuthStore`, `CrashStore`, `NotificationsStore`, `WalletStore`, `LimitsStore`, `PreferencesStore`, `ToastStore`, `ThemeService`, `SoundService`, `LayoutService`, `CrashHub`, loading / error / auth interceptors, ProblemDetails helpers, form validators, guards (112 tests) |
+| Integration tests with WebApplicationFactory (\*) | ✅ | `Veltrix.Tests/Integration`: `AuthApiTests`, `BetApiTests`, `AdminApiTests` (27 tests on a throwaway SQL Server database) — Step 2 |
 
 ### Git
 
@@ -332,7 +332,7 @@ Beyond the spec: 19 supporting tables (30 in total), listed in README → Databa
 | EF models and migrations | Code First, Fluent API configurations, 4 migrations, seed |
 | REST API | 51 operations, Swagger, ProblemDetails, pagination |
 | Authorization / authentication | JWT + rotating refresh tokens, 4 roles, guards, lockout |
-| Code quality and documentation | Layered architecture, 218 xUnit (incl. Moq) + 95 Jasmine tests, Serilog, README, DESIGN.md, this file |
+| Code quality and documentation | Layered architecture, 245 xUnit (incl. Moq service tests and 27 WebApplicationFactory integration tests) + 112 Jasmine tests, Serilog, README, DESIGN.md, this file |
 | Presentation | Phase 5 |
 
 ---
@@ -356,7 +356,7 @@ Beyond the spec: 19 supporting tables (30 in total), listed in README → Databa
 | Achievements endpoints `GET /api/achievements`, `/my` | 5 | ❌ | |
 | `GET /api/admin/reports/export` | 5 | ❌ | |
 | SignalR `ChatMessage` / `SendChatMessage` | 5 | ❌ | |
-| Integration tests (WebApplicationFactory) | 7 | ❌ | |
+| Integration tests (WebApplicationFactory) | 7 | ✅ | `Veltrix.Tests/Integration` (27 tests): auth, bets, cash-out, refunds, admin role checks — Step 2 |
 | Docker Compose (SQL Server + API + Angular) | 2 | ❌ | |
 | GitHub Actions (build + tests on every push) | 2 | ❌ | |
 
@@ -374,6 +374,34 @@ Beyond the spec: 19 supporting tables (30 in total), listed in README → Databa
 | Moq never used | 2, 7 | 16 xUnit + Moq service tests (wallet, limits, admin actions, preferences, content pages, daily-bonus job) on EF Core InMemory |
 | Few Jasmine tests for stores / services | 7 | +31 tests: WalletStore, LimitsStore, PreferencesStore, ToastStore, ThemeService, interceptors, Markdown, crash-store sounds |
 | No Postman material | 2 (tools) | `docs/api/openapi.json` + import instructions in README |
+
+## Phase 5 Step 2 (quality)
+
+| What | Where |
+|---|---|
+| 27 integration tests: the real API in memory (`WebApplicationFactory<Program>`) over HTTP, on a throwaway SQL Server database that the migrations create and the run drops | `Veltrix.Tests/Integration/*` |
+| Auth: register, field validation errors, duplicate email, login, 401 without / with a forged token, refresh rotation, logout, 30-second reuse window, theft alarm, auth rate limit (11th login → 429, refresh not limited) | `AuthApiTests` |
+| Bets: stake + ledger row, refused after betting closes / below minimum / 3 decimals / same slot / above balance, cash-out at the server's multiplier, too late after the crash point, crash settles as lost and reveals the crash point, operator cancel refunds active bets (cash-outs keep their payout), only players bet, blocked and self-excluded players refused | `BetApiTests` |
+| Admin role checks: every `api/admin` read endpoint answers 401 / 403 / 403 / 200 to guest / player / operator / admin; only staff cancel rounds; no self role change / self block / self balance adjustment; adjustment writes ledger + audit; a promoted player gets the new role at the next login | `AdminApiTests` |
+| **Bug found by the integration tests:** validation errors were sent as `application/json` instead of `application/problem+json` (`[Produces("application/json")]` rewrites every `ObjectResult`); the filter now returns a `JsonResult` with the right type. The body was already correct, so the Angular client is unaffected | `FluentValidationFilter` |
+| +17 Jasmine tests: auth interceptor (token only on API calls, ONE refresh + retry after 401, failed refresh ends the session, no refresh for guests / 403), ProblemDetails helpers, form validators, `SoundService`, `LayoutService` | `auth.interceptor.spec.ts`, `problem.spec.ts`, `validators.spec.ts`, `sound-layout.spec.ts` |
+| Warnings: `dotnet build --no-incremental` 0, `ng build` 0; the Karma log no longer shows a 404 for the web font (unit tests do not load fonts) | `angular.json` (test target) |
+
+## Decisions to review
+
+Choices made while working without the author. Each one follows the spec and DESIGN.md as closely as possible; all are easy to change.
+
+| Decision | Why | How to undo |
+|---|---|---|
+| The spec PDF is now in the repository as `docs/SPEC.pdf` (copied from the Desktop) | The Phase 5 instructions refer to `docs/SPEC.pdf`, and the exam copy of the repository should contain its own specification | `git rm docs/SPEC.pdf` |
+| Integration tests use a real SQL Server database, not EF InMemory or SQLite | Bets use SQL Server features that the other providers do not have (REPEATABLE READ transactions, `ExecuteUpdate`, `rowversion` concurrency, CHECK constraints). The test database `Veltrix_Tests_<random>` is created by the migrations and dropped at the end; the tests refuse to run if they are connected to any other database | Set `VELTRIX_TEST_SQL` to point at another server |
+| In the integration tests the crash engine's background loop is off; tests move rounds with `RoundSettlementService` | The engine's timing is random (crash point from the seed); with the loop off a test decides exactly when betting closes and the round starts, and uses the same code the engine uses | — |
+| Validation errors now have the content type `application/problem+json` | Every other error already had it (RFC 7807, spec §7 "ProblemDetails"); the body is unchanged | Revert `FluentValidationFilter` |
+| Branch `master` instead of the spec's `main` | The author's convention (CLAUDE.md) | `git branch -m master main` |
+| Tailwind CSS v4 (plain CSS) instead of SCSS | Tailwind v4 is configured in CSS and does not support Sass; DESIGN.md decision | — |
+| Leaderboard "profit" = net result (payouts − stakes) | The spec says "biggest virtual win"; a net result cannot be inflated by betting a lot and losing | `LeaderboardService` |
+| `AuditLog.entityId` is a string | Setting keys such as `Wallet.DailyBonusAmount` are not numbers | — |
+| Paged endpoints use `pageSize` (spec examples sometimes say `size`) | One name on every paged endpoint | — |
 
 ## Still open (non-\*)
 
