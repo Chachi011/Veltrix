@@ -11,7 +11,7 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
   host: { class: 'block min-w-0 rounded-card border border-border bg-surface shadow-card' },
   template: `
     @if (title() || subtitle()) {
-      <header class="flex items-start justify-between gap-4 px-5 pt-5 md:px-6">
+      <header class="flex flex-wrap items-start justify-between gap-x-4 gap-y-3 px-5 pt-5 md:px-6">
         <div class="min-w-0">
           @if (title()) {
             <h3 class="text-[15px] leading-6 font-semibold">{{ title() }}</h3>

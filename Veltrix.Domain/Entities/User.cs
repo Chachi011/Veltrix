@@ -1,3 +1,4 @@
+using Veltrix.Domain.Common;
 using Veltrix.Domain.Enums;
 
 namespace Veltrix.Domain.Entities;
@@ -93,5 +94,49 @@ public class User
         FailedLoginCount = 0;
         LockoutUntil = null;
         LastLoginAt = now;
+    }
+
+    /// <summary>
+    /// Admin action. Nobody may change their OWN role: an admin who demotes themselves by mistake
+    /// could leave the system without any admin. Returns false if the role was already set.
+    /// </summary>
+    public bool ChangeRole(UserRole newRole, int actorUserId)
+    {
+        if (!Enum.IsDefined(newRole))
+            throw new DomainException($"Unknown role '{newRole}'.");
+
+        if (Id == actorUserId)
+            throw new DomainException("You cannot change your own role.");
+
+        if (Role == newRole)
+            return false;
+
+        Role = newRole;
+        return true;
+    }
+
+    /// <summary>Admin action. Returns false if the account was already blocked.</summary>
+    public bool Block(int actorUserId)
+    {
+        if (Id == actorUserId)
+            throw new DomainException("You cannot block your own account.");
+
+        if (IsBlocked)
+            return false;
+
+        IsBlocked = true;
+        return true;
+    }
+
+    /// <summary>Admin action. Also clears a login lockout, so the player can sign in right away.</summary>
+    public bool Unblock()
+    {
+        if (!IsBlocked)
+            return false;
+
+        IsBlocked = false;
+        FailedLoginCount = 0;
+        LockoutUntil = null;
+        return true;
     }
 }

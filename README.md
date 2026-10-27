@@ -9,7 +9,7 @@ A real-time multiplayer web platform whose main module is a **Crash game**: a mu
 | Layer | Technologies |
 |---|---|
 | Backend | C#, ASP.NET Core Web API (.NET 8), EF Core 8 (Code First), SQL Server, SignalR, JWT + refresh tokens, BCrypt, FluentValidation, Serilog, Swagger |
-| Frontend | Angular 20 (standalone, zoneless, signals), TypeScript, SCSS, NgRx SignalStore, @microsoft/signalr, HTML Canvas |
+| Frontend | Angular 20 (standalone, zoneless, signals), TypeScript, NgRx SignalStore, @microsoft/signalr, Chart.js, HTML Canvas, Tailwind CSS v4, Angular CDK |
 | Tests | xUnit + Moq (backend), Jasmine/Karma (frontend) |
 
 ## Architecture
@@ -29,9 +29,12 @@ Inside `Veltrix.Web/src/app`:
 
 ```
 core/      models (DTO types), api/ (HTTP services), auth/ (AuthStore, interceptor, guards),
-           http/ (error + loading interceptors), realtime/ (SignalR), state/ (WalletStore), ui/ (toasts, theme)
-features/  auth, crash (CrashStore, Canvas chart, bet panel, live bets, history strip), wallet, history, profile, fairness
-shared/    pipes, validators, pagination, field errors
+           http/ (error + loading interceptors), realtime/ (CrashHub: one shared SignalR connection),
+           state/ (WalletStore, NotificationsStore, LimitsStore), ui/ (toasts, theme, layout)
+features/  auth, crash (CrashStore, Canvas chart, bet panel, live bets, history strip), wallet, history, profile (+ statistics),
+           fairness, leaderboard, limits (responsible play, session reminder), operator, admin
+layout/    sidebar, top bar, bottom nav, notifications panel
+shared/    ui/ (design system components), pipes, validators, formatters
 ```
 
 ## Design system
@@ -90,7 +93,7 @@ Each account starts with 1000 VLX. The `crash` game and the system settings come
 
 ## Database
 
-There are 30 tables, created by the migrations `InitialCreate` and `AddExtendedModels` (later migrations add columns):
+There are 30 tables, created by the migrations `InitialCreate` and `AddExtendedModels` (later migrations add columns, constraints and indexes):
 
 | Area | Tables |
 |---|---|
@@ -123,9 +126,52 @@ Waiting → BettingOpen (10 s) → BettingClosed (1 s) → Running (100 ms ticks
 - **Wallet:** every change is a `WalletTransaction` (before/after balance, unique idempotency key). `RowVersion` on wallets and `Status` on bets detect concurrent changes; the operation is then retried with fresh data.
 - **Restart safety:** on startup, unfinished rounds are cancelled and their bets refunded.
 
+## Player tools and admin panel (Phase 4)
+
+| Area | Endpoints | Who |
+|---|---|---|
+| Leaderboard | `GET /api/leaderboard?period=day\|week\|all&type=multiplier\|profit&limit=20` | everyone (guests too) |
+| Personal stats | `GET /api/stats/me?days=30` | logged in |
+| Limits | `GET /api/limits`, `PUT /api/limits`, `POST /api/limits/self-exclusion` | Player |
+| Notifications | `GET /api/notifications`, `PUT /api/notifications/{id}/read`, `PUT /api/notifications/read-all` | logged in |
+| Admin users | `GET /api/admin/users?search=&role=&isBlocked=&page=`, `GET /api/admin/users/{id}`, `PUT …/{id}/role`, `PUT …/{id}/block`, `POST …/{id}/balance-adjustment` | Admin |
+| Audit log | `GET /api/admin/audit-logs?action=&entityType=&entityId=&page=`, `GET /api/admin/audit-logs/actions` | Admin |
+| Settings | `GET /api/admin/settings`, `PUT /api/admin/settings` (starting balance, daily bonus) | Admin |
+| Dashboard | `GET /api/admin/stats/overview`, `GET /api/admin/stats/daily?from=&to=` | Admin |
+
+Rules (all in Domain entities, all unit-tested):
+
+- **Daily bet limit** (`PlayerLimit`): a lower limit applies at once; a higher limit or removing it waits **24 hours**. Otherwise a player on a losing streak could just raise it. The bet service checks it inside the same retried unit of work as the wallet debit, so two simultaneous bets cannot both slip under the limit.
+- **Self-exclusion** (24 h / 7 d / 30 d): betting is refused with 403. It can be extended but never shortened or cancelled. The player can still sign in and see their history.
+- **Balance adjustment** (`BalanceAdjustment.Apply`): a reason (5–500 characters) is required, the amount is never 0, the balance never goes negative, and an admin cannot adjust their own balance. It creates an `AdminAdjustment` ledger row, an audit entry and a notification in one transaction. An optional `requestId` makes it idempotent (a double-click cannot pay twice).
+- **Role and block** (`User`): nobody can change their own role or block themselves, so the system can never lose its last admin. Blocking signs the user out on every device and refuses their bets at once.
+- **Audit log:** every admin action (and limit changes and self-exclusions) records who did it, the old value and the new value.
+
+Background jobs (`Infrastructure/Jobs`):
+
+- `DailyBonusReminderJob` (every minute): creates a "Daily bonus available" notification once per bonus cycle and pushes it live. It skips blocked and self-excluded players.
+- `DailyStatisticsJob` (startup, then every 10 minutes): stores one `DailyStatistics` row per finished day, so the admin charts read about 30 small rows instead of scanning every bet. Today is always calculated live.
+
+The admin dashboard shows the crash points of the last 1000 rounds next to the share the formula predicts (`P(crash ≥ x) = 0.97 / x`). Over many rounds the two must match. A unit test checks this on 20,000 generated rounds.
+
+Pages (Angular):
+
+| Page | Who | What |
+|---|---|---|
+| `/leaderboard` | everyone | 24 hours / 7 days / all time × best multiplier / profit; podium + table, my rank highlighted |
+| `/profile` → Statistics | players | win rate, average cash-out, net result, charts (results per day, win rate, cash-out ranges) |
+| `/limits` (Responsible play) | players | daily limit with today's usage, session reminder, self-exclusion with a confirm dialog |
+| bell (top bar) | logged in | unread badge, latest notifications, mark read; new ones arrive live |
+| `/operator` | Operator, Admin | live round monitor, cancel round (reason, automatic refunds), games and their status |
+| `/admin`, `/admin/users`, `/admin/audit`, `/admin/settings` | Admin | dashboard charts, users + drawer (role, block, balance adjustment), audit log, settings |
+
+The browser keeps **one** SignalR connection per tab: the logged-in user receives balance and notifications on every page, and the Crash page (or the operator monitor) joins its game group on the same connection, so the online counter counts each tab once. Chart.js and the SignalR client are loaded on demand, so the first download stays under 500 kB.
+
+The **session reminder** (every 60 minutes by default) runs in the browser: it is advice. The hard rules (daily limit, self-exclusion) are enforced by the server on every bet.
+
 ## Real-time (SignalR) — `/hubs/crash`
 
-Connect as a guest, or with `?access_token=<JWT>` to also receive your balance.
+Connect as a guest, or with `?access_token=<JWT>` to also receive your balance and notifications.
 
 | Direction | Message | Payload |
 |---|---|---|
@@ -135,6 +181,7 @@ Connect as a guest, or with `?access_token=<JWT>` to also receive your balance.
 | server → group | `RoundCrashed` | roundId, crashPoint, serverSeed |
 | server → group | `BetPlaced` / `PlayerCashedOut` | roundId, nickname, amount / multiplier, payout |
 | server → user | `BalanceUpdated` | balance |
+| server → user | `Notification` | id, type, title, message, isRead, createdAt |
 | server → all | `OnlineCount` | count |
 
 ## Tests
@@ -143,17 +190,23 @@ Connect as a guest, or with `?access_token=<JWT>` to also receive your balance.
 dotnet test
 ```
 
-There are 104 xUnit tests: crash-point generation and distribution, provably fair verification, multiplier curve, round state transitions (illegal ones rejected), wallet rules (no negative balance, refunds, daily bonus), bet and cash-out rules, refresh-token reuse rules, a guard that no role-protected endpoint is accidentally `[AllowAnonymous]`, and which auth endpoints are rate-limited.
+There are 202 xUnit tests: crash-point generation and distribution, provably fair verification, multiplier curve, round state transitions (illegal ones rejected), wallet rules (no negative balance, refunds, daily bonus), bet and cash-out rules, refresh-token reuse rules, daily bet limit (24-hour wait before an increase), self-exclusion, admin balance adjustment, role and block rules, crash-point ranges against the theoretical distribution, guards that no role-protected endpoint is accidentally `[AllowAnonymous]` and that every `api/admin` controller requires the Admin role, and which auth endpoints are rate-limited.
 
 ```bash
 cd Veltrix.Web
 npx ng test --watch=false --browsers=ChromeHeadless
 ```
 
-There are 32 Jasmine tests:
+There are 64 Jasmine tests:
 
 - `AuthStore`: login, a single refresh shared by concurrent requests, a failed refresh ends the session, logout
 - `CrashStore`: SignalR events → state (new round, crash, auto cash-out, cancel/refund), countdown on the server clock, extrapolation limit
+- `CrashHub`: one shared SignalR connection for the user and the game page, the online count handed to a page that joins later, leave / logout, a new connection for a new identity, personal vs game events
+- `NotificationsStore`: load, live notifications (deduplicated), optimistic mark read / mark all read, a role change refreshes the token and leaves a forbidden page, a block signs the user out
+- `roleGuard`: the right roles get in, others go back to the game, guests go to the login page
+- Bet panel: the one big button (`betAction`), including "betting paused" for a self-excluded player
+- Session reminder (`play-session`): continuous play, breaks, reminders every N minutes
+- Audit log text: "Role: Player → Operator", readable dates
 - Crash math: the browser reproduces 7 real server rounds (seed → SHA-256 hash → crash point), proving both implementations are identical
 - App shell: sidebar / top bar / bottom nav, guest navigation, collapsible sidebar, theme toggle
 

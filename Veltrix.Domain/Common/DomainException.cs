@@ -30,3 +30,21 @@ public sealed class InsufficientBalanceException : DomainException
     public InsufficientBalanceException(decimal balance, decimal requested)
         : base($"Insufficient balance: you have {balance:0.00} VLX, but {requested:0.00} VLX is needed.") { }
 }
+
+/// <summary>The player paused their own betting (responsible play). The API answers 403.</summary>
+public sealed class SelfExcludedException : DomainException
+{
+    public SelfExcludedException(DateTime until)
+        : base($"You are self-excluded until {until:yyyy-MM-dd HH:mm} UTC.")
+    {
+        Until = until;
+    }
+
+    public DateTime Until { get; }
+}
+
+public sealed class DailyBetLimitExceededException : DomainException
+{
+    public DailyBetLimitExceededException(decimal betToday, decimal limit)
+        : base($"Daily bet limit reached: {betToday:0.00} of {limit:0.00} VLX used today.") { }
+}

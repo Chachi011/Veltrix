@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Veltrix.Application.Common.Exceptions;
 using Veltrix.Application.DTOs.Rounds;
+using Veltrix.Domain.Common;
 using Veltrix.Domain.Entities;
 using Veltrix.Domain.Enums;
 using Veltrix.Infrastructure.Persistence;
@@ -168,7 +169,7 @@ public sealed class RoundSettlementService
             };
             _db.RoundCancellations.Add(cancellation);
 
-            _db.AuditLogs.Add(AuditTrail.Entry(actorUserId, "RoundCancelled", nameof(GameRound), round.Id.ToString(),
+            _db.AuditLogs.Add(AuditTrail.Entry(actorUserId, AuditActions.RoundCancelled, nameof(GameRound), round.Id.ToString(),
                 new { State = previousState.ToString() },
                 new { State = round.State.ToString(), reason, cancellation.RefundedBetsCount, cancellation.RefundedTotal },
                 now));

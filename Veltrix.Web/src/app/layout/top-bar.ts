@@ -6,14 +6,16 @@ import { ActivatedRouteSnapshot, NavigationEnd, Router, RouterLink } from '@angu
 import { LucideAngularModule } from 'lucide-angular';
 import { filter } from 'rxjs';
 import { AuthStore } from '../core/auth/auth.store';
+import { NotificationsStore } from '../core/state/notifications.store';
 import { WalletStore } from '../core/state/wallet.store';
 import { ThemeService } from '../core/ui/theme.service';
 import { AnimatedNumber } from '../shared/ui/animated-number';
 import { Avatar } from '../shared/ui/avatar';
 import { Button } from '../shared/ui/button';
-import { EmptyState } from '../shared/ui/empty-state';
 import { Icons } from '../shared/ui/icons';
 import { ThemeToggle } from '../shared/ui/theme-toggle';
+import { visibleNavItems } from './nav-items';
+import { NotificationsPanel } from './notifications-panel';
 
 const MENU_ITEM =
   'flex h-9 w-full items-center gap-2.5 rounded-lg px-3 text-left text-sm text-text outline-none ' +
@@ -33,8 +35,8 @@ const MENU_ITEM =
     AnimatedNumber,
     Avatar,
     Button,
-    EmptyState,
-    ThemeToggle
+    ThemeToggle,
+    NotificationsPanel
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './top-bar.html'
@@ -42,6 +44,7 @@ const MENU_ITEM =
 export class TopBar {
   protected readonly auth = inject(AuthStore);
   protected readonly wallet = inject(WalletStore);
+  protected readonly notifications = inject(NotificationsStore);
   protected readonly theme = inject(ThemeService);
   protected readonly icons = Icons;
   protected readonly menuItem = MENU_ITEM;
@@ -68,6 +71,11 @@ export class TopBar {
     return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   });
 
+  /** Pages the account menu adds for this role (responsible play, staff panels, provably fair). */
+  protected readonly menuExtras = computed(() =>
+    visibleNavItems(this.auth.role()).filter((item) => ['/limits', '/operator', '/admin', '/fairness'].includes(item.path))
+  );
+
   protected readonly canClaimBonus = computed(() => this.wallet.wallet() !== null && this.bonusCountdown() === null);
 
   constructor() {
@@ -85,6 +93,13 @@ export class TopBar {
 
   protected claimBonus(): void {
     void this.wallet.claimDailyBonus();
+  }
+
+  /** Escape closes the bell dropdown (the CDK menu does this itself; a plain overlay does not). */
+  protected onOverlayKey(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      this.notificationsOpen.set(false);
+    }
   }
 
   protected logout(): void {

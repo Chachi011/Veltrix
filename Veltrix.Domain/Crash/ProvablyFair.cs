@@ -16,7 +16,10 @@ namespace Veltrix.Domain.Crash;
 /// </summary>
 public static class ProvablyFair
 {
-    /// <summary>3% house edge: about 3% of rounds crash instantly at 1.00x.</summary>
+    /// <summary>
+    /// 3% house edge: P(crash >= x) = 0.97 / x, so on average a bet returns 97%.
+    /// About 4% of rounds (1 - 0.97 / 1.01) crash instantly at 1.00x.
+    /// </summary>
     public const double HouseEdge = 0.03;
 
     /// <summary>Public, constant HMAC message. Part of the published algorithm.</summary>

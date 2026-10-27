@@ -8,6 +8,7 @@ import { BetDto, GameDto, RoundStateChangedEvent } from '../../core/models/api.m
 import { CrashHub } from '../../core/realtime/crash-hub';
 import { WalletStore } from '../../core/state/wallet.store';
 import { ToastStore } from '../../core/ui/toast.store';
+import { SessionReminder } from '../limits/session-reminder';
 import { CrashStore } from './crash.store';
 
 const GAME: GameDto = {
@@ -83,7 +84,8 @@ describe('CrashStore', () => {
           }
         },
         { provide: WalletStore, useValue: wallet },
-        { provide: ToastStore, useValue: jasmine.createSpyObj('ToastStore', ['success', 'info', 'error']) }
+        { provide: ToastStore, useValue: jasmine.createSpyObj('ToastStore', ['success', 'info', 'error']) },
+        { provide: SessionReminder, useValue: jasmine.createSpyObj('SessionReminder', ['recordBet']) }
       ]
     });
 

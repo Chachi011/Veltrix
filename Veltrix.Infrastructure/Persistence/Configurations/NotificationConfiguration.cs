@@ -17,6 +17,9 @@ public class NotificationConfiguration : IEntityTypeConfiguration<Notification>
         // The bell icon asks "unread notifications of user X"
         builder.HasIndex(x => new { x.UserId, x.IsRead });
 
+        // The bell list: "my notifications, newest first"
+        builder.HasIndex(x => new { x.UserId, x.CreatedAt });
+
         builder.HasOne(x => x.User)
             .WithMany(x => x.Notifications)
             .HasForeignKey(x => x.UserId)

@@ -22,7 +22,8 @@
 
         <!-- Daily bonus -->
         @if (canClaimBonus()) {
-          <button vxButton type="button" variant="primary" size="sm" class="hidden sm:inline-flex" [loading]="wallet.claiming()" (click)="claimBonus()">
+          <!-- max-sm:hidden, not "hidden sm:inline-flex": vxButton sets its own display (inline-flex), which would beat a plain "hidden" -->
+          <button vxButton type="button" variant="primary" size="sm" class="max-sm:hidden" [loading]="wallet.claiming()" (click)="claimBonus()">
             <lucide-icon [img]="icons.gift" [size]="15" aria-hidden="true" />
             Claim bonus
           </button>
@@ -39,19 +40,28 @@
           </span>
         }
 
-        <!-- Notifications (data arrives in Phase 4) -->
+        <!-- Notifications: unread badge; new ones arrive live over SignalR -->
         <button
           vxButton
           type="button"
           variant="ghost"
           size="icon"
+          class="relative"
           cdkOverlayOrigin
           #bellOrigin="cdkOverlayOrigin"
-          aria-label="Notifications"
+          [attr.aria-label]="notifications.unreadCount() > 0 ? 'Notifications, ' + notifications.unreadCount() + ' unread' : 'Notifications'"
           [attr.aria-expanded]="notificationsOpen()"
           (click)="notificationsOpen.set(!notificationsOpen())"
         >
           <lucide-icon [img]="icons.bell" [size]="18" aria-hidden="true" />
+          @if (notifications.unreadCount() > 0) {
+            <span
+              class="num absolute top-1 right-1 grid h-4 min-w-4 animate-pop-in place-items-center rounded-full bg-primary px-1 text-[10px] leading-none font-semibold text-on-primary"
+              aria-hidden="true"
+            >
+              {{ notifications.badge() }}
+            </span>
+          }
         </button>
         <ng-template
           cdkConnectedOverlay
@@ -59,13 +69,11 @@
           [cdkConnectedOverlayOpen]="notificationsOpen()"
           [cdkConnectedOverlayPositions]="notificationPositions"
           (overlayOutsideClick)="notificationsOpen.set(false)"
+          (overlayKeydown)="onOverlayKey($event)"
           (detach)="notificationsOpen.set(false)"
         >
-          <div class="w-80 max-w-[calc(100vw-32px)] animate-pop-in rounded-card border border-border bg-surface shadow-pop" role="dialog" aria-label="Notifications">
-            <div class="flex items-center justify-between border-b border-border px-4 py-3">
-              <h2 class="text-sm font-semibold">Notifications</h2>
-            </div>
-            <vx-empty-state [icon]="icons.bell" title="You're all caught up" message="Bonuses, achievements and account changes will appear here." />
+          <div class="w-[360px] max-w-[calc(100vw-32px)] animate-pop-in overflow-hidden rounded-card border border-border bg-surface shadow-pop" role="dialog" aria-label="Notifications">
+            <vx-notifications-panel (closed)="notificationsOpen.set(false)" />
           </div>
         </ng-template>
 
@@ -100,6 +108,12 @@
               <a cdkMenuItem routerLink="/history" [class]="menuItem">
                 <lucide-icon [img]="icons.history" [size]="16" class="text-muted" aria-hidden="true" /> History
               </a>
+              <!-- Role-dependent pages (on phones this menu is the only way to reach them) -->
+              @for (item of menuExtras(); track item.path) {
+                <a cdkMenuItem [routerLink]="item.path" [class]="menuItem">
+                  <lucide-icon [img]="item.icon" [size]="16" class="text-muted" aria-hidden="true" /> {{ item.label }}
+                </a>
+              }
               <button cdkMenuItem type="button" [class]="menuItem" (cdkMenuItemTriggered)="theme.toggle()">
                 <lucide-icon [img]="theme.theme() === 'dark' ? icons.sun : icons.moon" [size]="16" class="text-muted" aria-hidden="true" />
                 {{ theme.theme() === 'dark' ? 'Light theme' : 'Dark theme' }}

@@ -50,6 +50,7 @@ public sealed class ExceptionHandlingMiddleware
 
             // Business rules from the Domain layer ("betting is closed", "insufficient balance")
             InvalidRoundTransitionException transition => Create(StatusCodes.Status409Conflict, "Conflict", transition.Message),
+            SelfExcludedException excluded => Create(StatusCodes.Status403Forbidden, "Forbidden", excluded.Message),
             DomainException domain => Create(StatusCodes.Status400BadRequest, "Request rejected", domain.Message),
 
             // RowVersion mismatch: someone else changed the same row at the same moment

@@ -1,6 +1,6 @@
 import { isDevMode } from '@angular/core';
 import { Routes } from '@angular/router';
-import { authGuard, guestGuard } from './core/auth/auth.guards';
+import { authGuard, guestGuard, roleGuard } from './core/auth/auth.guards';
 
 // Every page is lazy-loaded: its code is downloaded only when the user opens it.
 export const routes: Routes = [
@@ -51,6 +51,51 @@ export const routes: Routes = [
     path: 'fairness',
     title: 'Provably fair · VELTRIX',
     loadComponent: () => import('./features/fairness/fairness-page').then((m) => m.FairnessPage)
+  },
+  {
+    // Public: guests may see the best players too
+    path: 'leaderboard',
+    title: 'Leaderboard · VELTRIX',
+    loadComponent: () => import('./features/leaderboard/leaderboard-page').then((m) => m.LeaderboardPage)
+  },
+  {
+    path: 'limits',
+    title: 'Responsible play · VELTRIX',
+    canActivate: [roleGuard('Player')],
+    loadComponent: () => import('./features/limits/limits-page').then((m) => m.LimitsPage)
+  },
+  {
+    path: 'operator',
+    title: 'Operator · VELTRIX',
+    canActivate: [roleGuard('Operator', 'Admin')],
+    loadComponent: () => import('./features/operator/operator-page').then((m) => m.OperatorPage)
+  },
+  {
+    // The admin panel: one guard for the whole section (a parent route without a component); each tab is its own lazy page
+    path: 'admin',
+    canActivate: [roleGuard('Admin')],
+    children: [
+      {
+        path: '',
+        title: 'Admin · VELTRIX',
+        loadComponent: () => import('./features/admin/admin-dashboard-page').then((m) => m.AdminDashboardPage)
+      },
+      {
+        path: 'users',
+        title: 'Users · VELTRIX',
+        loadComponent: () => import('./features/admin/admin-users-page').then((m) => m.AdminUsersPage)
+      },
+      {
+        path: 'audit',
+        title: 'Audit log · VELTRIX',
+        loadComponent: () => import('./features/admin/admin-audit-page').then((m) => m.AdminAuditPage)
+      },
+      {
+        path: 'settings',
+        title: 'Settings · VELTRIX',
+        loadComponent: () => import('./features/admin/admin-settings-page').then((m) => m.AdminSettingsPage)
+      }
+    ]
   },
   {
     // Living documentation of the design system (development builds only)

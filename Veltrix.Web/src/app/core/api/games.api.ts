@@ -2,9 +2,17 @@ import { HttpClient, HttpContext } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { SILENT_ERRORS, toParams } from '../http/http-context';
-import { GameDto, PagedResult, RoundBetDto, RoundDto } from '../models/api.models';
+import {
+  GameDto,
+  GameStatus,
+  PagedResult,
+  RoundBetDto,
+  RoundCancellationDto,
+  RoundDto,
+  SaveGameRequest
+} from '../models/api.models';
 
-/** Games and their rounds (all public). */
+/** Games and their rounds (reading is public; changes need the Operator or Admin role). */
 @Injectable({ providedIn: 'root' })
 export class GamesApi {
   private readonly http = inject(HttpClient);
@@ -28,5 +36,29 @@ export class GamesApi {
 
   roundBets(roundId: number): Observable<RoundBetDto[]> {
     return this.http.get<RoundBetDto[]>(`/api/rounds/${roundId}/bets`);
+  }
+
+  // ---------- Operator ----------
+
+  /** Staff also see Disabled games. */
+  list(): Observable<GameDto[]> {
+    return this.http.get<GameDto[]>('/api/games');
+  }
+
+  create(request: SaveGameRequest): Observable<GameDto> {
+    return this.http.post<GameDto>('/api/games', request);
+  }
+
+  update(id: number, request: SaveGameRequest): Observable<GameDto> {
+    return this.http.put<GameDto>(`/api/games/${id}`, request);
+  }
+
+  setStatus(id: number, status: GameStatus): Observable<GameDto> {
+    return this.http.patch<GameDto>(`/api/games/${id}/status`, { status });
+  }
+
+  /** Every active bet of the round is refunded by the server. */
+  cancelRound(roundId: number, reason: string): Observable<RoundCancellationDto> {
+    return this.http.post<RoundCancellationDto>(`/api/rounds/${roundId}/cancel`, { reason });
   }
 }

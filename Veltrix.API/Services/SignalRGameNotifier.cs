@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.SignalR;
 using Veltrix.API.Hubs;
 using Veltrix.Application.Common.Interfaces;
+using Veltrix.Application.DTOs.Notifications;
 using Veltrix.Application.DTOs.Realtime;
 
 namespace Veltrix.API.Services;
@@ -35,6 +36,10 @@ public sealed class SignalRGameNotifier : IGameNotifier
     /// <summary>Private event: only the wallet owner's connections (all their tabs/devices) receive it.</summary>
     public Task BalanceUpdatedAsync(int userId, decimal balance) =>
         SafeSendAsync(() => _hub.Clients.User(userId.ToString()).SendAsync("BalanceUpdated", new BalanceUpdatedEvent(balance)), "BalanceUpdated");
+
+    /// <summary>Private event: a new bell notification for this user only.</summary>
+    public Task NotificationAsync(int userId, NotificationDto notification) =>
+        SafeSendAsync(() => _hub.Clients.User(userId.ToString()).SendAsync("Notification", notification), "Notification");
 
     private Task SendToGameAsync(string gameSlug, string method, object payload) =>
         SafeSendAsync(() => _hub.Clients.Group(CrashHub.GroupName(gameSlug)).SendAsync(method, payload), method);

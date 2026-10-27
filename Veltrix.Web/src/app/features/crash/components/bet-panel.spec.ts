@@ -33,6 +33,11 @@ describe('betAction (the one big button of the bet panel)', () => {
     expect(betAction(player('Running', bet('Active')))).toBe('cashout');
   });
 
+  it('a self-excluded player cannot place a bet, but can still cash out one already in the round', () => {
+    expect(betAction({ ...player('BettingOpen'), paused: true })).toBe('paused');
+    expect(betAction({ ...player('Running', bet('Active')), paused: true })).toBe('cashout');
+  });
+
   it('shows the result after the round', () => {
     expect(betAction(player('Running', bet('CashedOut')))).toBe('won');
     expect(betAction(player('Crashed', bet('Lost')))).toBe('lost');

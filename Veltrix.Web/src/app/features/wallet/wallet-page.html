@@ -93,7 +93,10 @@
               <tr>
                 <td class="text-muted">{{ tx.createdAt | date: 'MMM d, HH:mm' }}</td>
                 <td><vx-badge [tone]="typeTone(tx.type)">{{ typeLabel(tx.type) }}</vx-badge></td>
-                <td class="hidden max-w-[280px] truncate text-muted sm:table-cell">{{ tx.reason }}</td>
+                <td class="hidden text-muted sm:table-cell">
+                  <!-- On an inner block: browsers ignore max-width on table cells (long admin reasons would widen the table) -->
+                  <div class="max-w-[280px] truncate" [title]="tx.reason ?? ''">{{ tx.reason }}</div>
+                </td>
                 <td class="num text-right font-semibold" [class.text-success]="tx.amount > 0" [class.text-danger]="tx.amount < 0">
                   {{ tx.amount > 0 ? '+' : '' }}{{ tx.amount | vlx: false }}
                 </td>

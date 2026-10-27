@@ -51,13 +51,58 @@ public class AuthorizationAttributeTests
         Assert.Empty(controller.GetCustomAttributes<AllowAnonymousAttribute>());
     }
 
-    [Fact]
-    public void BetsController_IsForPlayersOnly()
+    [Theory]
+    [InlineData(typeof(BetsController))]
+    [InlineData(typeof(LimitsController))]
+    public void BettingAndLimits_AreForPlayersOnly(Type controller)
     {
-        var authorize = typeof(BetsController).GetCustomAttribute<AuthorizeAttribute>();
+        var authorize = controller.GetCustomAttribute<AuthorizeAttribute>();
 
         Assert.NotNull(authorize);
         Assert.Equal("Player", authorize!.Roles);
+    }
+
+    public static IEnumerable<object[]> AdminControllers() =>
+        typeof(AuthController).Assembly.GetTypes()
+            .Where(t => typeof(ControllerBase).IsAssignableFrom(t)
+                        && t.GetCustomAttribute<RouteAttribute>()?.Template.StartsWith("api/admin") == true)
+            .Select(t => new object[] { t.Name });
+
+    [Fact]
+    public void AdminControllers_AreFound()
+    {
+        // Guards the test below: if the route prefix changed, it would silently check nothing
+        Assert.Equal(4, AdminControllers().Count());
+    }
+
+    [Theory]
+    [MemberData(nameof(AdminControllers))]
+    public void EveryApiAdminRoute_RequiresTheAdminRole_OnTheController(string controllerName)
+    {
+        var controller = typeof(AuthController).Assembly.GetTypes().Single(t => t.Name == controllerName);
+
+        // On the CLASS, so a new action added later is protected automatically
+        Assert.Contains(controller.GetCustomAttributes<AuthorizeAttribute>(), a => a.Roles == "Admin");
+
+        var publicActions = controller.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+            .Where(m => m.GetCustomAttributes<AllowAnonymousAttribute>().Any());
+        Assert.Empty(publicActions);
+    }
+
+    [Theory]
+    [InlineData(typeof(NotificationsController))]
+    [InlineData(typeof(StatsController))]
+    public void PersonalData_RequiresLogin(Type controller)
+    {
+        Assert.NotNull(controller.GetCustomAttribute<AuthorizeAttribute>());
+    }
+
+    [Fact]
+    public void Leaderboard_IsPublic()
+    {
+        var action = typeof(LeaderboardController).GetMethod(nameof(LeaderboardController.Get))!;
+
+        Assert.NotEmpty(action.GetCustomAttributes<AllowAnonymousAttribute>());
     }
 }
 

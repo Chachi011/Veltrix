@@ -13,7 +13,8 @@ Implementation: tokens and base styles in [`Veltrix.Web/src/styles.css`](../Velt
 | Concern | Choice |
 |---|---|
 | Styling | **Tailwind CSS v4**, configured in CSS (`@theme` in `styles.css`), loaded through PostCSS (`.postcssrc.json`) |
-| Overlays | **Angular CDK**: Dialog (modals), Menu (account menu), Overlay (notifications panel) |
+| Overlays | **Angular CDK**: Dialog (modals and drawers), Menu (account menu), Overlay (notifications panel) |
+| Charts | **Chart.js 4** wrapped in `vx-chart` (token colors, design-system fonts). Loaded with a dynamic `import()` on first use, so pages without charts never download it |
 | Icons | **lucide-angular**. Only the icons listed in `shared/ui/icons.ts` are bundled |
 | Fonts | **Inter** (UI) and **JetBrains Mono** (all numbers), the Google Fonts families served from npm (`@fontsource-variable/*`) so they also work offline |
 | Not allowed | Bootstrap, the default Angular Material look, any other component library |
@@ -103,16 +104,25 @@ Never: gradients on text, all-caps body text, more than two font families.
 | Content width | max **1440px**, centered |
 | Page padding | **24px** desktop, **16px** below 768px |
 | Breakpoint | **768px** (`md`) switches between phone and desktop layouts |
-| Sidebar (≥768px) | fixed left, 240px expanded / 72px collapsed (icons only, with `title` tooltips), `bg-surface`, right border; state remembered in `localStorage` (`vx.sidebarCollapsed`); bottom: disclaimer + collapse button |
-| Top bar | sticky, 64px, **glass**, bottom border. Left: page title (desktop, visual only: `aria-hidden`, the page's own `<h1>` is the real heading) or logo (phone). Right: balance chip (animated, gem icon) → daily bonus (button when claimable, countdown chip otherwise) → notifications bell → avatar menu. Guests: theme toggle, Log in, Register |
+| Sidebar (≥768px) | fixed left, 240px expanded / 72px collapsed (icons only, with `title` tooltips), `bg-surface`, right border; state remembered in `localStorage` (`vx.sidebarCollapsed`); bottom: disclaimer + collapse button. Items depend on the role; staff tools (Operator, Admin) sit under a small uppercase **"Staff"** heading (a divider when collapsed) |
+| Top bar | sticky, 64px, **glass**, bottom border. Left: page title (desktop, visual only: `aria-hidden`, the page's own `<h1>` is the real heading) or logo (phone). Right: balance chip (animated, gem icon) → daily bonus (button when claimable, countdown chip otherwise) → notifications bell (primary badge with the unread count, "9+" above 9) → avatar menu. Guests: theme toggle, Log in, Register |
+| Account menu | Profile, Wallet, History, then the role's extra pages (Responsible play, Operator, Admin, Provably fair), theme, Log out. On phones it is the only way to reach the pages that are not in the bottom nav |
+| Notifications panel | CDK overlay under the bell, 360px: header with the unread count and "Mark all read"; newest first; unread rows tinted `bg-primary/5` with a dot; an icon per type in a tinted circle; a click marks it read and follows the type's link. Escape and an outside click close it |
 | Page header | every page starts with `<vx-page-header title description>`: the `<h1>` is visible on phones and visually hidden from 768px (the top bar shows the title), the description is always visible; actions go in `[page-actions]` |
-| Bottom nav (<768px) | fixed, glass, 64px + safe-area inset, 5 items (icon + 11px label); active = `text-primary-text` |
+| Bottom nav (<768px) | fixed, glass, 64px + safe-area inset, max 5 items (icon + 11px label); active = `text-primary-text`. Logged in: Play, Top (leaderboard), History, Wallet, Profile. Guests: Play, Top, Fair, Log in |
 | Page bottom padding on phones | enough for the bottom nav (`pb-28`) |
 | Bet panel on phones | becomes a **bottom sheet** (Crash page, step 3) |
 
 The navigation items are defined once in `layout/nav-items.ts`, for both the sidebar and the bottom nav.
 
 **Grid/flex children that contain tables or long content need `min-w-0`**; otherwise they grow wider than the screen. `vx-card` and `vx-stat-card` already include it.
+
+Responsive rules learned in Phase 4:
+
+- **Hide a component on phones with `max-sm:hidden`, not `hidden sm:inline-flex`.** `vxButton` and `vx-badge` set their own `display`, which beats a plain `hidden` in the CSS order; a responsive variant comes later and wins.
+- **Truncate table text on an inner block** (`<td><div class="max-w-[240px] truncate">…</div></td>`). Browsers ignore `max-width` on a table cell, so long text widens the whole table.
+- **Narrow tables move secondary columns into the first cell** (e.g. the audit log shows "by admin" and the action badge under the date on phones) instead of scrolling sideways.
+- **Code in the initial bundle (layout, core) imports single files from `shared/ui`, never the barrel**: Angular components are not tree-shaken out of a barrel, so one barrel import would pull every component into the first download.
 
 ---
 
@@ -123,14 +133,14 @@ Import from the barrel: `import { Button, Card } from '../../shared/ui';`
 | Component | Selector / usage | Notes |
 |---|---|---|
 | Button | `<button vxButton variant size [loading] [disabled] [block]>` (also on `<a>`) | Styles the **native** element (keeps keyboard and form behavior). Variants: `primary`, `secondary`, `outline`, `ghost`, `success`, `danger` (soft: red text on a red tint, for AA). Sizes: `sm` 32px, `md` 40px, `lg` 48px, `xl` 56px, `icon` 40px, `icon-sm` 32px. `loading` shows a spinner and disables |
-| Card | `<vx-card title subtitle padding="default\|none">`, actions in `[card-actions]` | `padding="none"` for edge-to-edge tables |
+| Card | `<vx-card title subtitle padding="default\|none">`, actions in `[card-actions]` | `padding="none"` for edge-to-edge tables. The header wraps: actions move under the title when there is no room (phones) |
 | Field | `<vx-field label for hint [control] patternMessage>` + projected `<input class="vx-input">` | Shows the first error once touched (same messages as `controlErrorMessage`). Uses Default change detection on purpose (form state is not a signal) |
 | Input classes | `.vx-input`, `select.vx-input`, `.vx-input-wrap` + `.vx-input-icon` / `.vx-input-suffix`, `.vx-checkbox`, `.vx-label` | Focus: primary border + 4px soft ring. Invalid + touched: danger border |
 | Table | `<div class="vx-table-wrap"><table class="vx-table">`; add `vx-table-compact` in narrow columns | Sticky uppercase header, row hover, `text-right` + `num` for numeric columns. On phones, hide secondary columns (`hidden md:table-cell`) instead of forcing horizontal scroll |
 | Switch | `<input type="checkbox" class="vx-switch">` | On/off toggle that keeps native checkbox semantics (keyboard, forms) |
 | Password input | `<vx-password-input><input class="vx-input" type="password" …></vx-password-input>` | Adds a show/hide button; the projected input keeps `formControlName` and `autocomplete` |
 | Page header | `<vx-page-header title description>` + `[page-actions]` | See §4 |
-| Tabs | `<vx-tabs [items] [(value)]>` | Segmented control, `role="tablist"`, ← → keys move between tabs |
+| Tabs | `<vx-tabs [items] [(value)] label>` | Segmented control, `role="tablist"`, ← → keys move between tabs. `label` names the group for screen readers when a page has more than one (leaderboard: "Period", "Ranking"). Section navigation with real URLs (admin) uses the same look with links (`vx-admin-nav`, `aria-current="page"`) |
 | Pagination | `<vx-pagination [page] [totalPages] [totalCount] (pageChange)>` | Card footer: "Page 2 of 7 · 98 results" + Previous / Next; hidden for a single page |
 | Badge | `<vx-badge tone [dot]>` | Tones: `neutral`, `primary`, `accent`, `success`, `danger`, `warning` |
 | Avatar | `<vx-avatar [src] name size>` | `xs` 24, `sm` 32, `md` 40, `lg` 64, `xl` 96. Falls back to initials on a hue derived from the name (also when the image fails) |
@@ -142,6 +152,9 @@ Import from the barrel: `import { Button, Card } from '../../shared/ui';`
 | Hash badge | `<vx-hash-badge [hash] [roundId] label>` | Shield icon, "Provably fair", truncated hash `a9030b56…e574`, copy button; links to `/fairness?round=` when `roundId` is set |
 | Multiplier pill | `<vx-multiplier-pill [value] [cancelled]>` | **Red < 2x, neutral 2x–10x, accent ≥ 10x**, "—" for cancelled |
 | Progress ring | `<vx-progress-ring [value]="0..1" size stroke color>` + centered content | Betting countdown |
+| Progress bar | `<vx-progress-bar [value]="0..1" tone label>` | 8px track (`surface-2`), filled in a token tone, `role="progressbar"`. Daily limit usage: primary < 70%, warning ≥ 70%, danger at 100% |
+| Chart | `<vx-chart type="bar\|line\|doughnut" [labels] [series] ariaLabel [format] [formatRight] [height] [legend] stacked>` | Chart.js with token colors read from CSS (follows the theme, also inside a themed subtree), Inter labels, JetBrains Mono numbers, faint grid (muted 14%), card-style tooltip, legend bottom-left with dots. Series: `{ label, data, tone, kind?: 'bar'\|'line', axis?: 'left'\|'right', fill?, tones? }` (mixed bar + line, a second axis, a tone per bar or slice). Lines use monotone interpolation (smooth but never beyond the real values). 500ms animation, none under reduced motion. `ariaLabel` is required (`role="img"`) |
+| Drawer | `ModalService.openDrawer(Component, { data, ariaLabel, width })`; content in `<vx-drawer title description>` with `[drawer-footer]` | Panel from the right, full height, 480px (full width on phones), solid `bg-surface` + left border + `shadow-pop`, slides in (`animate-drawer-in`, 250ms). Same CDK focus trap, Escape and backdrop as a modal. For detail views with actions (admin user) |
 | Theme toggle | `<vx-theme-toggle>` | Sun / moon icon button |
 | Modal | `ModalService.open(Component, { data, ariaLabel, width })`, `ModalService.confirm({ title, message, confirmText, tone })`; dialogs wrap content in `<vx-modal title description>` with `[modal-footer]` | CDK Dialog: focus trap, Escape, restores focus. Glass panel, blurred backdrop |
 | Toasts | `ToastStore.success / error / info(message)` (the API error interceptor calls `error`) | Top on phones, bottom-right on desktop; icon per kind; errors use `role="alert"` and stay longer (6s vs 3.5s) |
@@ -157,7 +170,8 @@ Rules:
 
 - **Glass** (`glass` utility: 70% surface, `backdrop-blur`) **only** on the top bar, the bottom nav and modals.
 - **Glow**: one accent glow, **only on the live multiplier** while the round is running (`[text-shadow:var(--vx-glow)]`).
-- **Gradients**: only the soft fill under the multiplier curve and the skeleton shimmer. No gradient text, no neon.
+- **Gradients / fills**: only the soft fill under the multiplier curve, the soft 12% fill under a chart line (`fill: true`) and the skeleton shimmer. No gradient text, no neon.
+- Drawers are not glass: they hold forms and tables, which read better on a solid surface.
 
 ---
 
@@ -166,7 +180,8 @@ Rules:
 | Rule | Value |
 |---|---|
 | Hover / focus / state transitions | **150–250ms, ease-out** (`duration-200 ease-out-soft`, i.e. `cubic-bezier(0.22, 1, 0.36, 1)`) |
-| Overlays appearing | `animate-pop-in` (menus, modals, 200ms), `animate-slide-up` (toasts, 250ms) |
+| Overlays appearing | `animate-pop-in` (menus, modals, notifications panel, unread badge, 200ms), `animate-slide-up` (toasts, 250ms), `animate-drawer-in` (drawers, 250ms) |
+| Charts | Chart.js animation 500ms on first draw and on data changes |
 | Balance changes | animated number (650ms) |
 | Crash | multiplier turns `--danger` + `animate-shake` (450ms, once) |
 | Loading | skeleton shimmer, no spinners (the button's own loading spinner is the exception) |
@@ -205,6 +220,30 @@ Rules:
 
 ---
 
+## 9b. Panels, statistics and responsible play (Phase 4)
+
+**Chart colors carry meaning, the same on every chart:**
+
+| Tone | Means |
+|---|---|
+| `success` | cashed out, paid out (good for the player) |
+| `danger` | lost bets |
+| `primary` | volume and people (staked VLX, active players, cash-out counts) |
+| `accent` | rounds and the net result line |
+| `muted` | theory (the share the provably fair formula predicts) |
+
+| Page | Pattern |
+|---|---|
+| Leaderboard | Two `vx-tabs` (period, ranking), kept in the URL. Podium for the top 3 (winner in the middle on wide screens, first on phones; #1 crown in warning tint, #2 neutral, #3 accent), then a table. My row: `ring-primary/40` on the podium, `bg-primary/5` + "You" badge in the table. Profit is green / red |
+| Profile statistics | 4 stat cards (win rate, average cash-out, net result, total staked); "Results per day" (stacked cashed out / lost bars + net result line on the right axis, 7/30/90-day tabs), win-rate doughnut with the percent in the middle, cash-out ranges bar chart. Players only |
+| Responsible play | Daily limit card with today's usage bar and the pending-increase notice (clock icon, warning); session reminder select; self-exclusion as three radio cards (a shorter option than the active pause is disabled) + a danger button behind `ModalService.confirm` that states the end time and that it cannot be undone; "Good to know" facts. An active pause shows a warning banner at the top |
+| Crash page | A self-excluded player's big button becomes "Betting paused until …" (secondary, links to Responsible play) |
+| Session reminder | Modal "Time for a break?" (hourglass, warning tint): minutes played, bets, staked, and the reminder that Crash has no winning strategy. Buttons: "Review my limits" (ghost), "Keep playing" (primary) |
+| Operator | Tabs "Live round" / "Games". Live: round card (state badge, big mono multiplier or countdown, hash badge, danger "Cancel round" → dialog with a required reason), 4 stat cards, live bets, last rounds as multiplier pills. Games: table with an inline status select (non-Active asks for confirmation), edit / new game dialogs |
+| Admin | Section nav (Dashboard, Users, Audit log, Settings) under the page header. Dashboard: 8 stat cards + charts. Users: search (300ms debounce) + role / status selects, row opens the user drawer (role, block, balance adjustment with Add/Remove tabs and a confirm). Audit log: filters in the URL, a readable change summary ("Role: Player → Operator"), rows expand to the before / after JSON |
+
+---
+
 ## 10. Page review checklist
 
 After every page, check at **1440px, 768px and 375px**, in **both themes**:
@@ -233,3 +272,9 @@ After every page, check at **1440px, 768px and 375px**, in **both themes**:
 | 2026-10-25 | VLX icon: gem instead of coins |
 | 2026-10-25 | Top bar title is visual only; the page's `vx-page-header` owns the `<h1>` (one h1 per page) |
 | 2026-10-25 | Crash page: two columns only from 1280px (at 1024px the side column was too narrow for the live bets table) |
+| 2026-10-27 | New components: `vx-chart` (Chart.js, lazy-loaded), `vx-progress-bar`, drawer (`ModalService.openDrawer` + `vx-drawer`); Tabs get a `label` input |
+| 2026-10-27 | Navigation by role: "Staff" group in the sidebar; bottom nav = Play, Top, History, Wallet, Profile; role pages in the account menu |
+| 2026-10-27 | Bell: unread badge + notifications panel; chart tone meanings fixed (§9b) |
+| 2026-10-27 | Chart lines use monotone interpolation (a smooth curve invented peaks above the real values) |
+| 2026-10-27 | Card header wraps its actions under the title on phones |
+| 2026-10-27 | Rules: `max-sm:hidden` for components with their own display; truncate inside table cells on an inner block; eager code imports single `shared/ui` files, not the barrel |

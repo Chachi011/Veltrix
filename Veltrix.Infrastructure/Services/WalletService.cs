@@ -12,8 +12,6 @@ namespace Veltrix.Infrastructure.Services;
 
 public sealed class WalletService : IWalletService
 {
-    private const decimal DefaultDailyBonus = 100m;
-
     private readonly ApplicationDbContext _db;
     private readonly ICurrentUserService _currentUser;
     private readonly IGameNotifier _notifier;
@@ -42,7 +40,7 @@ public sealed class WalletService : IWalletService
         var wallet = await _db.Wallets.AsNoTracking().FirstOrDefaultAsync(w => w.UserId == userId, ct)
             ?? throw new NotFoundException("Wallet not found.");
 
-        var bonus = await SettingsReader.GetDecimalAsync(_db, SettingKeys.DailyBonusAmount, DefaultDailyBonus, ct);
+        var bonus = await SettingsReader.GetDecimalAsync(_db, SettingKeys.DailyBonusAmount, SettingDefaults.DailyBonusAmount, ct);
 
         return new WalletDto
         {
@@ -89,7 +87,7 @@ public sealed class WalletService : IWalletService
     public async Task<WalletDto> ClaimDailyBonusAsync(CancellationToken ct = default)
     {
         var userId = CurrentUserId;
-        var amount = await SettingsReader.GetDecimalAsync(_db, SettingKeys.DailyBonusAmount, DefaultDailyBonus, ct);
+        var amount = await SettingsReader.GetDecimalAsync(_db, SettingKeys.DailyBonusAmount, SettingDefaults.DailyBonusAmount, ct);
 
         var balance = await ConcurrencyRetry.ExecuteAsync(_db, async () =>
         {

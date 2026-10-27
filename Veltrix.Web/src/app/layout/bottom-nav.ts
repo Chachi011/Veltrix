@@ -3,7 +3,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
 import { LucideAngularModule, LucideIconData } from 'lucide-angular';
 import { AuthStore } from '../core/auth/auth.store';
 import { Icons } from '../shared/ui/icons';
-import { NAV_ITEMS } from './nav-items';
+import { BOTTOM_NAV_PATHS, NAV_ITEMS } from './nav-items';
 
 interface BottomItem {
   label: string;
@@ -45,11 +45,14 @@ export class BottomNav {
   private readonly auth = inject(AuthStore);
 
   protected readonly items = computed<BottomItem[]>(() => {
-    const main = NAV_ITEMS.filter((i) => !i.auth || this.auth.isLoggedIn())
-      .filter((i) => i.path !== '/styleguide')
+    const loggedIn = this.auth.isLoggedIn();
+    const paths = loggedIn ? BOTTOM_NAV_PATHS.user : BOTTOM_NAV_PATHS.guest;
+    const main = paths
+      .map((path) => NAV_ITEMS.find((i) => i.path === path)!)
       .map((i) => ({ label: i.shortLabel, path: i.path, icon: i.icon }));
 
-    return this.auth.isLoggedIn()
+    // Everything else (responsible play, staff panels, provably fair) is in the account menu
+    return loggedIn
       ? [...main, { label: 'Profile', path: '/profile', icon: Icons.user }]
       : [...main, { label: 'Log in', path: '/login', icon: Icons.user }];
   });

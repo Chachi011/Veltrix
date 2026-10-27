@@ -104,6 +104,7 @@
         [crashPoint]="store.crashPoint()"
         [loggedIn]="auth.isLoggedIn()"
         [isPlayer]="auth.isPlayer()"
+        [pausedUntil]="limits.isSelfExcluded() ? limits.selfExcludedUntil() : null"
         [canBet]="store.canBet()"
         [canCashOut]="store.canCashOut()"
         [placing]="store.placing()"

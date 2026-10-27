@@ -28,6 +28,9 @@ public class BetConfiguration : IEntityTypeConfiguration<Bet>
         // "My bets" history page
         builder.HasIndex(x => new { x.UserId, x.PlacedAt });
 
+        // Day/week leaderboard and daily admin statistics: "all bets placed since ..."
+        builder.HasIndex(x => x.PlacedAt);
+
         builder.HasOne(x => x.Round)
             .WithMany(x => x.Bets)
             .HasForeignKey(x => x.RoundId)

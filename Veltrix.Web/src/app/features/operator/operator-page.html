@@ -1,0 +1,167 @@
+<vx-page-header title="Operator" description="Watch the live round, cancel it if something goes wrong, and manage the games." />
+
+<vx-tabs class="mb-6" [items]="tabs" [(value)]="tab" label="Operator sections" />
+
+@if (tab() === 'live') {
+  @if (store.loaded() && hub.status() !== 'connected') {
+    <div class="mb-4 flex items-center gap-3 rounded-card border border-warning/25 bg-warning/12 px-4 py-3 text-[13px]" role="status">
+      <lucide-icon [img]="icons.offline" [size]="16" class="shrink-0 text-warning" aria-hidden="true" />
+      <span class="flex-1">{{ hub.status() === 'reconnecting' ? 'Reconnecting to the live game…' : 'Not connected: the monitor is not updating.' }}</span>
+      @if (hub.status() === 'disconnected') {
+        <button vxButton type="button" size="sm" variant="secondary" (click)="store.connect()">Reconnect</button>
+      }
+    </div>
+  }
+
+  @if (store.round(); as round) {
+    <div class="grid gap-4 md:gap-6 xl:grid-cols-3">
+      <!-- The round -->
+      <vx-card class="xl:col-span-2" [title]="'Round #' + round.roundNumber" [subtitle]="store.game()?.name ?? ''">
+        <vx-badge card-actions [tone]="stateTone(round.state)" dot>{{ stateLabel(round.state) }}</vx-badge>
+
+        <div class="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+          <div class="min-w-0" aria-live="polite">
+            @switch (round.state) {
+              @case ('Running') {
+                <p class="text-[13px] text-muted">Current multiplier</p>
+                <!-- Not announced on every tick (the live region only reports state changes) -->
+                <p class="num text-5xl font-semibold tracking-tight" aria-hidden="true">{{ multiplier() | mult }}</p>
+              }
+              @case ('BettingOpen') {
+                <p class="text-[13px] text-muted">Betting closes in</p>
+                <p class="num text-5xl font-semibold tracking-tight">{{ secondsLeft() }}s</p>
+              }
+              @case ('Cancelled') {
+                <p class="text-[13px] text-muted">Result</p>
+                <p class="text-3xl font-semibold text-warning">Cancelled</p>
+              }
+              @default {
+                @if (store.crashPoint() !== null) {
+                  <p class="text-[13px] text-muted">Crashed at</p>
+                  <p class="num text-5xl font-semibold tracking-tight text-danger">{{ store.crashPoint() | mult }}</p>
+                } @else {
+                  <p class="text-[13px] text-muted">Next round</p>
+                  <p class="text-3xl font-semibold">Starting soon</p>
+                }
+              }
+            }
+            <vx-hash-badge class="mt-4" [hash]="round.serverSeedHash" [roundId]="round.id" />
+          </div>
+
+          <div class="flex flex-col gap-2 sm:items-end">
+            <button vxButton type="button" variant="danger" [disabled]="!canCancel()" (click)="cancelRound()">
+              <lucide-icon [img]="icons.stop" [size]="16" aria-hidden="true" />Cancel round
+            </button>
+            <p class="max-w-[240px] text-xs text-muted sm:text-right">
+              {{ canCancel() ? 'Active bets are refunded automatically.' : 'Only an unfinished round can be cancelled.' }}
+            </p>
+          </div>
+        </div>
+      </vx-card>
+
+      <!-- Key numbers -->
+      <div class="grid grid-cols-2 gap-4 md:gap-6">
+        <vx-stat-card label="Online" [value]="store.online()" [icon]="icons.users" hint="Open connections" />
+        <vx-stat-card label="Bets" [value]="store.liveBets().length" [icon]="icons.history" [hint]="activeBets().length + ' still active'" />
+        <vx-stat-card label="Staked" [value]="store.totalBet()" [decimals]="2" unit="VLX" [icon]="icons.vlx" />
+        <vx-stat-card label="Payout if all cash out" [value]="exposure()" [decimals]="2" unit="VLX" [icon]="icons.activity" [hint]="(cashedOutTotal() | vlx) + ' already paid'" />
+      </div>
+
+      <div class="xl:col-span-2">
+        <vx-live-bets [bets]="store.liveBets()" />
+      </div>
+
+      <vx-card title="Last rounds" subtitle="Crash points, newest first. Each links to its fairness check.">
+        @if (store.history().length === 0) {
+          <p class="text-[13px] text-muted">No finished rounds yet.</p>
+        } @else {
+          <ul class="flex flex-wrap gap-2">
+            @for (item of store.history(); track item.roundId) {
+              <li>
+                <a routerLink="/fairness" [queryParams]="{ round: item.roundId }" [title]="'Round #' + item.roundNumber">
+                  <vx-multiplier-pill [value]="item.crashPoint" [cancelled]="item.cancelled" />
+                </a>
+              </li>
+            }
+          </ul>
+        }
+      </vx-card>
+    </div>
+  } @else if (store.loaded()) {
+    <vx-card>
+      <vx-empty-state [icon]="icons.monitor" title="No round yet" message="The engine starts a new round in a few seconds; it appears here live." />
+    </vx-card>
+  } @else {
+    <div class="grid gap-4 md:gap-6 xl:grid-cols-3">
+      <vx-card class="xl:col-span-2"><vx-skeleton height="9rem" shape="rect" /></vx-card>
+      <vx-card><vx-skeleton height="9rem" shape="rect" /></vx-card>
+    </div>
+  }
+} @else {
+  <vx-card title="Games" subtitle="Bet range, round timing and status. Changes apply from the next round." padding="none">
+    <button card-actions vxButton type="button" variant="primary" size="sm" (click)="editGame(null)">
+      <lucide-icon [img]="icons.plus" [size]="15" aria-hidden="true" />New game
+    </button>
+
+    @if (games(); as list) {
+      @if (list.length === 0) {
+        <vx-empty-state [icon]="icons.gamepad" title="No games" message="Create the first game to start rounds." />
+      } @else {
+        <div class="vx-table-wrap mt-2">
+          <table class="vx-table">
+            <thead>
+              <tr>
+                <th>Game</th>
+                <th>Status</th>
+                <th class="hidden text-right md:table-cell">Bets (VLX)</th>
+                <th class="hidden text-right lg:table-cell">Betting / pause</th>
+                <th class="hidden lg:table-cell">Updated</th>
+                <th class="text-right"><span class="sr-only">Actions</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (game of list; track game.id) {
+                <tr>
+                  <td>
+                    <p class="font-medium">{{ game.name }}</p>
+                    <p class="num text-xs text-muted">{{ game.slug }}</p>
+                  </td>
+                  <td>
+                    <div class="flex items-center gap-2">
+                      <vx-badge [tone]="statusTone(game.status)" dot class="max-sm:hidden">{{ game.status }}</vx-badge>
+                      <select
+                        class="vx-input h-8! w-auto! min-w-[132px] text-[13px]"
+                        [attr.aria-label]="'Status of ' + game.name"
+                        [disabled]="changingStatus() === game.id"
+                        [ngModel]="game.status"
+                        (ngModelChange)="changeStatus(game, $event)"
+                      >
+                        @for (status of statuses; track status) {
+                          <option [ngValue]="status">{{ status }}</option>
+                        }
+                      </select>
+                    </div>
+                  </td>
+                  <td class="num hidden text-right md:table-cell">{{ game.minBet | vlx: false }} – {{ game.maxBet | vlx: false }}</td>
+                  <td class="num hidden text-right lg:table-cell">{{ game.bettingDurationSec }}s / {{ game.pauseBetweenRoundsSec }}s</td>
+                  <td class="hidden text-muted lg:table-cell">{{ (game.updatedAt ?? game.createdAt) | date: 'MMM d, HH:mm' }}</td>
+                  <td class="text-right">
+                    <button vxButton type="button" variant="ghost" size="icon-sm" [attr.aria-label]="'Edit ' + game.name" (click)="editGame(game)">
+                      <lucide-icon [img]="icons.edit" [size]="16" aria-hidden="true" />
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    } @else {
+      <div class="flex flex-col gap-3 px-5 py-4 md:px-6">
+        @for (row of [1, 2, 3]; track row) {
+          <vx-skeleton height="1.25rem" />
+        }
+      </div>
+    }
+  </vx-card>
+}

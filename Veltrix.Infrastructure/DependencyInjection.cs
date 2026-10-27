@@ -6,6 +6,7 @@ using Veltrix.Application.Interfaces;
 using Veltrix.Infrastructure.Auth;
 using Veltrix.Infrastructure.Email;
 using Veltrix.Infrastructure.Engine;
+using Veltrix.Infrastructure.Jobs;
 using Veltrix.Infrastructure.Persistence;
 using Veltrix.Infrastructure.Services;
 using Veltrix.Infrastructure.Storage;
@@ -47,7 +48,23 @@ public static class DependencyInjection
         services.AddScoped<IBetService, BetService>();
         services.AddScoped<IWalletService, WalletService>();
         services.AddScoped<IFairnessService, FairnessService>();
+
+        // Phase 4: player tools and admin panel
+        services.AddMemoryCache(); // leaderboard cache
+        services.AddScoped<ILeaderboardService, LeaderboardService>();
+        services.AddScoped<IStatsService, StatsService>();
+        services.AddScoped<ILimitsService, LimitsService>();
+        services.AddScoped<INotificationService, NotificationService>();
+        services.AddScoped<IAdminUserService, AdminUserService>();
+        services.AddScoped<IAuditLogService, AuditLogService>();
+        services.AddScoped<ISystemSettingsService, SystemSettingsService>();
+        services.AddScoped<IAdminStatsService, AdminStatsService>();
+
         services.AddScoped<DatabaseInitializer>();
+
+        // Small periodic jobs, each in its own DI scope per run
+        services.AddHostedService<DailyBonusReminderJob>();
+        services.AddHostedService<DailyStatisticsJob>();
 
         AddCrashEngine(services, configuration);
 

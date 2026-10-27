@@ -88,6 +88,11 @@
             {{ placing() ? 'Placing bet…' : 'Place bet' }}
           </button>
         }
+        @case ('paused') {
+          <a vxButton routerLink="/limits" variant="secondary" size="xl" block>
+            <lucide-icon [img]="icons.pause" [size]="18" aria-hidden="true" />Betting paused until {{ pausedUntil() | date: 'MMM d, HH:mm' }}
+          </a>
+        }
         @case ('closed') {
           <button vxButton type="button" size="xl" block disabled>
             <lucide-icon [img]="icons.timer" [size]="18" aria-hidden="true" />Betting opens soon

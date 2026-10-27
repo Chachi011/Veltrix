@@ -303,6 +303,8 @@ namespace Veltrix.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("PlacedAt");
+
                     b.HasIndex("UserId", "PlacedAt");
 
                     b.HasIndex("RoundId", "UserId", "Slot")
@@ -805,6 +807,8 @@ namespace Veltrix.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("UserId", "CreatedAt");
+
                     b.HasIndex("UserId", "IsRead");
 
                     b.ToTable("Notifications", (string)null);
@@ -893,6 +897,13 @@ namespace Veltrix.Infrastructure.Persistence.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<decimal?>("PendingDailyBetLimit")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("PendingLimitAppliesAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime?>("SelfExcludedUntil")
                         .HasColumnType("datetime2");
 
@@ -910,6 +921,10 @@ namespace Veltrix.Infrastructure.Persistence.Migrations
                     b.ToTable("PlayerLimits", null, t =>
                         {
                             t.HasCheckConstraint("CK_PlayerLimits_DailyBetLimit", "[DailyBetLimit] IS NULL OR [DailyBetLimit] > 0");
+
+                            t.HasCheckConstraint("CK_PlayerLimits_PendingDailyBetLimit", "[PendingDailyBetLimit] IS NULL OR [PendingDailyBetLimit] > 0");
+
+                            t.HasCheckConstraint("CK_PlayerLimits_PendingHasDate", "[PendingDailyBetLimit] IS NULL OR [PendingLimitAppliesAt] IS NOT NULL");
 
                             t.HasCheckConstraint("CK_PlayerLimits_SessionReminder", "[SessionReminderMin] BETWEEN 0 AND 600");
                         });
