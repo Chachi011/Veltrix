@@ -1,3 +1,4 @@
+import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -19,6 +20,7 @@ export type BetAction =
   | 'staff' // Operator / Admin: watching only
   | 'place' // betting is open and I have no bet yet
   | 'closed' // no bet, betting is not open
+  | 'paused' // self-excluded (responsible play): no new bets until the pause ends
   | 'waiting' // bet placed, round not started yet
   | 'cashout' // round running, my bet is active
   | 'won'
@@ -30,13 +32,15 @@ export interface BetActionInput {
   isPlayer: boolean;
   state: RoundState | null;
   myBet: MyBet | null;
+  /** Self-excluded: a bet already in the round can still be cashed out, but no new bet. */
+  paused?: boolean;
 }
 
 /** "Place bet" → "Waiting…" → "Cash out 13.50 VLX" → result. A pure function, so it is unit-tested. */
-export function betAction({ loggedIn, isPlayer, state, myBet }: BetActionInput): BetAction {
+export function betAction({ loggedIn, isPlayer, state, myBet, paused = false }: BetActionInput): BetAction {
   if (!loggedIn) return 'login';
   if (!isPlayer) return 'staff';
-  if (!myBet) return state === 'BettingOpen' ? 'place' : 'closed';
+  if (!myBet) return paused ? 'paused' : state === 'BettingOpen' ? 'place' : 'closed';
 
   switch (myBet.status) {
     case 'Active':
@@ -56,7 +60,7 @@ export function betAction({ loggedIn, isPlayer, state, myBet }: BetActionInput):
  */
 @Component({
   selector: 'vx-bet-panel',
-  imports: [ReactiveFormsModule, RouterLink, LucideAngularModule, Button, Field, VlxPipe, MultiplierPipe],
+  imports: [DatePipe, ReactiveFormsModule, RouterLink, LucideAngularModule, Button, Field, VlxPipe, MultiplierPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './bet-panel.html'
 })
@@ -69,6 +73,8 @@ export class BetPanel {
   readonly crashPoint = input<number | null>(null);
   readonly loggedIn = input(false);
   readonly isPlayer = input(false);
+  /** Self-excluded until this time (null = not paused). */
+  readonly pausedUntil = input<string | null>(null);
   readonly canBet = input(false);
   readonly canCashOut = input(false);
   readonly placing = input(false);
@@ -83,11 +89,19 @@ export class BetPanel {
   protected readonly expanded = signal(false);
 
   protected readonly action = computed(() =>
-    betAction({ loggedIn: this.loggedIn(), isPlayer: this.isPlayer(), state: this.state(), myBet: this.myBet() })
+    betAction({
+      loggedIn: this.loggedIn(),
+      isPlayer: this.isPlayer(),
+      state: this.state(),
+      myBet: this.myBet(),
+      paused: this.pausedUntil() !== null
+    })
   );
 
   /** Form fields are locked once a bet is in the round (or for guests / staff). */
-  protected readonly locked = computed(() => !this.loggedIn() || !this.isPlayer() || this.myBet() !== null);
+  protected readonly locked = computed(
+    () => !this.loggedIn() || !this.isPlayer() || this.myBet() !== null || this.pausedUntil() !== null
+  );
 
   protected readonly form = inject(NonNullableFormBuilder).group({
     amount: [10, [Validators.required, twoDecimals]],

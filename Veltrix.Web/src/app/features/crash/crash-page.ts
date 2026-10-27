@@ -12,6 +12,7 @@ import {
 import { LucideAngularModule } from 'lucide-angular';
 import { AuthStore } from '../../core/auth/auth.store';
 import { CrashHub } from '../../core/realtime/crash-hub';
+import { LimitsStore } from '../../core/state/limits.store';
 import { WalletStore } from '../../core/state/wallet.store';
 import { MultiplierPipe } from '../../shared/pipes';
 import { Badge, Button, Card, HashBadge, Icons, PageHeader, ProgressRing, Skeleton } from '../../shared/ui';
@@ -47,6 +48,7 @@ export class CrashPage {
   protected readonly store = inject(CrashStore);
   protected readonly auth = inject(AuthStore);
   protected readonly wallet = inject(WalletStore);
+  protected readonly limits = inject(LimitsStore);
   protected readonly hub = inject(CrashHub);
   protected readonly icons = Icons;
 

@@ -23,6 +23,7 @@ import {
   StatCard
 } from '../../shared/ui';
 import { NICKNAME_PATTERN, fieldsMatch, strongPassword } from '../../shared/validators';
+import { MyStats } from './my-stats';
 
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 const AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -42,7 +43,8 @@ const AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
     PageHeader,
     PasswordInput,
     Skeleton,
-    StatCard
+    StatCard,
+    MyStats
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './profile-page.html'

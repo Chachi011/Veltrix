@@ -1,0 +1,117 @@
+<vx-page-header title="Leaderboard" description="The best players by virtual VLX results. Refreshed every few seconds.">
+  @if (myRank(); as rank) {
+    <vx-badge page-actions tone="primary">
+      <lucide-icon [img]="icons.trophy" [size]="13" aria-hidden="true" />
+      You are #{{ rank }}
+    </vx-badge>
+  }
+</vx-page-header>
+
+<div class="mb-6 flex flex-wrap items-center gap-3">
+  <vx-tabs [items]="periods" [(value)]="period" label="Period" />
+  <vx-tabs [items]="types" [(value)]="type" label="Ranking" />
+</div>
+
+@if (board() === null) {
+  <!-- First load -->
+  <div class="grid gap-4 md:grid-cols-3 md:gap-6">
+    @for (i of [1, 2, 3]; track i) {
+      <vx-card>
+        <div class="flex flex-col items-center gap-3 py-2">
+          <vx-skeleton width="64px" height="64px" shape="circle" />
+          <vx-skeleton width="50%" height="1rem" />
+          <vx-skeleton width="35%" height="1.5rem" />
+        </div>
+      </vx-card>
+    }
+  </div>
+} @else if (entries().length === 0) {
+  <vx-card>
+    <vx-empty-state [icon]="icons.trophy" title="No results yet" message="Nobody has finished a bet in this period. Be the first on the board.">
+      <a vxButton routerLink="/crash" variant="primary" size="sm">
+        <lucide-icon [img]="icons.rocket" [size]="15" aria-hidden="true" />Play now
+      </a>
+    </vx-empty-state>
+  </vx-card>
+} @else {
+  <div class="transition-opacity duration-200" [class.opacity-60]="loading()">
+    <!-- Podium: top 3 (winner in the middle on wide screens, first on phones) -->
+    <ol class="grid items-end gap-4 md:grid-cols-3 md:gap-6" aria-label="Top 3">
+      @for (entry of podium(); track entry.rank) {
+        <li [class]="entry.rank === 1 ? 'order-first md:order-none' : ''">
+          <vx-card [class]="isMe(entry) ? 'ring-2 ring-primary/40' : ''">
+            <div [class]="entry.rank === 1 ? 'flex flex-col items-center text-center md:py-4' : 'flex flex-col items-center text-center'">
+              <span [class]="'mb-3 inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-xs font-semibold ' + placeClass(entry.rank)">
+                <lucide-icon [img]="entry.rank === 1 ? icons.crown : icons.medal" [size]="13" aria-hidden="true" />
+                #{{ entry.rank }}
+              </span>
+              <vx-avatar [src]="entry.avatarUrl" [name]="entry.nickname" [size]="entry.rank === 1 ? 'xl' : 'lg'" />
+              <p class="mt-3 max-w-full truncate font-semibold" [class.text-primary-text]="isMe(entry)">
+                {{ entry.nickname }}
+              </p>
+              <p class="text-xs text-muted">Level {{ entry.level }} · {{ entry.betsCount }} {{ entry.betsCount === 1 ? 'bet' : 'bets' }}</p>
+              <p class="num mt-3 text-2xl font-semibold" [class.text-success]="!isMultiplier() && entry.value > 0" [class.text-danger]="!isMultiplier() && entry.value < 0">
+                @if (isMultiplier()) {
+                  {{ entry.value | mult }}
+                } @else {
+                  {{ entry.value > 0 ? '+' : '' }}{{ entry.value | vlx }}
+                }
+              </p>
+            </div>
+          </vx-card>
+        </li>
+      }
+    </ol>
+
+    <!-- Everyone after the podium -->
+    @if (rest().length > 0) {
+      <vx-card class="mt-4 md:mt-6" padding="none">
+        <div class="vx-table-wrap">
+          <table class="vx-table">
+            <caption class="sr-only">Leaderboard places 4 and below</caption>
+            <thead>
+              <tr>
+                <th class="w-14">#</th>
+                <th>Player</th>
+                <th class="hidden sm:table-cell">Level</th>
+                <th class="hidden text-right sm:table-cell">Bets</th>
+                <th class="text-right">{{ isMultiplier() ? 'Multiplier' : 'Profit' }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (entry of rest(); track entry.rank) {
+                <tr [class]="isMe(entry) ? 'bg-primary/5' : ''">
+                  <td class="num text-muted">{{ entry.rank }}</td>
+                  <td>
+                    <span class="flex min-w-0 items-center gap-2.5">
+                      <vx-avatar [src]="entry.avatarUrl" [name]="entry.nickname" size="xs" />
+                      <span class="truncate font-medium" [class.text-primary-text]="isMe(entry)">{{ entry.nickname }}</span>
+                      @if (isMe(entry)) {
+                        <vx-badge tone="primary">You</vx-badge>
+                      }
+                    </span>
+                  </td>
+                  <td class="hidden text-muted sm:table-cell">{{ entry.level }}</td>
+                  <td class="num hidden text-right text-muted sm:table-cell">{{ entry.betsCount }}</td>
+                  <td class="text-right">
+                    @if (isMultiplier()) {
+                      <vx-multiplier-pill [value]="entry.value" />
+                    } @else {
+                      <span class="num font-semibold" [class.text-success]="entry.value > 0" [class.text-danger]="entry.value < 0">
+                        {{ entry.value > 0 ? '+' : '' }}{{ entry.value | vlx: false }}
+                      </span>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </vx-card>
+    }
+  </div>
+}
+
+<p class="mt-6 text-xs text-muted">
+  Only settled bets count. Profit = payouts minus stakes. Virtual points only; blocked accounts are hidden.
+</p>

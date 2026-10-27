@@ -1,0 +1,46 @@
+<vx-page-header title="Dashboard" description="Today's activity (UTC day) and the trends of the last days." />
+<vx-admin-nav />
+
+@let o = overview();
+<div class="grid grid-cols-2 gap-4 md:gap-6 lg:grid-cols-4">
+  <vx-stat-card label="Online now" [value]="o?.onlineNow ?? null" [icon]="icons.activity" hint="Open live connections" />
+  <vx-stat-card label="Active players today" [value]="o?.activePlayersToday ?? null" [icon]="icons.users" [hint]="o ? o.newUsersToday + ' new accounts today' : undefined" />
+  <vx-stat-card label="Rounds today" [value]="o?.roundsToday ?? null" [icon]="icons.rocket" [hint]="o ? 'Avg crash ' + o.averageCrashPoint.toFixed(2) + 'x (last ' + o.roundsSampled + ')' : undefined" />
+  <vx-stat-card label="Bets today" [value]="o?.betsToday ?? null" [icon]="icons.history" [hint]="o ? vlx(o.betsVolumeToday) + ' staked' : undefined" />
+  <vx-stat-card label="Paid out today" [value]="o?.payoutToday ?? null" [decimals]="2" unit="VLX" [icon]="icons.trendingUp" />
+  <vx-stat-card label="House result today" [value]="o?.houseResultToday ?? null" [decimals]="2" unit="VLX" [icon]="icons.chartColumn" hint="Stakes minus payouts" />
+  <vx-stat-card label="VLX in circulation" [value]="o?.vlxInCirculation ?? null" [decimals]="0" unit="VLX" [icon]="icons.vlx" hint="Sum of all balances" />
+  <vx-stat-card label="Accounts" [value]="o?.totalUsers ?? null" [icon]="icons.user" [hint]="o ? o.playersCount + ' players · ' + o.blockedUsers + ' blocked' : undefined" />
+</div>
+
+<div class="mt-4 grid gap-4 md:mt-6 md:gap-6 lg:grid-cols-2">
+  <vx-card class="lg:col-span-2" title="Activity" subtitle="Players who placed a bet, new accounts and rounds played per day.">
+    <vx-tabs card-actions [items]="ranges" [(value)]="range" label="Range" />
+    @if (daily()) {
+      <vx-chart type="line" [labels]="dayLabels()" [series]="activitySeries()" [format]="whole" [formatRight]="whole" [height]="280" ariaLabel="Active players, new users and rounds per day" />
+    } @else {
+      <vx-skeleton height="280px" shape="rect" />
+    }
+  </vx-card>
+
+  <vx-card title="Bet volume" subtitle="Virtual VLX staked and paid out per day.">
+    @if (daily()) {
+      <vx-chart type="bar" [labels]="dayLabels()" [series]="volumeSeries()" [format]="vlx" [height]="260" ariaLabel="VLX staked and paid out per day" />
+    } @else {
+      <vx-skeleton height="260px" shape="rect" />
+    }
+  </vx-card>
+
+  <vx-card title="Crash points" [subtitle]="o ? 'Last ' + o.roundsSampled + ' rounds compared with P(crash ≥ x) = 0.97 / x.' : 'Observed vs expected.'">
+    @if (o) {
+      <vx-chart type="bar" [labels]="bucketLabels()" [series]="distributionSeries()" [format]="percent" [height]="260" ariaLabel="Share of rounds per crash point range, observed and expected" />
+    } @else {
+      <vx-skeleton height="260px" shape="rect" />
+    }
+  </vx-card>
+</div>
+
+<p class="mt-6 flex items-start gap-2 text-xs text-muted">
+  <lucide-icon [img]="icons.info" [size]="14" class="mt-px shrink-0" aria-hidden="true" />
+  Finished days come from the DailyStatistics table (stored by a background job); today is calculated live. All amounts are virtual.
+</p>

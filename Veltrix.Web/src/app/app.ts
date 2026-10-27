@@ -1,9 +1,13 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, untracked } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { AuthStore } from './core/auth/auth.store';
+import { CrashHub, UserHubHandlers } from './core/realtime/crash-hub';
+import { LimitsStore } from './core/state/limits.store';
+import { NotificationsStore } from './core/state/notifications.store';
 import { WalletStore } from './core/state/wallet.store';
 import { LayoutService } from './core/ui/layout.service';
 import { LoadingStore } from './core/ui/loading.store';
+import { SessionReminder } from './features/limits/session-reminder';
 import { BottomNav } from './layout/bottom-nav';
 import { Sidebar } from './layout/sidebar';
 import { TopBar } from './layout/top-bar';
@@ -41,6 +45,9 @@ import { ToastContainer } from './shared/ui/toast-container';
 export class App {
   private readonly auth = inject(AuthStore);
   private readonly wallet = inject(WalletStore);
+  private readonly notifications = inject(NotificationsStore);
+  private readonly limits = inject(LimitsStore);
+  private readonly hub = inject(CrashHub);
   private readonly layout = inject(LayoutService);
   protected readonly loading = inject(LoadingStore);
 
@@ -50,17 +57,38 @@ export class App {
   /** Only the user's id, so a nickname change does not reload the wallet. */
   private readonly userId = computed(() => this.auth.user()?.id ?? null);
 
+  /** Personal real-time events, on every page while logged in. */
+  private readonly userEvents: UserHubHandlers = {
+    balanceUpdated: (e) => this.wallet.setBalance(e.balance),
+    notification: (n) => void this.notifications.receive(n),
+    // Events may have been missed while offline: reload the bell
+    reconnected: () => void this.notifications.load().catch(() => undefined)
+  };
+
   constructor() {
-    // Logged in → load the balance for the top bar; logged out → forget it
+    // The session reminder runs its own timer from the moment it is created
+    inject(SessionReminder);
+
+    // Logged in → balance, notifications and the live connection; logged out → forget everything
     effect(() => {
       const userId = this.userId();
       untracked(() => {
         if (userId !== null) {
           this.wallet.load().catch(() => undefined);
+          this.notifications.load().catch(() => undefined);
+          void this.hub.startUserSession(this.userEvents);
         } else {
           this.wallet.reset();
+          this.notifications.reset();
+          void this.hub.endUserSession();
         }
       });
+    });
+
+    // Responsible play settings only exist for players (also re-checked after a role change)
+    effect(() => {
+      const isPlayer = this.auth.isPlayer();
+      untracked(() => (isPlayer ? this.limits.load().catch(() => undefined) : this.limits.reset()));
     });
   }
 }

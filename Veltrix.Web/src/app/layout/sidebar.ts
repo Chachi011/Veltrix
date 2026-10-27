@@ -1,15 +1,16 @@
+import { NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { AuthStore } from '../core/auth/auth.store';
 import { LayoutService } from '../core/ui/layout.service';
 import { Icons } from '../shared/ui/icons';
-import { NAV_ITEMS } from './nav-items';
+import { visibleNavItems } from './nav-items';
 
 /** Desktop navigation (hidden below 768 px, where the bottom nav takes over). */
 @Component({
   selector: 'vx-sidebar',
-  imports: [RouterLink, RouterLinkActive, LucideAngularModule],
+  imports: [NgTemplateOutlet, RouterLink, RouterLinkActive, LucideAngularModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <aside
@@ -24,32 +25,43 @@ import { NAV_ITEMS } from './nav-items';
         }
       </a>
 
-      <nav class="flex flex-1 flex-col gap-1 px-3 py-4">
+      <nav class="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-3 py-4">
         @for (item of items(); track item.path) {
-          <a
-            [routerLink]="item.path"
-            routerLinkActive
-            #rla="routerLinkActive"
-            [attr.aria-current]="rla.isActive ? 'page' : null"
-            [title]="layout.sidebarCollapsed() ? item.label : ''"
-            class="group relative flex h-10 items-center gap-3 rounded-control px-3 text-sm font-medium transition-colors duration-200"
-            [class]="rla.isActive ? 'bg-primary/12 text-text' : 'text-muted hover:bg-surface-2 hover:text-text'"
-          >
-            @if (rla.isActive) {
-              <span class="absolute top-2 bottom-2 -left-3 w-0.5 rounded-full bg-primary" aria-hidden="true"></span>
-            }
-            <lucide-icon
-              [img]="item.icon"
-              [size]="18"
-              [class]="rla.isActive ? 'text-primary-text' : ''"
-              aria-hidden="true"
-            />
-            @if (!layout.sidebarCollapsed()) {
-              <span class="truncate">{{ item.label }}</span>
-            }
-          </a>
+          <ng-container *ngTemplateOutlet="link; context: { $implicit: item }" />
+        }
+
+        <!-- Staff tools: only visible to Operator / Admin (the server checks the role again) -->
+        @if (staffItems().length > 0) {
+          @if (layout.sidebarCollapsed()) {
+            <div class="mx-2 my-2 h-px bg-border" role="separator"></div>
+          } @else {
+            <p class="mt-4 mb-1 px-3 text-[11px] font-semibold tracking-wide text-muted uppercase">Staff</p>
+          }
+          @for (item of staffItems(); track item.path) {
+            <ng-container *ngTemplateOutlet="link; context: { $implicit: item }" />
+          }
         }
       </nav>
+
+      <ng-template #link let-item>
+        <a
+          [routerLink]="item.path"
+          routerLinkActive
+          #rla="routerLinkActive"
+          [attr.aria-current]="rla.isActive ? 'page' : null"
+          [title]="layout.sidebarCollapsed() ? item.label : ''"
+          class="group relative flex h-10 shrink-0 items-center gap-3 rounded-control px-3 text-sm font-medium transition-colors duration-200"
+          [class]="rla.isActive ? 'bg-primary/12 text-text' : 'text-muted hover:bg-surface-2 hover:text-text'"
+        >
+          @if (rla.isActive) {
+            <span class="absolute top-2 bottom-2 -left-3 w-0.5 rounded-full bg-primary" aria-hidden="true"></span>
+          }
+          <lucide-icon [img]="item.icon" [size]="18" [class]="rla.isActive ? 'text-primary-text' : ''" aria-hidden="true" />
+          @if (!layout.sidebarCollapsed()) {
+            <span class="truncate">{{ item.label }}</span>
+          }
+        </a>
+      </ng-template>
 
       <div class="border-t border-border p-3">
         @if (!layout.sidebarCollapsed()) {
@@ -78,5 +90,7 @@ export class Sidebar {
   private readonly auth = inject(AuthStore);
   protected readonly icons = Icons;
 
-  protected readonly items = computed(() => NAV_ITEMS.filter((item) => !item.auth || this.auth.isLoggedIn()));
+  private readonly visible = computed(() => visibleNavItems(this.auth.role()));
+  protected readonly items = computed(() => this.visible().filter((item) => item.section !== 'staff'));
+  protected readonly staffItems = computed(() => this.visible().filter((item) => item.section === 'staff'));
 }

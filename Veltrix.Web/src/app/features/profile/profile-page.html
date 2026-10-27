@@ -63,7 +63,14 @@
     <vx-stat-card label="Biggest win" [value]="stats()?.biggestWin ?? null" [decimals]="2" unit="VLX" [icon]="icons.vlx" />
   </div>
 
-  <div class="mt-4 grid gap-4 md:mt-6 md:gap-6 lg:grid-cols-2">
+  <!-- Personal statistics with charts (players; staff do not bet) -->
+  @if (p.role === 'Player') {
+    <h2 class="mt-8 mb-4 text-[15px] font-semibold md:mt-10">Statistics</h2>
+    <vx-my-stats />
+  }
+
+  <h2 class="mt-8 mb-4 text-[15px] font-semibold md:mt-10">Account</h2>
+  <div class="grid gap-4 md:gap-6 lg:grid-cols-2">
     <vx-card title="Nickname" subtitle="Shown to other players in live bets and leaderboards.">
       <form [formGroup]="nicknameForm" (ngSubmit)="saveNickname()" novalidate class="flex flex-col gap-4">
         <vx-field label="Nickname" for="nickname" [control]="nicknameForm.controls.nickname" patternMessage="3-20 letters, digits or underscore.">

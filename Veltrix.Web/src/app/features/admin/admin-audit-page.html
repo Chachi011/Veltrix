@@ -1,0 +1,111 @@
+<vx-page-header title="Audit log" description="Who changed what, and when. Entries are written in the same transaction as the change and are never edited." />
+<vx-admin-nav />
+
+<vx-card padding="none">
+  <div class="flex flex-col gap-3 border-b border-border p-4 sm:flex-row sm:flex-wrap sm:items-center md:px-6">
+    <select class="vx-input sm:w-56" aria-label="Filter by action" [ngModel]="action()" (ngModelChange)="setFilter('action', $event)">
+      <option [ngValue]="null">All actions</option>
+      @for (a of actions(); track a) {
+        <option [ngValue]="a">{{ actionLabel(a) }}</option>
+      }
+    </select>
+    <select class="vx-input sm:w-44" aria-label="Filter by entity" [ngModel]="entityType()" (ngModelChange)="setFilter('entityType', $event)">
+      <option [ngValue]="null">All entities</option>
+      @for (t of entityTypes; track t) {
+        <option [ngValue]="t">{{ t }}</option>
+      }
+    </select>
+    @if (entityId()) {
+      <vx-badge tone="primary">{{ entityType() }} #{{ entityId() }}</vx-badge>
+    }
+    @if (action() || entityType() || entityId()) {
+      <button vxButton type="button" variant="ghost" size="sm" (click)="clear()">
+        <lucide-icon [img]="icons.close" [size]="14" aria-hidden="true" />Clear filters
+      </button>
+    }
+  </div>
+
+  @if (logs(); as result) {
+    @if (result.items.length === 0) {
+      <vx-empty-state [icon]="icons.audit" title="No entries" message="Nothing matches these filters yet." />
+    } @else {
+      <div class="vx-table-wrap" [class.opacity-60]="loading()">
+        <table class="vx-table">
+          <thead>
+            <tr>
+              <th>When</th>
+              <th class="hidden lg:table-cell">Who</th>
+              <th class="hidden sm:table-cell">Action</th>
+              <th class="hidden min-[1400px]:table-cell">Entity</th>
+              <th class="hidden xl:table-cell">Change</th>
+              <th class="text-right"><span class="sr-only">Details</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (log of result.items; track log.id) {
+              <tr>
+                <!-- Narrow screens hide the secondary columns; their content moves into this first cell -->
+                <td>
+                  <span class="text-muted">{{ log.createdAt | date: 'MMM d, HH:mm:ss' }}</span>
+                  <span class="block text-xs text-muted lg:hidden">by {{ log.actorNickname }}</span>
+                  <span class="mt-1.5 block sm:hidden"><vx-badge [tone]="actionTone(log.action)">{{ actionLabel(log.action) }}</vx-badge></span>
+                </td>
+                <td class="hidden lg:table-cell">
+                  <span [class]="log.actorUserId === null ? 'text-muted italic' : 'font-medium'">{{ log.actorNickname }}</span>
+                </td>
+                <td class="hidden sm:table-cell"><vx-badge [tone]="actionTone(log.action)">{{ actionLabel(log.action) }}</vx-badge></td>
+                <td class="num hidden text-muted min-[1400px]:table-cell">
+                  <div class="max-w-[200px] truncate" [title]="log.entityType + ' #' + log.entityId">{{ log.entityType }} #{{ log.entityId }}</div>
+                </td>
+                <td class="hidden xl:table-cell">
+                  <!-- max-width on a table cell is ignored by browsers; on an inner block it truncates -->
+                  <div class="max-w-[240px] truncate min-[1400px]:max-w-[320px]" [title]="describe(log.oldValue, log.newValue)">
+                    {{ describe(log.oldValue, log.newValue) || '—' }}
+                  </div>
+                </td>
+                <td class="text-right">
+                  <button
+                    vxButton
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    [attr.aria-label]="(expanded() === log.id ? 'Hide' : 'Show') + ' details of entry ' + log.id"
+                    [attr.aria-expanded]="expanded() === log.id"
+                    (click)="toggle(log.id)"
+                  >
+                    <lucide-icon [img]="expanded() === log.id ? icons.chevronUp : icons.chevronDown" [size]="16" aria-hidden="true" />
+                  </button>
+                </td>
+              </tr>
+              @if (expanded() === log.id) {
+                <tr>
+                  <td colspan="6" class="bg-surface-2/50 whitespace-normal">
+                    <p class="mb-3 text-[13px] xl:hidden">{{ describe(log.oldValue, log.newValue) || 'No field changed.' }}</p>
+                    <p class="num mb-3 text-xs break-all text-muted min-[1400px]:hidden">{{ log.entityType }} #{{ log.entityId }}</p>
+                    <div class="grid gap-3 md:grid-cols-2">
+                      <div class="min-w-0">
+                        <p class="vx-label mb-1">Before</p>
+                        <pre class="num rounded-control border border-border bg-surface p-3 text-xs break-all whitespace-pre-wrap">{{ pretty(log.oldValue) }}</pre>
+                      </div>
+                      <div class="min-w-0">
+                        <p class="vx-label mb-1">After</p>
+                        <pre class="num rounded-control border border-border bg-surface p-3 text-xs break-all whitespace-pre-wrap">{{ pretty(log.newValue) }}</pre>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+      <vx-pagination [page]="result.page" [totalPages]="result.totalPages" [totalCount]="result.totalCount" (pageChange)="page.set($event)" />
+    }
+  } @else {
+    <div class="flex flex-col gap-3 px-5 py-4 md:px-6">
+      @for (row of skeletonRows; track row) {
+        <vx-skeleton height="1.5rem" />
+      }
+    </div>
+  }
+</vx-card>

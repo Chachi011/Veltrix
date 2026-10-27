@@ -20,6 +20,7 @@ import {
 } from '../../core/models/api.models';
 import { CrashHub, CrashHubHandlers } from '../../core/realtime/crash-hub';
 import { WalletStore } from '../../core/state/wallet.store';
+import { SessionReminder } from '../limits/session-reminder';
 import { ToastStore } from '../../core/ui/toast.store';
 import { elapsedFor, multiplierAt } from './crash-math';
 
@@ -151,7 +152,8 @@ export const CrashStore = signalStore(
       hub = inject(CrashHub),
       auth = inject(AuthStore),
       wallet = inject(WalletStore),
-      toasts = inject(ToastStore)
+      toasts = inject(ToastStore),
+      reminder = inject(SessionReminder)
     ) => {
       let nextKey = 1;
 
@@ -367,6 +369,7 @@ export const CrashStore = signalStore(
             );
             patchState(store, { myBet: toMyBet(result.bet) });
             wallet.setBalance(result.balance);
+            reminder.recordBet(amount);
             toasts.success(`Bet placed: ${amount.toFixed(2)} VLX`);
           } catch {
             // Reason already shown by the error interceptor (betting closed, limit, balance...)
