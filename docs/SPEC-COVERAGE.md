@@ -6,7 +6,7 @@ Audit of the project against the specification **VELTRIX-პროექტი�
 - **Status:** ✅ done · 🟡 partial · ❌ missing.
 - Items marked **(\*)** in the spec are optional ("after the main part"); they are listed separately in [§ Optional (\*) items](#optional--items).
 - **Added in this pass** = the gap was found by this audit and closed in Step 1 (see [§ Gaps closed in this pass](#gaps-closed-in-this-pass)).
-- Next steps that will change this file: Step 2 (demo seed, still to do), Step 3 (the optional items in the author's order), Step 4 (README screenshots, `/database` script, presentation).
+- Next steps that will change this file: Step 3 (the optional items in the author's order), Step 4 (README screenshots, `/database` script, presentation).
 
 ## Summary
 
@@ -39,7 +39,7 @@ The 5 partial required items are all decisions or Phase 5 delivery work, not mis
 | C# | ✅ | All `Veltrix.*` projects |
 | ASP.NET Core Web API (.NET 8) | ✅ | `Veltrix.API` (`net8.0`) |
 | Microsoft SQL Server | ✅ | `UseSqlServer` in `Veltrix.Infrastructure/DependencyInjection.cs` |
-| EF Core: Code First, migrations, seed | ✅ | `Persistence/Configurations/*`, `Persistence/Migrations/*` (4 migrations), `HasData` seeds + `DatabaseInitializer` |
+| EF Core: Code First, migrations, seed | ✅ | `Persistence/Configurations/*`, `Persistence/Migrations/*` (4 migrations), `HasData` seeds + `DatabaseInitializer` (test users) + `DemoDataSeeder` (Development demo history) |
 | SignalR real time | ✅ | `Veltrix.API/Hubs/CrashHub.cs`, `Services/SignalRGameNotifier.cs` |
 | JWT access + refresh token, role-based access | ✅ | `Infrastructure/Auth/JwtTokenService.cs`, `AuthService`, `RefreshToken` rotation |
 | BCrypt password hashing | ✅ | `Infrastructure/Auth/BCryptPasswordHasher.cs` |
@@ -47,7 +47,7 @@ The 5 partial required items are all decisions or Phase 5 delivery work, not mis
 | Game engine as BackgroundService (IHostedService) | ✅ | `CrashGameEngine : BackgroundService` |
 | Serilog (console + file) | ✅ | `Program.cs` (`UseSerilog`), `appsettings.json` → `Serilog.WriteTo` Console + File |
 | Swagger / OpenAPI | ✅ | `API/Extensions/ApiServiceExtensions.cs` (`AddSwaggerWithJwt`), XML comments on every action |
-| Testing: xUnit + Moq | ✅ | `Veltrix.Tests` (245 tests); Moq service tests in `Veltrix.Tests/Services/*` — **Moq added in this pass**; WebApplicationFactory integration tests in `Veltrix.Tests/Integration/*` (Step 2) |
+| Testing: xUnit + Moq | ✅ | `Veltrix.Tests` (246 tests); Moq service tests in `Veltrix.Tests/Services/*` — **Moq added in this pass**; WebApplicationFactory integration tests in `Veltrix.Tests/Integration/*` (Step 2) |
 | Layered architecture (API → Application → Domain → Infrastructure) | ✅ | 4 projects + tests; dependencies point inward (CLAUDE.md → Architecture) |
 
 ### Front-end
@@ -299,7 +299,7 @@ Beyond the spec: 19 supporting tables (30 in total), listed in README → Databa
 | xUnit: wallet (negative balance, double operation, refund) | ✅ | `WalletTests`, `BalanceAdjustmentTests`, `AdminUserServiceTests.AdjustBalance_TheSameRequestIdTwice_IsAppliedOnlyOnce` |
 | xUnit: bet and cash-out rules (refused in the wrong phase) | ✅ | `BetTests` |
 | Jasmine: Angular stores and services | ✅ | `AuthStore`, `CrashStore`, `NotificationsStore`, `WalletStore`, `LimitsStore`, `PreferencesStore`, `ToastStore`, `ThemeService`, `SoundService`, `LayoutService`, `CrashHub`, loading / error / auth interceptors, ProblemDetails helpers, form validators, guards (112 tests) |
-| Integration tests with WebApplicationFactory (\*) | ✅ | `Veltrix.Tests/Integration`: `AuthApiTests`, `BetApiTests`, `AdminApiTests` (27 tests on a throwaway SQL Server database) — Step 2 |
+| Integration tests with WebApplicationFactory (\*) | ✅ | `Veltrix.Tests/Integration`: `AuthApiTests`, `BetApiTests`, `AdminApiTests`, `DemoDataSeederTests` (28 tests on a throwaway SQL Server database) — Step 2 |
 
 ### Git
 
@@ -332,7 +332,7 @@ Beyond the spec: 19 supporting tables (30 in total), listed in README → Databa
 | EF models and migrations | Code First, Fluent API configurations, 4 migrations, seed |
 | REST API | 51 operations, Swagger, ProblemDetails, pagination |
 | Authorization / authentication | JWT + rotating refresh tokens, 4 roles, guards, lockout |
-| Code quality and documentation | Layered architecture, 245 xUnit (incl. Moq service tests and 27 WebApplicationFactory integration tests) + 112 Jasmine tests, Serilog, README, DESIGN.md, this file |
+| Code quality and documentation | Layered architecture, 246 xUnit (incl. Moq service tests and 28 WebApplicationFactory integration tests) + 112 Jasmine tests, Serilog, README, DESIGN.md, this file |
 | Presentation | Phase 5 |
 
 ---
@@ -356,7 +356,7 @@ Beyond the spec: 19 supporting tables (30 in total), listed in README → Databa
 | Achievements endpoints `GET /api/achievements`, `/my` | 5 | ❌ | |
 | `GET /api/admin/reports/export` | 5 | ❌ | |
 | SignalR `ChatMessage` / `SendChatMessage` | 5 | ❌ | |
-| Integration tests (WebApplicationFactory) | 7 | ✅ | `Veltrix.Tests/Integration` (27 tests): auth, bets, cash-out, refunds, admin role checks — Step 2 |
+| Integration tests (WebApplicationFactory) | 7 | ✅ | `Veltrix.Tests/Integration` (28 tests): auth, bets, cash-out, refunds, admin role checks, demo data — Step 2 |
 | Docker Compose (SQL Server + API + Angular) | 2 | ❌ | |
 | GitHub Actions (build + tests on every push) | 2 | ❌ | |
 
@@ -379,12 +379,13 @@ Beyond the spec: 19 supporting tables (30 in total), listed in README → Databa
 
 | What | Where |
 |---|---|
-| 27 integration tests: the real API in memory (`WebApplicationFactory<Program>`) over HTTP, on a throwaway SQL Server database that the migrations create and the run drops | `Veltrix.Tests/Integration/*` |
+| 28 integration tests: the real API in memory (`WebApplicationFactory<Program>`) over HTTP, on a throwaway SQL Server database that the migrations create and the run drops | `Veltrix.Tests/Integration/*` |
 | Auth: register, field validation errors, duplicate email, login, 401 without / with a forged token, refresh rotation, logout, 30-second reuse window, theft alarm, auth rate limit (11th login → 429, refresh not limited) | `AuthApiTests` |
 | Bets: stake + ledger row, refused after betting closes / below minimum / 3 decimals / same slot / above balance, cash-out at the server's multiplier, too late after the crash point, crash settles as lost and reveals the crash point, operator cancel refunds active bets (cash-outs keep their payout), only players bet, blocked and self-excluded players refused | `BetApiTests` |
 | Admin role checks: every `api/admin` read endpoint answers 401 / 403 / 403 / 200 to guest / player / operator / admin; only staff cancel rounds; no self role change / self block / self balance adjustment; adjustment writes ledger + audit; a promoted player gets the new role at the next login | `AdminApiTests` |
 | **Bug found by the integration tests:** validation errors were sent as `application/json` instead of `application/problem+json` (`[Produces("application/json")]` rewrites every `ObjectResult`); the filter now returns a `JsonResult` with the right type. The body was already correct, so the Angular client is unaffected | `FluentValidationFilter` |
 | +17 Jasmine tests: auth interceptor (token only on API calls, ONE refresh + retry after 401, failed refresh ends the session, no refresh for guests / 403), ProblemDetails helpers, form validators, `SoundService`, `LayoutService` | `auth.interceptor.spec.ts`, `problem.spec.ts`, `validators.spec.ts`, `sound-layout.spec.ts` |
+| **Development demo seed:** 15 demo players (`<nickname>@demo.veltrix.dev` / `Player123!`) with 30 days of play (≈ 230 rounds, 1300 bets), played by the real domain and settlement code with a clock set to the past: real seeds and crash points, ledger rows for every bet / win / daily bonus, cash-outs below the crash point, PlayerStats and daily statistics recalculated. Runs once, only with `Database:SeedDemoData` (Development). `DemoDataSeederTests` checks the rules on SQL Server | `Persistence/DemoDataSeeder.cs`, `appsettings.Development.json` |
 | Warnings: `dotnet build --no-incremental` 0, `ng build` 0; the Karma log no longer shows a 404 for the web font (unit tests do not load fonts) | `angular.json` (test target) |
 
 ## Decisions to review
@@ -402,6 +403,9 @@ Choices made while working without the author. Each one follows the spec and DES
 | Leaderboard "profit" = net result (payouts − stakes) | The spec says "biggest virtual win"; a net result cannot be inflated by betting a lot and losing | `LeaderboardService` |
 | `AuditLog.entityId` is a string | Setting keys such as `Wallet.DailyBonusAmount` are not numbers | — |
 | Paged endpoints use `pageSize` (spec examples sometimes say `size`) | One name on every paged endpoint | — |
+| The demo seed runs automatically on the first Development start (`Database:SeedDemoData: true`) and also ran on the existing development database | The step asked for a non-empty leaderboard, charts and dashboard in development; it only ADDS rows (15 users, their rounds, bets and ledger) and never touches existing accounts (a nickname that is already taken is skipped) | Set `SeedDemoData` to `false`; the demo players can be blocked from the admin panel |
+| On a database that already had rounds, the demo rounds got the next round numbers although they are dated in the past (on a fresh database the numbers follow the dates) | Round numbers must stay unique and increasing per game; renumbering existing rounds would change real data | — (only the order of the round history looks unusual on the existing development database) |
+| Demo players are ordinary Player accounts with the same password as the test players (`Player123!`) | Easy to log in as one during the demo to show filled-in profile charts | — |
 
 ## Still open (non-\*)
 

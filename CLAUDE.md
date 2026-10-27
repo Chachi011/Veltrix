@@ -70,12 +70,12 @@ Veltrix.Web            Angular client: core/ (api, auth, http, realtime, state, 
 | 2 | Round engine, bets, cash-out, wallet, SignalR, provably fair (**MVP gate**) | **Done** (merged into `develop`) |
 | 3 | Angular UI: design system, login/register, Crash page (Canvas), wallet, history, profile, responsive, dark/light | **Done** (verified by the author on desktop and phone; merged into `develop`) |
 | 4 | Operator/Admin panels, leaderboard, limits/self-exclusion UI, notifications, settings, charts | **Done** (checked by the author; merged into `develop`) |
-| 5 | Spec audit, quality, optional (*) features, delivery (4 steps below) | **In progress** on `feature/phase5`. Step 1 **done**; Step 2 in progress (tests + warnings done, demo seed next). Working autonomously: commit after every step, never push |
+| 5 | Spec audit, quality, optional (*) features, delivery (4 steps below) | **In progress** on `feature/phase5`. Steps 1 and 2 **done**; next: Step 3 (optional features). Working autonomously: commit after every step, never push |
 
 ### Phase 5 steps (update this file and `docs/SPEC-COVERAGE.md` at the end of every step; unclear choices go to "Decisions to review" in SPEC-COVERAGE.md)
 
 1. **Spec audit** — `docs/SPEC-COVERAGE.md` (item / status / where in the code, (*) items separately) and every missing non-(*) item: Home, Games catalog, public player profile, Rules, Settings (sound, animations), Moq service tests, more Jasmine, OpenAPI for Postman. **Done.**
-2. **Quality** — Jasmine tests for the stores and key services (auth, wallet, round/crash, limits); integration tests with WebApplicationFactory (auth, bets, admin role checks); no build warnings (`dotnet build`, `ng build`) — **done** (27 integration tests, 112 Jasmine, 0 warnings); Development demo seed (~15 players with bet history, so the leaderboard, charts and admin dashboard are not empty).
+2. **Quality** — Jasmine tests for the stores and key services (auth, wallet, round/crash, limits); integration tests with WebApplicationFactory (auth, bets, admin role checks); no build warnings (`dotnet build`, `ng build`) — **done** (28 integration tests, 112 Jasmine, 0 warnings); Development demo seed (~15 players with bet history, so the leaderboard, charts and admin dashboard are not empty) — **done** (`DemoDataSeeder`).
 3. **Optional (*) features, in this order** — (1) Georgian + English UI, ka default, switch in Settings; (2) achievements + XP levels; (3) auto-bet (number of rounds, stop on loss/profit); (4) two bets per round in the UI; (5) global chat with operator moderation; (6) CSV export in the admin panel; (7) PWA; (8) Docker Compose + GitHub Actions. 2FA and email verification only if time remains.
 4. **Delivery** — README (overview, screenshots, architecture diagram, clean-PC setup, test accounts per role); `/database`: migrations + seed as one SQL script; `docs/PRESENTATION.md`: 10-minute demo script and the 10 most likely exam questions with short answers.
 
@@ -93,7 +93,7 @@ dotnet ef migrations add <Name> --project Veltrix.Infrastructure --startup-proje
 dotnet ef migrations has-pending-model-changes --project Veltrix.Infrastructure --startup-project Veltrix.API
 ```
 
-Test accounts (development seed): `admin@veltrix.dev / Admin123!`, `operator@veltrix.dev / Operator123!`, `player1@veltrix.dev`, `player2@veltrix.dev / Player123!`. The login page has quick-fill buttons in development.
+Test accounts (development seed): `admin@veltrix.dev / Admin123!`, `operator@veltrix.dev / Operator123!`, `player1@veltrix.dev`, `player2@veltrix.dev / Player123!`. The login page has quick-fill buttons in development. Demo players (`Database:SeedDemoData`, first Development start, once): 15 accounts `<nickname>@demo.veltrix.dev / Player123!` (e.g. `nova`) with 30 days of history.
 
 Stop the running API before `dotnet build` (it locks the DLLs). Check that port 4200 is free before `ng serve`.
 
@@ -109,4 +109,5 @@ Stop the running API before `dotnet build` (it locks the DLLs). Check that port 
 - **Bundle:** `ng build` must stay under the 500 kB initial budget. Heavy libraries (Chart.js, SignalR) load with dynamic `import()`; eager code (layout, core) imports single `shared/ui` files, not the barrel.
 - **Shell + backticks:** never write files containing backticks through bash `node -e` / heredocs (the shell eats them and has corrupted files); use the Write/Edit tools.
 - **Tests:** every bug fix gets a test that fails without the fix. Integration tests (`Veltrix.Tests/Integration`) share ONE `VeltrixApiFactory` (collection "api"): a throwaway SQL Server database, the engine loop off (tests move rounds with `RoundSettlementService`), a `TestClock` that can freeze/advance (keep total advances well under the 30 s JWT clock skew), and one fake IP per client (`X-Test-Client-IP`) so the auth rate limit does not bleed between tests.
+- **Demo data:** `DemoDataSeeder` must keep using the real domain and settlement code (`GameRound.Create`, `Bet.Place`, wallet `Debit`/`Credit`, `RoundSettlementService`) with a past clock; never insert bets, rounds or balances directly. Nothing may be dated after "now". `DemoDataSeederTests` guards the rules.
 - **ProblemDetails content type:** controllers carry `[Produces("application/json")]`, which rewrites the content type of every `ObjectResult`. An error written from a filter must be a `JsonResult` with `ContentType = "application/problem+json"` (see `FluentValidationFilter`).
