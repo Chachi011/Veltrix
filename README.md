@@ -9,7 +9,7 @@ A real-time multiplayer web platform whose main module is a **Crash game**: a mu
 | Layer | Technologies |
 |---|---|
 | Backend | C#, ASP.NET Core Web API (.NET 8), EF Core 8 (Code First), SQL Server, SignalR, JWT + refresh tokens, BCrypt, FluentValidation, Serilog, Swagger |
-| Frontend | Angular 20 (standalone, zoneless, signals), TypeScript, SCSS, NgRx SignalStore, @microsoft/signalr, HTML Canvas |
+| Frontend | Angular 20 (standalone, zoneless, signals), TypeScript, NgRx SignalStore, @microsoft/signalr, Chart.js, HTML Canvas, Tailwind CSS v4, Angular CDK |
 | Tests | xUnit + Moq (backend), Jasmine/Karma (frontend) |
 
 ## Architecture
@@ -29,9 +29,12 @@ Inside `Veltrix.Web/src/app`:
 
 ```
 core/      models (DTO types), api/ (HTTP services), auth/ (AuthStore, interceptor, guards),
-           http/ (error + loading interceptors), realtime/ (SignalR), state/ (WalletStore), ui/ (toasts, theme)
-features/  auth, crash (CrashStore, Canvas chart, bet panel, live bets, history strip), wallet, history, profile, fairness
-shared/    pipes, validators, pagination, field errors
+           http/ (error + loading interceptors), realtime/ (CrashHub: one shared SignalR connection),
+           state/ (WalletStore, NotificationsStore, LimitsStore), ui/ (toasts, theme, layout)
+features/  auth, crash (CrashStore, Canvas chart, bet panel, live bets, history strip), wallet, history, profile (+ statistics),
+           fairness, leaderboard, limits (responsible play, session reminder), operator, admin
+layout/    sidebar, top bar, bottom nav, notifications panel
+shared/    ui/ (design system components), pipes, validators, formatters
 ```
 
 ## Design system
@@ -151,6 +154,21 @@ Background jobs (`Infrastructure/Jobs`):
 
 The admin dashboard shows the crash points of the last 1000 rounds next to the share the formula predicts (`P(crash ≥ x) = 0.97 / x`). Over many rounds the two must match. A unit test checks this on 20,000 generated rounds.
 
+Pages (Angular):
+
+| Page | Who | What |
+|---|---|---|
+| `/leaderboard` | everyone | 24 hours / 7 days / all time × best multiplier / profit; podium + table, my rank highlighted |
+| `/profile` → Statistics | players | win rate, average cash-out, net result, charts (results per day, win rate, cash-out ranges) |
+| `/limits` (Responsible play) | players | daily limit with today's usage, session reminder, self-exclusion with a confirm dialog |
+| bell (top bar) | logged in | unread badge, latest notifications, mark read; new ones arrive live |
+| `/operator` | Operator, Admin | live round monitor, cancel round (reason, automatic refunds), games and their status |
+| `/admin`, `/admin/users`, `/admin/audit`, `/admin/settings` | Admin | dashboard charts, users + drawer (role, block, balance adjustment), audit log, settings |
+
+The browser keeps **one** SignalR connection per tab: the logged-in user receives balance and notifications on every page, and the Crash page (or the operator monitor) joins its game group on the same connection, so the online counter counts each tab once. Chart.js and the SignalR client are loaded on demand, so the first download stays under 500 kB.
+
+The **session reminder** (every 60 minutes by default) runs in the browser: it is advice. The hard rules (daily limit, self-exclusion) are enforced by the server on every bet.
+
 ## Real-time (SignalR) — `/hubs/crash`
 
 Connect as a guest, or with `?access_token=<JWT>` to also receive your balance and notifications.
@@ -179,10 +197,16 @@ cd Veltrix.Web
 npx ng test --watch=false --browsers=ChromeHeadless
 ```
 
-There are 32 Jasmine tests:
+There are 64 Jasmine tests:
 
 - `AuthStore`: login, a single refresh shared by concurrent requests, a failed refresh ends the session, logout
 - `CrashStore`: SignalR events → state (new round, crash, auto cash-out, cancel/refund), countdown on the server clock, extrapolation limit
+- `CrashHub`: one shared SignalR connection for the user and the game page, the online count handed to a page that joins later, leave / logout, a new connection for a new identity, personal vs game events
+- `NotificationsStore`: load, live notifications (deduplicated), optimistic mark read / mark all read, a role change refreshes the token and leaves a forbidden page, a block signs the user out
+- `roleGuard`: the right roles get in, others go back to the game, guests go to the login page
+- Bet panel: the one big button (`betAction`), including "betting paused" for a self-excluded player
+- Session reminder (`play-session`): continuous play, breaks, reminders every N minutes
+- Audit log text: "Role: Player → Operator", readable dates
 - Crash math: the browser reproduces 7 real server rounds (seed → SHA-256 hash → crash point), proving both implementations are identical
 - App shell: sidebar / top bar / bottom nav, guest navigation, collapsible sidebar, theme toggle
 

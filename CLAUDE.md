@@ -69,7 +69,7 @@ Veltrix.Web            Angular client: core/ (api, auth, http, realtime, state, 
 | 1 | Solution, DB, EF models + migrations, JWT auth, roles, Swagger, profile endpoints | **Done** (merged into `develop`) |
 | 2 | Round engine, bets, cash-out, wallet, SignalR, provably fair (**MVP gate**) | **Done** (merged into `develop`) |
 | 3 | Angular UI: design system, login/register, Crash page (Canvas), wallet, history, profile, responsive, dark/light | **Done** (verified by the author on desktop and phone; merged into `develop`) |
-| 4 | Operator/Admin panels, leaderboard, limits/self-exclusion UI, notifications, settings, charts | **In progress** on `feature/phase4-panels`. Step A (backend: leaderboard, stats, limits, notifications + SignalR push, admin users/audit/settings/dashboard, 2 jobs) **built**, awaiting the author's Swagger check. Step B = Angular UI |
+| 4 | Operator/Admin panels, leaderboard, limits/self-exclusion UI, notifications, settings, charts | **Built** on `feature/phase4-panels`, awaiting the author's review. Step A (backend) checked by the author in Swagger. Step B (Angular): leaderboard, profile statistics (Chart.js), responsible play + session reminder, bell, operator panel, admin panel, role guards. Next: author checks the pages, then merge into `develop` |
 | 5 | Remaining tests (Moq service tests, more Jasmine), optional (*) features, README screenshots, seed script, presentation demo | Not started |
 
 Optional (*) features only after the MVP: auto-bet, two bets per round (backend supports slot 2), achievements/XP, chat with moderation, 2FA, email verification, ka/en, CSV export, Docker Compose, GitHub Actions.
@@ -97,4 +97,7 @@ Stop the running API before `dotnet build` (it locks the DLLs). Check that port 
 - **EF:** after model changes run `has-pending-model-changes`; never edit an applied migration (add a new one). Data fixes go in the migration (`migrationBuilder.Sql`).
 - **Query DTOs:** computed values are methods, not properties (properties become query parameters; see `PageQuery.Offset()`).
 - **Angular:** standalone components, OnPush, signals; stores are NgRx SignalStores. Components that show reactive-form errors use Default change detection. Interceptor order: loading → error → auth.
+- **Real-time:** ONE SignalR connection per tab (`CrashHub`): the user session (balance, notifications) and a game page share it. Don't open a second connection (the online counter would count the tab twice).
+- **Bundle:** `ng build` must stay under the 500 kB initial budget. Heavy libraries (Chart.js, SignalR) load with dynamic `import()`; eager code (layout, core) imports single `shared/ui` files, not the barrel.
+- **Shell + backticks:** never write files containing backticks through bash `node -e` / heredocs (the shell eats them and has corrupted files); use the Write/Edit tools.
 - **Tests:** every bug fix gets a test that fails without the fix.
