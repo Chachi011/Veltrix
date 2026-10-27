@@ -6,7 +6,7 @@ export interface TabItem {
 }
 
 /**
- * Segmented tabs: <vx-tabs [items]="tabs" [(value)]="tab" />
+ * Segmented tabs: <vx-tabs [items]="tabs" [(value)]="tab" label="Period" />
  * Keyboard: ← → move between tabs (WAI-ARIA tabs pattern).
  */
 @Component({
@@ -14,7 +14,7 @@ export interface TabItem {
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'inline-flex max-w-full' },
   template: `
-    <div class="flex max-w-full gap-1 overflow-x-auto rounded-control border border-border bg-surface p-1" role="tablist">
+    <div class="flex max-w-full gap-1 overflow-x-auto rounded-control border border-border bg-surface p-1" role="tablist" [attr.aria-label]="label() ?? null">
       @for (item of items(); track item.value) {
         <button
           type="button"
@@ -35,6 +35,8 @@ export interface TabItem {
 export class Tabs {
   readonly items = input.required<TabItem[]>();
   readonly value = model.required<string>();
+  /** Names the group for screen readers when a page has more than one (e.g. "Period", "Ranking"). */
+  readonly label = input<string>();
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 

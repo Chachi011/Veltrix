@@ -22,6 +22,7 @@ export function controlErrorMessage(control: AbstractControl | null, patternMess
   if (e['adult']) return 'You must be at least 18 years old.';
   if (e['mismatch']) return 'Passwords do not match.';
   if (e['decimals']) return 'At most 2 decimal places.';
+  if (e['maxBelowMin']) return 'Must be at least the minimum.';
   return 'Invalid value.';
 }
 

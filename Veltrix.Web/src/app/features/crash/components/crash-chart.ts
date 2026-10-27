@@ -11,6 +11,7 @@ import {
   viewChild
 } from '@angular/core';
 import { ThemeService } from '../../../core/ui/theme.service';
+import { withAlpha } from '../../../shared/color';
 import { curveAt } from '../crash-math';
 
 interface Size {
@@ -20,16 +21,6 @@ interface Size {
 }
 
 const PAD = { left: 48, right: 18, top: 18, bottom: 28 };
-
-/** "#22d3ee" + 0.2 → "rgba(34, 211, 238, 0.2)". Canvas needs a concrete color; tokens are hex values. */
-function withAlpha(hex: string, alpha: number): string {
-  const match = /^#([0-9a-f]{6})$/i.exec(hex);
-  if (!match) {
-    return hex;
-  }
-  const n = parseInt(match[1], 16);
-  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
-}
 
 /** 1, 2, 5, 10, 20, 50... so the axis gets about 4-6 readable grid lines. */
 function niceStep(raw: number): number {

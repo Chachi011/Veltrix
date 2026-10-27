@@ -1,4 +1,5 @@
 import { DIALOG_DATA, Dialog, DialogRef } from '@angular/cdk/dialog';
+import { Overlay } from '@angular/cdk/overlay';
 import { ComponentType } from '@angular/cdk/portal';
 import { ChangeDetectionStrategy, Component, Injectable, inject, input } from '@angular/core';
 import { LucideAngularModule } from 'lucide-angular';
@@ -39,6 +40,41 @@ export class ModalShell {
   protected readonly icons = Icons;
 }
 
+/**
+ * Visual frame of a drawer (a panel sliding in from the right, e.g. the admin user details):
+ * title, close button, scrolling body, optional footer ([drawer-footer]). Full width on phones.
+ * Open it with ModalService.openDrawer(...).
+ */
+@Component({
+  selector: 'vx-drawer',
+  imports: [LucideAngularModule, Button],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { class: 'block h-full' },
+  template: `
+    <div class="flex h-full animate-drawer-in flex-col border-l border-border bg-surface shadow-pop">
+      <header class="flex items-start gap-3 border-b border-border px-5 py-4 md:px-6">
+        <div class="min-w-0 flex-1">
+          <h2 class="truncate text-base font-semibold">{{ title() }}</h2>
+          @if (description()) {
+            <p class="mt-0.5 truncate text-[13px] text-muted">{{ description() }}</p>
+          }
+        </div>
+        <button vxButton type="button" variant="ghost" size="icon-sm" aria-label="Close" (click)="dialogRef.close()">
+          <lucide-icon [img]="icons.close" [size]="16" aria-hidden="true" />
+        </button>
+      </header>
+      <div class="min-h-0 flex-1 overflow-y-auto px-5 py-5 md:px-6"><ng-content /></div>
+      <footer class="border-t border-border px-5 py-4 empty:hidden md:px-6"><ng-content select="[drawer-footer]" /></footer>
+    </div>
+  `
+})
+export class DrawerShell {
+  readonly title = input.required<string>();
+  readonly description = input<string>();
+  protected readonly dialogRef = inject(DialogRef);
+  protected readonly icons = Icons;
+}
+
 export interface ConfirmOptions {
   title: string;
   message: string;
@@ -71,6 +107,7 @@ export class ConfirmDialog {
 @Injectable({ providedIn: 'root' })
 export class ModalService {
   private readonly dialog = inject(Dialog);
+  private readonly overlay = inject(Overlay);
 
   /** Opens any component as a modal dialog. `ariaLabel` names the dialog for screen readers. */
   open<TResult, TData, TComponent>(
@@ -84,6 +121,25 @@ export class ModalService {
       maxWidth: 'calc(100vw - 32px)',
       backdropClass: 'vx-backdrop',
       panelClass: 'vx-dialog-panel',
+      autoFocus: 'first-tabbable',
+      restoreFocus: true
+    });
+  }
+
+  /** Opens a component as a drawer on the right (same focus trap, Escape and backdrop as a modal). */
+  openDrawer<TResult, TData, TComponent>(
+    component: ComponentType<TComponent>,
+    options: { data?: TData; ariaLabel: string; width?: string }
+  ): DialogRef<TResult, TComponent> {
+    return this.dialog.open<TResult, TData, TComponent>(component, {
+      data: options.data,
+      ariaLabel: options.ariaLabel,
+      width: options.width ?? '480px',
+      maxWidth: '100vw',
+      height: '100%',
+      positionStrategy: this.overlay.position().global().right('0').top('0'),
+      backdropClass: 'vx-backdrop',
+      panelClass: 'vx-drawer-panel',
       autoFocus: 'first-tabbable',
       restoreFocus: true
     });

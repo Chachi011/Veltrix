@@ -12,6 +12,9 @@ import {
   ButtonSize,
   ButtonVariant,
   Card,
+  ChartSeries,
+  ChartView,
+  DrawerShell,
   EmptyState,
   Field,
   HashBadge,
@@ -20,12 +23,28 @@ import {
   MultiplierPill,
   Pagination,
   PasswordInput,
+  ProgressBar,
   ProgressRing,
+  ProgressTone,
   Skeleton,
   StatCard,
   TabItem,
   Tabs
 } from '../../shared/ui';
+
+/** Demo content for the drawer. */
+@Component({
+  selector: 'vx-styleguide-drawer-demo',
+  imports: [DrawerShell, Button],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <vx-drawer title="player1" description="player1@veltrix.dev">
+      <p class="text-sm text-muted">The body scrolls; the header stays. Escape, the close button or a click on the backdrop closes it.</p>
+      <div drawer-footer class="flex justify-end"><button vxButton type="button" variant="primary" size="sm">Save</button></div>
+    </vx-drawer>
+  `
+})
+class DrawerDemo {}
 
 /**
  * Living documentation of the design system: every component, every variant, in both themes.
@@ -42,12 +61,14 @@ import {
     Badge,
     Button,
     Card,
+    ChartView,
     EmptyState,
     Field,
     HashBadge,
     MultiplierPill,
     Pagination,
     PasswordInput,
+    ProgressBar,
     ProgressRing,
     Skeleton,
     StatCard,
@@ -97,6 +118,14 @@ export class StyleguidePage {
     { value: 'stats', label: 'Statistics' }
   ];
   protected readonly tab = signal('bets');
+  protected readonly chartDays = ['Oct 19', 'Oct 20', 'Oct 21', 'Oct 22', 'Oct 23', 'Oct 24', 'Oct 25'];
+  protected readonly chartSeries: ChartSeries[] = [
+    { label: 'Cashed out', data: [4, 6, 3, 8, 5, 9, 7], tone: 'success' },
+    { label: 'Lost', data: [3, 2, 5, 4, 6, 3, 4], tone: 'danger' },
+    { label: 'Net (VLX)', data: [12, 30, -18, 44, -6, 52, 20], tone: 'accent', kind: 'line', axis: 'right' }
+  ];
+  protected readonly doughnutSeries: ChartSeries[] = [{ label: 'Bets', data: [62, 38], tone: 'success', tones: ['success', 'danger'] }];
+  protected readonly progressTones: ProgressTone[] = ['primary', 'accent', 'success', 'warning', 'danger'];
   protected readonly page = signal(2);
   protected readonly balance = signal(1093.4);
   protected readonly buttonLoading = signal(false);
@@ -142,6 +171,10 @@ export class StyleguidePage {
       info: 'The round was cancelled. Your bet was refunded.'
     };
     this.toasts[kind](messages[kind]);
+  }
+
+  protected openDrawer(): void {
+    this.modal.openDrawer(DrawerDemo, { ariaLabel: 'Demo drawer', width: '420px' });
   }
 
   protected async openModal(): Promise<void> {
