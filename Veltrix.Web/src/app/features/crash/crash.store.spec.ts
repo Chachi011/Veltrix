@@ -7,6 +7,7 @@ import { AuthStore } from '../../core/auth/auth.store';
 import { BetDto, GameDto, RoundStateChangedEvent } from '../../core/models/api.models';
 import { CrashHub } from '../../core/realtime/crash-hub';
 import { WalletStore } from '../../core/state/wallet.store';
+import { SoundService } from '../../core/ui/sound.service';
 import { ToastStore } from '../../core/ui/toast.store';
 import { SessionReminder } from '../limits/session-reminder';
 import { CrashStore } from './crash.store';
@@ -60,6 +61,7 @@ describe('CrashStore', () => {
   let gamesApi: jasmine.SpyObj<GamesApi>;
   let hub: jasmine.SpyObj<CrashHub>;
   let wallet: { setBalance: jasmine.Spy };
+  let sound: { play: jasmine.Spy };
 
   beforeEach(() => {
     betsApi = jasmine.createSpyObj<BetsApi>('BetsApi', ['place', 'cashOut', 'my']);
@@ -67,6 +69,7 @@ describe('CrashStore', () => {
     hub = jasmine.createSpyObj<CrashHub>('CrashHub', ['connect', 'disconnect']);
     hub.connect.and.resolveTo();
     wallet = { setBalance: jasmine.createSpy('setBalance') };
+    sound = { play: jasmine.createSpy('play') };
 
     TestBed.configureTestingModule({
       providers: [
@@ -85,7 +88,8 @@ describe('CrashStore', () => {
         },
         { provide: WalletStore, useValue: wallet },
         { provide: ToastStore, useValue: jasmine.createSpyObj('ToastStore', ['success', 'info', 'error']) },
-        { provide: SessionReminder, useValue: jasmine.createSpyObj('SessionReminder', ['recordBet']) }
+        { provide: SessionReminder, useValue: jasmine.createSpyObj('SessionReminder', ['recordBet']) },
+        { provide: SoundService, useValue: sound }
       ]
     });
 
@@ -166,6 +170,43 @@ describe('CrashStore', () => {
     expect(store.myRoundBet()).toEqual(jasmine.objectContaining({ status: 'CashedOut', multiplier: 2, payout: 20 }));
     expect(store.liveBets().find((b) => b.nickname === 'me')?.status).toBe('CashedOut');
     expect(store.liveBets().find((b) => b.nickname === 'bob')?.status).toBe('Active');
+  });
+
+  it('sounds: a bet, and the crash sound only when MY bet is lost', async () => {
+    const h = store.eventHandlers();
+    h.roundStateChanged(stateEvent(5, 'BettingOpen'));
+    betsApi.place.and.returnValue(of({ bet: betDto(), balance: 990 }));
+    await store.placeBet(10, null);
+    expect(sound.play).toHaveBeenCalledWith('bet');
+
+    h.roundStateChanged(stateEvent(5, 'Running'));
+    h.roundCrashed({ roundId: 5, crashPoint: 1.5, serverSeed: 'seed' });
+    expect(sound.play).toHaveBeenCalledWith('crash');
+
+    // Watching a round without a bet: silence
+    sound.play.calls.reset();
+    h.roundStateChanged(stateEvent(6, 'Running'));
+    h.roundCrashed({ roundId: 6, crashPoint: 1.2, serverSeed: 'seed' });
+    expect(sound.play).not.toHaveBeenCalled();
+  });
+
+  it('a manual cash-out plays ONE sound, even when the live event arrives before the REST answer', async () => {
+    const h = store.eventHandlers();
+    h.roundStateChanged(stateEvent(5, 'BettingOpen'));
+    betsApi.place.and.returnValue(of({ bet: betDto(), balance: 990 }));
+    await store.placeBet(10, null);
+    h.betPlaced({ roundId: 5, nickname: 'me', amount: 10 });
+    h.roundStateChanged(stateEvent(5, 'Running'));
+    sound.play.calls.reset();
+
+    // The server's PlayerCashedOut event wins the race, then the REST response arrives
+    betsApi.cashOut.and.callFake(() => {
+      h.playerCashedOut({ roundId: 5, nickname: 'me', multiplier: 1.8, payout: 18 });
+      return of({ bet: betDto({ status: 'CashedOut', cashOutMultiplier: 1.8, payout: 18 }), balance: 1008 });
+    });
+    await store.cashOut();
+
+    expect(sound.play.calls.allArgs()).toEqual([['cashout']]);
   });
 
   it('cancelled round: my bet and live bets are refunded', async () => {

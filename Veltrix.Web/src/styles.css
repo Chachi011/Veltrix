@@ -449,3 +449,13 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* The same for players who turn animations off in Settings (PreferencesStore sets the attribute on <html>) */
+[data-motion='reduce'] *,
+[data-motion='reduce'] *::before,
+[data-motion='reduce'] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}

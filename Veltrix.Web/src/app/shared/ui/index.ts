@@ -10,6 +10,7 @@ export * from './empty-state';
 export * from './field';
 export * from './hash-badge';
 export * from './icons';
+export * from './markdown';
 export * from './modal';
 export * from './multiplier-pill';
 export * from './page-header';

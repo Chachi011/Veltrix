@@ -40,6 +40,19 @@ public class ProfileController : ControllerBase
     public async Task<ActionResult<ProfileDto>> Update(UpdateProfileRequest request, CancellationToken ct) =>
         Ok(await _profileService.UpdateMyProfileAsync(request, ct));
 
+    /// <summary>My UI settings (theme, game sounds, animations). Stored per account, so they follow me to any device.</summary>
+    [HttpGet("preferences")]
+    [ProducesResponseType<UserPreferencesDto>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<UserPreferencesDto>> GetPreferences(CancellationToken ct) =>
+        Ok(await _profileService.GetMyPreferencesAsync(ct));
+
+    /// <summary>Saves the theme (System / Dark / Light), game sounds and animations (false = reduce motion).</summary>
+    [HttpPut("preferences")]
+    [ProducesResponseType<UserPreferencesDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<UserPreferencesDto>> UpdatePreferences(UpdatePreferencesRequest request, CancellationToken ct) =>
+        Ok(await _profileService.UpdateMyPreferencesAsync(request, ct));
+
     /// <summary>Changes the password. Requires the current password; logs out all other sessions.</summary>
     /// <remarks>
     /// All refresh tokens are revoked. The access token already in use stays valid until it

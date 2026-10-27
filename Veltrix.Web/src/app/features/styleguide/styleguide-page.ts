@@ -19,6 +19,7 @@ import {
   Field,
   HashBadge,
   Icons,
+  Markdown,
   ModalService,
   MultiplierPill,
   Pagination,
@@ -65,6 +66,7 @@ class DrawerDemo {}
     EmptyState,
     Field,
     HashBadge,
+    Markdown,
     MultiplierPill,
     Pagination,
     PasswordInput,
@@ -125,6 +127,12 @@ export class StyleguidePage {
     { label: 'Net (VLX)', data: [12, 30, -18, 44, -6, 52, 20], tone: 'accent', kind: 'line', axis: 'right' }
   ];
   protected readonly doughnutSeries: ChartSeries[] = [{ label: 'Bets', data: [62, 38], tone: 'success', tones: ['success', 'danger'] }];
+  protected readonly markdownSample = [
+    '1. During **betting** you place a bet.',
+    '2. Press **Cash out** to get *bet × current multiplier*.',
+    '',
+    'VLX points have no monetary value.'
+  ].join('\n');
   protected readonly progressTones: ProgressTone[] = ['primary', 'accent', 'success', 'warning', 'danger'];
   protected readonly page = signal(2);
   protected readonly balance = signal(1093.4);

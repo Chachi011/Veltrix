@@ -59,6 +59,7 @@ public static class DependencyInjection
         services.AddScoped<IAuditLogService, AuditLogService>();
         services.AddScoped<ISystemSettingsService, SystemSettingsService>();
         services.AddScoped<IAdminStatsService, AdminStatsService>();
+        services.AddScoped<IStaticPageService, StaticPageService>();
 
         services.AddScoped<DatabaseInitializer>();
 

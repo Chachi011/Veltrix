@@ -15,6 +15,7 @@ import {
 import type { Chart, ChartConfiguration, ChartDataset } from 'chart.js';
 import { ThemeService } from '../../core/ui/theme.service';
 import { withAlpha } from '../color';
+import { reducedMotion } from '../motion';
 
 let chartClass: Promise<typeof Chart> | null = null;
 
@@ -162,7 +163,6 @@ export class ChartView {
     const text = css.getPropertyValue('--text').trim();
     const surface = css.getPropertyValue('--surface').trim();
     const border = css.getPropertyValue('--border').trim();
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     const kind = this.type();
     const format = this.format();
@@ -293,7 +293,7 @@ export class ChartView {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        animation: reducedMotion ? false : { duration: 500 },
+        animation: reducedMotion() ? false : { duration: 500 },
         ...options
       }
     } as ChartConfiguration;

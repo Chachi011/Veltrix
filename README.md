@@ -41,6 +41,10 @@ shared/    ui/ (design system components), pipes, validators, formatters
 
 The UI follows [docs/DESIGN.md](docs/DESIGN.md): tokens, fonts, layout, components, motion and accessibility rules. In development, `/styleguide` shows every component in both themes.
 
+## Specification coverage
+
+[docs/SPEC-COVERAGE.md](docs/SPEC-COVERAGE.md) checks every item of the specification (sections 1–8: features 4.1–4.11, API endpoints, data models, quality and delivery) against the code: done / partial / missing, with the file that implements it. Optional (\*) items are listed separately.
+
 ## Prerequisites
 
 - .NET SDK 8+ and the **ASP.NET Core 8 runtime** (`winget install Microsoft.DotNet.AspNetCore.8`)
@@ -59,6 +63,8 @@ dotnet run --project Veltrix.API --launch-profile http
 ```
 
 Swagger UI: http://localhost:5295/swagger
+
+**API in Postman:** File → Import → choose [`docs/api/openapi.json`](docs/api/openapi.json) (or the live URL `http://localhost:5295/swagger/v1/swagger.json`). Postman creates a request for every endpoint; set the collection's Bearer token to the `accessToken` from `POST /api/auth/login`.
 
 To apply migrations manually instead:
 
@@ -158,6 +164,11 @@ Pages (Angular):
 
 | Page | Who | What |
 |---|---|---|
+| `/` (Home) | everyone | the live round, available games, top players of the day |
+| `/games` | everyone | games catalog: search, type and status filters; `/crash/:slug` opens any Crash game |
+| `/players/:nickname` | everyone | public profile: level, totals, best cash-outs |
+| `/rules` | everyone | game rules and "why there is no winning strategy" (from the `StaticPages` table, `GET /api/pages/{slug}`) |
+| `/settings` | logged in | theme (System / Dark / Light), game sounds, animations; saved on the account (`GET/PUT /api/profile/preferences`) |
 | `/leaderboard` | everyone | 24 hours / 7 days / all time × best multiplier / profit; podium + table, my rank highlighted |
 | `/profile` → Statistics | players | win rate, average cash-out, net result, charts (results per day, win rate, cash-out ranges) |
 | `/limits` (Responsible play) | players | daily limit with today's usage, session reminder, self-exclusion with a confirm dialog |
@@ -190,17 +201,22 @@ Connect as a guest, or with `?access_token=<JWT>` to also receive your balance a
 dotnet test
 ```
 
-There are 202 xUnit tests: crash-point generation and distribution, provably fair verification, multiplier curve, round state transitions (illegal ones rejected), wallet rules (no negative balance, refunds, daily bonus), bet and cash-out rules, refresh-token reuse rules, daily bet limit (24-hour wait before an increase), self-exclusion, admin balance adjustment, role and block rules, crash-point ranges against the theoretical distribution, guards that no role-protected endpoint is accidentally `[AllowAnonymous]` and that every `api/admin` controller requires the Admin role, and which auth endpoints are rate-limited.
+There are 218 xUnit tests. **Service tests with Moq** (`Veltrix.Tests/Services`) run the real services against EF Core's in-memory database, with Moq fakes for "who is calling" and the SignalR notifier, and check both the saved data and the live events sent (wallet, limits, admin actions, preferences, content pages, the daily-bonus job). Domain and API tests cover crash-point generation and distribution, provably fair verification, multiplier curve, round state transitions (illegal ones rejected), wallet rules (no negative balance, refunds, daily bonus), bet and cash-out rules, refresh-token reuse rules, daily bet limit (24-hour wait before an increase), self-exclusion, admin balance adjustment, role and block rules, crash-point ranges against the theoretical distribution, guards that no role-protected endpoint is accidentally `[AllowAnonymous]` and that every `api/admin` controller requires the Admin role, and which auth endpoints are rate-limited.
 
 ```bash
 cd Veltrix.Web
 npx ng test --watch=false --browsers=ChromeHeadless
 ```
 
-There are 64 Jasmine tests:
+There are 95 Jasmine tests:
 
 - `AuthStore`: login, a single refresh shared by concurrent requests, a failed refresh ends the session, logout
-- `CrashStore`: SignalR events → state (new round, crash, auto cash-out, cancel/refund), countdown on the server clock, extrapolation limit
+- `WalletStore`, `LimitsStore`: balance, daily bonus (success / refused), filters, self-exclusion, refused updates
+- `PreferencesStore`: animations off = reduced motion, guests keep settings locally, logged-in players save them, the account's settings win after login
+- `ToastStore`, `ThemeService`: max 4 toasts, errors stay longer; System / Dark / Light
+- HTTP interceptors: ProblemDetails message as a toast, quiet for 401 and silent requests, loading bar counting
+- Markdown (rules pages): lists, bold / italic, HTML stays text, no extra spaces
+- `CrashStore`: SignalR events → state (new round, crash, auto cash-out, cancel/refund), countdown on the server clock, extrapolation limit, game sounds (once per result)
 - `CrashHub`: one shared SignalR connection for the user and the game page, the online count handed to a page that joins later, leave / logout, a new connection for a new identity, personal vs game events
 - `NotificationsStore`: load, live notifications (deduplicated), optimistic mark read / mark all read, a role change refreshes the token and leaves a forbidden page, a block signs the user out
 - `roleGuard`: the right roles get in, others go back to the game, guests go to the login page

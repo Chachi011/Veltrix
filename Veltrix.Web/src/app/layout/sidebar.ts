@@ -18,7 +18,7 @@ import { visibleNavItems } from './nav-items';
       [class]="layout.sidebarCollapsed() ? 'w-[72px]' : 'w-60'"
       aria-label="Main navigation"
     >
-      <a routerLink="/crash" class="flex h-16 shrink-0 items-center gap-3 px-5" aria-label="VELTRIX home">
+      <a routerLink="/" class="flex h-16 shrink-0 items-center gap-3 px-5" aria-label="VELTRIX home">
         <span class="grid size-8 shrink-0 place-items-center rounded-control bg-primary text-sm font-bold text-on-primary">V</span>
         @if (!layout.sidebarCollapsed()) {
           <span class="text-[15px] font-semibold tracking-[0.18em] text-text">VELTRIX</span>
@@ -48,6 +48,7 @@ import { visibleNavItems } from './nav-items';
           [routerLink]="item.path"
           routerLinkActive
           #rla="routerLinkActive"
+          [routerLinkActiveOptions]="{ exact: item.path === '/' }"
           [attr.aria-current]="rla.isActive ? 'page' : null"
           [title]="layout.sidebarCollapsed() ? item.label : ''"
           class="group relative flex h-10 shrink-0 items-center gap-3 rounded-control px-3 text-sm font-medium transition-colors duration-200"
@@ -91,6 +92,6 @@ export class Sidebar {
   protected readonly icons = Icons;
 
   private readonly visible = computed(() => visibleNavItems(this.auth.role()));
-  protected readonly items = computed(() => this.visible().filter((item) => item.section !== 'staff'));
+  protected readonly items = computed(() => this.visible().filter((item) => item.section !== 'staff' && !item.menuOnly));
   protected readonly staffItems = computed(() => this.visible().filter((item) => item.section === 'staff'));
 }
