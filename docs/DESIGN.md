@@ -106,10 +106,11 @@ Never: gradients on text, all-caps body text, more than two font families.
 | Breakpoint | **768px** (`md`) switches between phone and desktop layouts |
 | Sidebar (≥768px) | fixed left, 240px expanded / 72px collapsed (icons only, with `title` tooltips), `bg-surface`, right border; state remembered in `localStorage` (`vx.sidebarCollapsed`); bottom: disclaimer + collapse button. Items depend on the role; staff tools (Operator, Admin) sit under a small uppercase **"Staff"** heading (a divider when collapsed) |
 | Top bar | sticky, 64px, **glass**, bottom border. Left: page title (desktop, visual only: `aria-hidden`, the page's own `<h1>` is the real heading) or logo (phone). Right: balance chip (animated, gem icon) → daily bonus (button when claimable, countdown chip otherwise) → notifications bell (primary badge with the unread count, "9+" above 9) → avatar menu. Guests: theme toggle, Log in, Register |
-| Account menu | Profile, Wallet, History, then the role's extra pages (Responsible play, Operator, Admin, Provably fair), theme, Log out. On phones it is the only way to reach the pages that are not in the bottom nav |
+| Sidebar items | Home, Play, Games, Leaderboard, History\*, Wallet\*, Responsible play (players), Provably fair, Rules, then "Staff" (Operator, Admin). \* logged in. Home is active only on `/` exactly (`routerLinkActiveOptions: { exact: true }`); the logo links to Home |
+| Account menu | Profile, Wallet, History, then the role's extra pages (Responsible play, Games, Provably fair, Rules, Settings, Operator, Admin), theme, Log out. On phones it is the only way to reach the pages that are not in the bottom nav |
 | Notifications panel | CDK overlay under the bell, 360px: header with the unread count and "Mark all read"; newest first; unread rows tinted `bg-primary/5` with a dot; an icon per type in a tinted circle; a click marks it read and follows the type's link. Escape and an outside click close it |
 | Page header | every page starts with `<vx-page-header title description>`: the `<h1>` is visible on phones and visually hidden from 768px (the top bar shows the title), the description is always visible; actions go in `[page-actions]` |
-| Bottom nav (<768px) | fixed, glass, 64px + safe-area inset, max 5 items (icon + 11px label); active = `text-primary-text`. Logged in: Play, Top (leaderboard), History, Wallet, Profile. Guests: Play, Top, Fair, Log in |
+| Bottom nav (<768px) | fixed, glass, 64px + safe-area inset, max 5 items (icon + 11px label); active = `text-primary-text`. Logged in: Home, Play, Top (leaderboard), Wallet, Profile. Guests: Home, Play, Top, Rules, Log in |
 | Page bottom padding on phones | enough for the bottom nav (`pb-28`) |
 | Bet panel on phones | becomes a **bottom sheet** (Crash page, step 3) |
 
@@ -154,6 +155,7 @@ Import from the barrel: `import { Button, Card } from '../../shared/ui';`
 | Progress ring | `<vx-progress-ring [value]="0..1" size stroke color>` + centered content | Betting countdown |
 | Progress bar | `<vx-progress-bar [value]="0..1" tone label>` | 8px track (`surface-2`), filled in a token tone, `role="progressbar"`. Daily limit usage: primary < 70%, warning ≥ 70%, danger at 100% |
 | Chart | `<vx-chart type="bar\|line\|doughnut" [labels] [series] ariaLabel [format] [formatRight] [height] [legend] stacked>` | Chart.js with token colors read from CSS (follows the theme, also inside a themed subtree), Inter labels, JetBrains Mono numbers, faint grid (muted 14%), card-style tooltip, legend bottom-left with dots. Series: `{ label, data, tone, kind?: 'bar'\|'line', axis?: 'left'\|'right', fill?, tones? }` (mixed bar + line, a second axis, a tone per bar or slice). Lines use monotone interpolation (smooth but never beyond the real values). 500ms animation, none under reduced motion. `ariaLabel` is required (`role="img"`) |
+| Markdown | `<vx-markdown [source]>` | Content pages (rules): paragraphs, numbered / bulleted lists (`marker:text-primary-text`), **bold** (`text-text`), *italic*; body text muted. Parsed into data and drawn by the template, **never `innerHTML`**, so text from the database cannot inject markup. The inline template is one line (line breaks would become spaces before punctuation) |
 | Drawer | `ModalService.openDrawer(Component, { data, ariaLabel, width })`; content in `<vx-drawer title description>` with `[drawer-footer]` | Panel from the right, full height, 480px (full width on phones), solid `bg-surface` + left border + `shadow-pop`, slides in (`animate-drawer-in`, 250ms). Same CDK focus trap, Escape and backdrop as a modal. For detail views with actions (admin user) |
 | Theme toggle | `<vx-theme-toggle>` | Sun / moon icon button |
 | Modal | `ModalService.open(Component, { data, ariaLabel, width })`, `ModalService.confirm({ title, message, confirmText, tone })`; dialogs wrap content in `<vx-modal title description>` with `[modal-footer]` | CDK Dialog: focus trap, Escape, restores focus. Glass panel, blurred backdrop |
@@ -186,6 +188,8 @@ Rules:
 | Crash | multiplier turns `--danger` + `animate-shake` (450ms, once) |
 | Loading | skeleton shimmer, no spinners (the button's own loading spinner is the exception) |
 | **prefers-reduced-motion** | all animations and transitions become instant; the animated number jumps; no shimmer and no shake |
+| **Settings → Animations off** | exactly the same as the OS setting: `PreferencesStore` sets `data-motion="reduce"` on `<html>`, `styles.css` repeats the reduced-motion rules for it, and JavaScript animations ask `reducedMotion()` (`shared/motion.ts`), which checks both |
+| Sound | Off by the player's choice (Settings → Game sounds, on by default). Three short Web Audio sounds, only for the player's OWN actions: bet accepted (soft double click), cash-out (rising chime, once even if the live event and the HTTP answer both arrive), round lost with my bet in it (low thud). Never for other players, never in a loop |
 
 ---
 
@@ -240,6 +244,11 @@ Rules:
 | Crash page | A self-excluded player's big button becomes "Betting paused until …" (secondary, links to Responsible play) |
 | Session reminder | Modal "Time for a break?" (hourglass, warning tint): minutes played, bets, staked, and the reminder that Crash has no winning strategy. Buttons: "Review my limits" (ghost), "Keep playing" (primary) |
 | Operator | Tabs "Live round" / "Games". Live: round card (state badge, big mono multiplier or countdown, hash badge, danger "Cancel round" → dialog with a required reason), 4 stat cards, live bets, last rounds as multiplier pills. Games: table with an inline status select (non-Active asks for confirmation), edit / new game dialogs |
+| Home | Hero card (eyebrow "VELTRIX · CRASH", one headline, two lines of text, Play now / Create an account / How it works, three fact tiles), then the live round card (same real-time store as the Crash page: state badge, big mono multiplier or countdown, bets / staked / online, last-20 strip, "Open the game") beside "Top today" (5 rows: rank, avatar, nickname link, multiplier pill), then up to 3 game cards |
+| Games catalog | Search (300ms debounce) + type + status selects, kept in the URL; responsive grid of game cards (icon tile, name, type, status badge, 2-line description, bet range, betting time, Play = primary, or a secondary "Watch" for a game in maintenance). Staff also see Disabled games |
+| Player profile | Public data only: avatar xl, nickname (+ "You" badge and "Edit my profile" for oneself), level and member since, 4 stat cards, best cash-outs table with multiplier pills. Unknown nickname = empty state (the request is silent, no error toast) |
+| Rules | The two content pages from the database in cards (`vx-markdown`), a side column linking Provably fair and Responsible play, and the virtual-points note |
+| Settings | Two cards: Appearance (theme System / Dark / Light as `vx-tabs`, Animations switch) and Sound (Game sounds switch + three preview buttons). Every change applies at once and is saved on the account; a status line says "Saving…" |
 | Admin | Section nav (Dashboard, Users, Audit log, Settings) under the page header. Dashboard: 8 stat cards + charts. Users: search (300ms debounce) + role / status selects, row opens the user drawer (role, block, balance adjustment with Add/Remove tabs and a confirm). Audit log: filters in the URL, a readable change summary ("Role: Player → Operator"), rows expand to the before / after JSON |
 
 ---
@@ -278,3 +287,5 @@ After every page, check at **1440px, 768px and 375px**, in **both themes**:
 | 2026-10-27 | Chart lines use monotone interpolation (a smooth curve invented peaks above the real values) |
 | 2026-10-27 | Card header wraps its actions under the title on phones |
 | 2026-10-27 | Rules: `max-sm:hidden` for components with their own display; truncate inside table cells on an inner block; eager code imports single `shared/ui` files, not the barrel |
+| 2026-10-27 | Spec coverage pass: Home, Games catalog, Player profile, Rules and Settings pages (§9b); `vx-markdown`; Home / Games / Rules in the navigation, Settings in the account menu, logo → Home |
+| 2026-10-27 | Settings: theme System / Dark / Light (System follows the device live), "Animations off" = reduced motion (`data-motion`), game sounds for the player's own actions only; all saved on the account |

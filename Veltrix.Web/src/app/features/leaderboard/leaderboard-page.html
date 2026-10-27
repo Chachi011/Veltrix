@@ -46,9 +46,9 @@
                 #{{ entry.rank }}
               </span>
               <vx-avatar [src]="entry.avatarUrl" [name]="entry.nickname" [size]="entry.rank === 1 ? 'xl' : 'lg'" />
-              <p class="mt-3 max-w-full truncate font-semibold" [class.text-primary-text]="isMe(entry)">
+              <a class="mt-3 max-w-full truncate font-semibold hover:underline" [class.text-primary-text]="isMe(entry)" [class.text-text]="!isMe(entry)" [routerLink]="['/players', entry.nickname]">
                 {{ entry.nickname }}
-              </p>
+              </a>
               <p class="text-xs text-muted">Level {{ entry.level }} · {{ entry.betsCount }} {{ entry.betsCount === 1 ? 'bet' : 'bets' }}</p>
               <p class="num mt-3 text-2xl font-semibold" [class.text-success]="!isMultiplier() && entry.value > 0" [class.text-danger]="!isMultiplier() && entry.value < 0">
                 @if (isMultiplier()) {
@@ -85,7 +85,7 @@
                   <td>
                     <span class="flex min-w-0 items-center gap-2.5">
                       <vx-avatar [src]="entry.avatarUrl" [name]="entry.nickname" size="xs" />
-                      <span class="truncate font-medium" [class.text-primary-text]="isMe(entry)">{{ entry.nickname }}</span>
+                      <a class="truncate font-medium hover:underline" [class.text-primary-text]="isMe(entry)" [class.text-text]="!isMe(entry)" [routerLink]="['/players', entry.nickname]">{{ entry.nickname }}</a>
                       @if (isMe(entry)) {
                         <vx-badge tone="primary">You</vx-badge>
                       }

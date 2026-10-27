@@ -21,6 +21,7 @@ import {
 import { CrashHub, CrashHubHandlers } from '../../core/realtime/crash-hub';
 import { WalletStore } from '../../core/state/wallet.store';
 import { SessionReminder } from '../limits/session-reminder';
+import { SoundService } from '../../core/ui/sound.service';
 import { ToastStore } from '../../core/ui/toast.store';
 import { elapsedFor, multiplierAt } from './crash-math';
 
@@ -136,7 +137,13 @@ export const CrashStore = signalStore(
       state,
       myRoundBet,
       canBet: computed(
-        () => auth.isPlayer() && state() === 'BettingOpen' && myRoundBet() === null && !store.placing()
+        () =>
+          auth.isPlayer() &&
+          state() === 'BettingOpen' &&
+          myRoundBet() === null &&
+          !store.placing() &&
+          // A game in Maintenance / Disabled refuses bets (the server checks it again)
+          (store.game()?.status ?? 'Active') === 'Active'
       ),
       canCashOut: computed(
         () => state() === 'Running' && myRoundBet()?.status === 'Active' && !store.cashingOut()
@@ -153,7 +160,8 @@ export const CrashStore = signalStore(
       auth = inject(AuthStore),
       wallet = inject(WalletStore),
       toasts = inject(ToastStore),
-      reminder = inject(SessionReminder)
+      reminder = inject(SessionReminder),
+      sound = inject(SoundService)
     ) => {
       let nextKey = 1;
 
@@ -238,6 +246,7 @@ export const CrashStore = signalStore(
 
         roundCrashed: (e) => {
           const round = store.round();
+          const myBetLost = store.myBet()?.roundId === e.roundId && store.myBet()?.status === 'Active';
           patchState(store, (s) => ({
             crashPoint: e.crashPoint,
             serverSeed: e.serverSeed,
@@ -254,6 +263,9 @@ export const CrashStore = signalStore(
             crashPoint: e.crashPoint,
             cancelled: false
           });
+          if (myBetLost) {
+            sound.play('crash');
+          }
         },
 
         betPlaced: (e) => {
@@ -280,6 +292,9 @@ export const CrashStore = signalStore(
             )[0];
 
             const isMine = e.nickname === auth.user()?.nickname && s.myBet?.roundId === e.roundId;
+            if (isMine && s.myBet?.status === 'Active') {
+              sound.play('cashout'); // auto cash-out, or the event arrived before the REST answer
+            }
             return {
               liveBets: s.liveBets.map((b) =>
                 b === target ? { ...b, status: 'CashedOut' as const, multiplier: e.multiplier, payout: e.payout } : b
@@ -370,6 +385,7 @@ export const CrashStore = signalStore(
             patchState(store, { myBet: toMyBet(result.bet) });
             wallet.setBalance(result.balance);
             reminder.recordBet(amount);
+            sound.play('bet');
             toasts.success(`Bet placed: ${amount.toFixed(2)} VLX`);
           } catch {
             // Reason already shown by the error interceptor (betting closed, limit, balance...)
@@ -387,6 +403,10 @@ export const CrashStore = signalStore(
           patchState(store, { cashingOut: true });
           try {
             const result = await firstValueFrom(betsApi.cashOut(bet.betId));
+            // Only if the PlayerCashedOut event has not already played it
+            if (store.myBet()?.status === 'Active') {
+              sound.play('cashout');
+            }
             patchState(store, { myBet: toMyBet(result.bet) });
             wallet.setBalance(result.balance);
             toasts.success(

@@ -3,6 +3,7 @@ import {
   ArrowRight,
   Ban,
   Bell,
+  BookOpen,
   Calendar,
   Camera,
   ChartColumn,
@@ -29,6 +30,7 @@ import {
   Gift,
   HandHeart,
   History as HistoryIcon,
+  House,
   Hourglass,
   Inbox,
   Info,
@@ -78,6 +80,7 @@ import {
 export const Icons = {
   arrowRight: ArrowRight,
   bell: Bell,
+  book: BookOpen,
   calendar: Calendar,
   camera: Camera,
   check: Check,
@@ -95,6 +98,7 @@ export const Icons = {
   /** The VLX virtual-points symbol (a gem, not a coin: VLX is not money) */
   vlx: Gem,
   history: HistoryIcon,
+  home: House,
   inbox: Inbox,
   info: Info,
   key: KeyRound,

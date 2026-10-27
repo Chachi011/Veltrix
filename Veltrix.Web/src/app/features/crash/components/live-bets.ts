@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { Avatar, Card, EmptyState, Icons } from '../../../shared/ui';
 import { MultiplierPipe, VlxPipe } from '../../../shared/pipes';
 import { LiveBet } from '../crash.store';
@@ -6,7 +7,7 @@ import { LiveBet } from '../crash.store';
 /** Everyone's bets in the current round, updated live by BetPlaced / PlayerCashedOut / RoundCrashed. */
 @Component({
   selector: 'vx-live-bets',
-  imports: [Avatar, Card, EmptyState, VlxPipe, MultiplierPipe],
+  imports: [RouterLink, Avatar, Card, EmptyState, VlxPipe, MultiplierPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <vx-card title="Live bets" padding="none">
@@ -31,9 +32,15 @@ import { LiveBet } from '../crash.store';
                   <td>
                     <span class="flex max-w-[130px] items-center gap-2">
                       <vx-avatar [name]="bet.nickname" size="xs" />
-                      <span class="truncate font-medium" [class.text-primary-text]="bet.nickname === me()" [title]="bet.nickname === me() ? 'You' : bet.nickname">
+                      <a
+                        class="truncate font-medium hover:underline"
+                        [class.text-primary-text]="bet.nickname === me()"
+                        [class.text-text]="bet.nickname !== me()"
+                        [routerLink]="['/players', bet.nickname]"
+                        [title]="bet.nickname === me() ? 'You' : 'Profile of ' + bet.nickname"
+                      >
                         {{ bet.nickname }}
-                      </span>
+                      </a>
                     </span>
                   </td>
                   <td class="num text-right">{{ bet.amount | vlx: false }}</td>

@@ -4,6 +4,7 @@ import { AuthStore } from './core/auth/auth.store';
 import { CrashHub, UserHubHandlers } from './core/realtime/crash-hub';
 import { LimitsStore } from './core/state/limits.store';
 import { NotificationsStore } from './core/state/notifications.store';
+import { PreferencesStore } from './core/state/preferences.store';
 import { WalletStore } from './core/state/wallet.store';
 import { LayoutService } from './core/ui/layout.service';
 import { LoadingStore } from './core/ui/loading.store';
@@ -47,6 +48,8 @@ export class App {
   private readonly wallet = inject(WalletStore);
   private readonly notifications = inject(NotificationsStore);
   private readonly limits = inject(LimitsStore);
+  /** Created here so theme, sound and reduced motion are applied from the very first page. */
+  private readonly preferences = inject(PreferencesStore);
   private readonly hub = inject(CrashHub);
   private readonly layout = inject(LayoutService);
   protected readonly loading = inject(LoadingStore);
@@ -76,6 +79,8 @@ export class App {
         if (userId !== null) {
           this.wallet.load().catch(() => undefined);
           this.notifications.load().catch(() => undefined);
+          // The account's settings (theme, sound, animations) follow the player to this device
+          this.preferences.load().catch(() => undefined);
           void this.hub.startUserSession(this.userEvents);
         } else {
           this.wallet.reset();

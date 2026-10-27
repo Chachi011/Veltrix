@@ -28,6 +28,7 @@ interface BottomItem {
               [routerLink]="item.path"
               routerLinkActive
               #rla="routerLinkActive"
+              [routerLinkActiveOptions]="{ exact: item.path === '/' }"
               [attr.aria-current]="rla.isActive ? 'page' : null"
               class="flex h-full flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors duration-200"
               [class]="rla.isActive ? 'text-primary-text' : 'text-muted'"

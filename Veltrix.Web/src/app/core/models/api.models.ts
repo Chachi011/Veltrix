@@ -539,3 +539,37 @@ export interface DailyStatisticDto {
   payoutVolume: number;
   averageCrashPoint: number;
 }
+
+// ---------- Settings, content, catalog (spec coverage pass) ----------
+
+/** System = follow the device setting. */
+export type ThemePreference = 'System' | 'Dark' | 'Light';
+
+export interface UserPreferencesDto {
+  theme: ThemePreference;
+  soundEnabled: boolean;
+  /** False = reduce motion. */
+  animationsEnabled: boolean;
+  updatedAt: string;
+}
+
+export interface UpdatePreferencesRequest {
+  theme: ThemePreference;
+  soundEnabled: boolean;
+  animationsEnabled: boolean;
+}
+
+export interface StaticPageDto {
+  slug: string;
+  language: string;
+  title: string;
+  /** Markdown subset: paragraphs, lists, **bold**, *italic*. */
+  content: string;
+  updatedAt: string;
+}
+
+export interface GameQuery {
+  search?: string | null;
+  type?: 'Crash' | null;
+  status?: GameStatus | null;
+}

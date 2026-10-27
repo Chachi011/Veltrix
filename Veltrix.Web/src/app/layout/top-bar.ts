@@ -7,6 +7,7 @@ import { LucideAngularModule } from 'lucide-angular';
 import { filter } from 'rxjs';
 import { AuthStore } from '../core/auth/auth.store';
 import { NotificationsStore } from '../core/state/notifications.store';
+import { PreferencesStore } from '../core/state/preferences.store';
 import { WalletStore } from '../core/state/wallet.store';
 import { ThemeService } from '../core/ui/theme.service';
 import { AnimatedNumber } from '../shared/ui/animated-number';
@@ -46,6 +47,7 @@ export class TopBar {
   protected readonly wallet = inject(WalletStore);
   protected readonly notifications = inject(NotificationsStore);
   protected readonly theme = inject(ThemeService);
+  protected readonly preferences = inject(PreferencesStore);
   protected readonly icons = Icons;
   protected readonly menuItem = MENU_ITEM;
 
@@ -73,7 +75,7 @@ export class TopBar {
 
   /** Pages the account menu adds for this role (responsible play, staff panels, provably fair). */
   protected readonly menuExtras = computed(() =>
-    visibleNavItems(this.auth.role()).filter((item) => ['/limits', '/operator', '/admin', '/fairness'].includes(item.path))
+    visibleNavItems(this.auth.role()).filter((item) => ['/limits', '/games', '/fairness', '/rules', '/settings', '/operator', '/admin'].includes(item.path))
   );
 
   protected readonly canClaimBonus = computed(() => this.wallet.wallet() !== null && this.bonusCountdown() === null);

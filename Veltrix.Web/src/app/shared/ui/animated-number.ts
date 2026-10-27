@@ -10,16 +10,15 @@ import {
   signal,
   untracked
 } from '@angular/core';
+import { reducedMotion } from '../motion';
 
-const reducedMotion = () =>
-  typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 /** Fast at first, gently slowing down at the end. */
 const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
 
 /**
  * A number that counts to its new value (e.g. the balance after a win) and briefly
- * tints green (up) or red (down). With prefers-reduced-motion it changes instantly.
+ * tints green (up) or red (down). With reduced motion (OS setting or Settings → animations off) it changes instantly.
  */
 @Component({
   selector: 'vx-animated-number',

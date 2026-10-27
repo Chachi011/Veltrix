@@ -1,8 +1,27 @@
-<vx-page-header title="Crash" description="Cash out before the round crashes. Virtual VLX points only." />
+<vx-page-header [title]="store.game()?.name ?? 'Crash'" description="Cash out before the round crashes. Virtual VLX points only." />
 
+@if (notFound()) {
+  <vx-card>
+    <vx-empty-state [icon]="icons.gamepad" title="Game not found" message="This game does not exist or is not available.">
+      <a vxButton routerLink="/games" variant="primary" size="sm">Browse games</a>
+    </vx-empty-state>
+  </vx-card>
+} @else {
 <!-- Extra bottom space on phones, so the bet sheet never covers the live bets -->
 <div class="flex flex-col gap-4 pb-48 md:gap-6 md:pb-0">
   <vx-history-strip [items]="store.history()" [loading]="!store.loaded()" />
+
+  @if (store.game(); as game) {
+    @if (game.status !== 'Active') {
+      <div class="flex items-center gap-3 rounded-card border border-warning/25 bg-warning/12 px-4 py-3 text-sm" role="status">
+        <lucide-icon [img]="icons.pause" [size]="18" class="shrink-0 text-warning" aria-hidden="true" />
+        <span>
+          <strong class="font-semibold">{{ game.status === 'Maintenance' ? 'Under maintenance.' : 'This game is disabled.' }}</strong>
+          New bets are not accepted right now; you can still watch.
+        </span>
+      </div>
+    }
+  }
 
   @if (store.loaded() && hub.status() === 'disconnected') {
     <div class="flex flex-wrap items-center gap-3 rounded-card border border-danger/25 bg-danger/10 px-4 py-3 text-sm text-danger" role="alert">
@@ -117,3 +136,4 @@
     </div>
   </div>
 </div>
+}
