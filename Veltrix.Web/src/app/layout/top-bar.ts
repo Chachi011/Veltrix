@@ -1,44 +1,25 @@
-import { CdkMenu, CdkMenuItem, CdkMenuTrigger } from '@angular/cdk/menu';
-import { CdkConnectedOverlay, CdkOverlayOrigin, ConnectedPosition } from '@angular/cdk/overlay';
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, Injector, computed, effect, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRouteSnapshot, NavigationEnd, Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { filter } from 'rxjs';
 import { AuthStore } from '../core/auth/auth.store';
 import { NotificationsStore } from '../core/state/notifications.store';
-import { PreferencesStore } from '../core/state/preferences.store';
 import { WalletStore } from '../core/state/wallet.store';
-import { ThemeService } from '../core/ui/theme.service';
 import { AnimatedNumber } from '../shared/ui/animated-number';
 import { Avatar } from '../shared/ui/avatar';
 import { Button } from '../shared/ui/button';
 import { Icons } from '../shared/ui/icons';
 import { ThemeToggle } from '../shared/ui/theme-toggle';
-import { visibleNavItems } from './nav-items';
-import { NotificationsPanel } from './notifications-panel';
+import type { TopBarPopup, TopBarPopupKind } from './top-bar-popups';
 
-const MENU_ITEM =
-  'flex h-9 w-full items-center gap-2.5 rounded-lg px-3 text-left text-sm text-text outline-none ' +
-  'transition-colors duration-150 hover:bg-surface-2 focus:bg-surface-2 cursor-pointer';
+/** The dropdowns (and the CDK Overlay/Menu they need) load on first use, not with the first page. */
+const loadPopups = () => import('./top-bar-popups');
 
 /** Sticky glass bar: page title, balance, daily bonus, notifications, account menu. */
 @Component({
   selector: 'vx-top-bar',
-  imports: [
-    RouterLink,
-    LucideAngularModule,
-    CdkMenu,
-    CdkMenuItem,
-    CdkMenuTrigger,
-    CdkConnectedOverlay,
-    CdkOverlayOrigin,
-    AnimatedNumber,
-    Avatar,
-    Button,
-    ThemeToggle,
-    NotificationsPanel
-  ],
+  imports: [RouterLink, LucideAngularModule, AnimatedNumber, Avatar, Button, ThemeToggle],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './top-bar.html'
 })
@@ -46,15 +27,13 @@ export class TopBar {
   protected readonly auth = inject(AuthStore);
   protected readonly wallet = inject(WalletStore);
   protected readonly notifications = inject(NotificationsStore);
-  protected readonly theme = inject(ThemeService);
-  protected readonly preferences = inject(PreferencesStore);
   protected readonly icons = Icons;
-  protected readonly menuItem = MENU_ITEM;
 
-  protected readonly notificationsOpen = signal(false);
-  protected readonly notificationPositions: ConnectedPosition[] = [
-    { originX: 'end', originY: 'bottom', overlayX: 'end', overlayY: 'top', offsetY: 8 }
-  ];
+  private readonly injector = inject(Injector);
+
+  /** Which dropdown is open (drives aria-expanded). */
+  protected readonly openPopup = signal<TopBarPopupKind | null>(null);
+  private popup: TopBarPopup | null = null;
 
   protected readonly pageTitle = signal('');
 
@@ -73,11 +52,6 @@ export class TopBar {
     return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   });
 
-  /** Pages the account menu adds for this role (responsible play, staff panels, provably fair). */
-  protected readonly menuExtras = computed(() =>
-    visibleNavItems(this.auth.role()).filter((item) => ['/limits', '/games', '/fairness', '/rules', '/settings', '/operator', '/admin'].includes(item.path))
-  );
-
   protected readonly canClaimBonus = computed(() => this.wallet.wallet() !== null && this.bonusCountdown() === null);
 
   constructor() {
@@ -90,22 +64,51 @@ export class TopBar {
       .subscribe(() => this.pageTitle.set(deepestTitle(router.routerState.snapshot.root)));
 
     const timer = setInterval(() => this.now.set(Date.now()), 1000);
-    inject(DestroyRef).onDestroy(() => clearInterval(timer));
+    const destroyRef = inject(DestroyRef);
+    destroyRef.onDestroy(() => {
+      clearInterval(timer);
+      this.popup?.close();
+    });
+
+    // Logged in: fetch the dropdown code while the browser is idle, so the first click opens at once.
+    // Logged out: nothing to show any more.
+    effect(() => {
+      if (this.auth.isLoggedIn()) {
+        const idle = window.requestIdleCallback ?? ((callback: () => void) => setTimeout(callback, 2000));
+        idle(() => void loadPopups().catch(() => undefined));
+      } else {
+        this.popup?.close();
+      }
+    });
   }
 
   protected claimBonus(): void {
     void this.wallet.claimDailyBonus();
   }
 
-  /** Escape closes the bell dropdown (the CDK menu does this itself; a plain overlay does not). */
-  protected onOverlayKey(event: KeyboardEvent): void {
-    if (event.key === 'Escape') {
-      this.notificationsOpen.set(false);
+  /** Opens a dropdown under its button, or closes it when it is already open. */
+  protected async toggle(kind: TopBarPopupKind, event: Event): Promise<void> {
+    const button = event.currentTarget as HTMLElement;
+    const wasOpen = this.openPopup() === kind;
+    this.popup?.close();
+    if (wasOpen) {
+      return;
     }
-  }
 
-  protected logout(): void {
-    void this.auth.logout();
+    this.openPopup.set(kind);
+    const popups = await loadPopups().catch(() => null);
+    if (!popups) {
+      this.openPopup.set(null); // offline and not prefetched yet: nothing to open
+      return;
+    }
+    const { openTopBarPopup } = popups;
+    if (this.openPopup() !== kind) {
+      return; // closed (or switched) while the code was loading
+    }
+    this.popup = openTopBarPopup(kind, button, this.injector, () => {
+      this.popup = null;
+      this.openPopup.update((open) => (open === kind ? null : open));
+    });
   }
 }
 

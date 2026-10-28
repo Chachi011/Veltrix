@@ -13,7 +13,7 @@ Implementation: tokens and base styles in [`Veltrix.Web/src/styles.css`](../Velt
 | Concern | Choice |
 |---|---|
 | Styling | **Tailwind CSS v4**, configured in CSS (`@theme` in `styles.css`), loaded through PostCSS (`.postcssrc.json`) |
-| Overlays | **Angular CDK**: Dialog (modals and drawers), Menu (account menu), Overlay (notifications panel) |
+| Overlays | **Angular CDK**: Dialog (modals and drawers), Menu (account menu), Overlay (notifications panel). The top-bar dropdowns live in `layout/top-bar-popups.ts`, loaded on the first click (prefetched when the browser is idle), so the CDK Overlay and Menu code (~75 kB) is not part of the first download |
 | Charts | **Chart.js 4** wrapped in `vx-chart` (token colors, design-system fonts). Loaded with a dynamic `import()` on first use, so pages without charts never download it |
 | Icons | **lucide-angular**. Only the icons listed in `shared/ui/icons.ts` are bundled |
 | Fonts | **Inter** (UI) and **JetBrains Mono** (all numbers), the Google Fonts families served from npm (`@fontsource-variable/*`) so they also work offline |
@@ -124,6 +124,7 @@ Responsive rules learned in Phase 4:
 - **Truncate table text on an inner block** (`<td><div class="max-w-[240px] truncate">…</div></td>`). Browsers ignore `max-width` on a table cell, so long text widens the whole table.
 - **Narrow tables move secondary columns into the first cell** (e.g. the audit log shows "by admin" and the action badge under the date on phones) instead of scrolling sideways.
 - **Code in the initial bundle (layout, core) imports single files from `shared/ui`, never the barrel**: Angular components are not tree-shaken out of a barrel, so one barrel import would pull every component into the first download.
+- **Eager code never imports a CDK overlay module** (`@angular/cdk/overlay`, `menu`, `dialog`): open them from a lazily imported file, as the top bar (`top-bar-popups.ts`) and the session reminder do. The buttons that open them carry `aria-haspopup` and `aria-expanded`; Escape closes and returns the focus to the button.
 
 ---
 
@@ -289,3 +290,4 @@ After every page, check at **1440px, 768px and 375px**, in **both themes**:
 | 2026-10-27 | Rules: `max-sm:hidden` for components with their own display; truncate inside table cells on an inner block; eager code imports single `shared/ui` files, not the barrel |
 | 2026-10-27 | Spec coverage pass: Home, Games catalog, Player profile, Rules and Settings pages (§9b); `vx-markdown`; Home / Games / Rules in the navigation, Settings in the account menu, logo → Home |
 | 2026-10-27 | Settings: theme System / Dark / Light (System follows the device live), "Animations off" = reduced motion (`data-motion`), game sounds for the player's own actions only; all saved on the account |
+| 2026-10-28 | Top-bar dropdowns (account menu, notifications) load on demand: the initial download went from 499 kB to 405 kB with the same look and keyboard behavior |

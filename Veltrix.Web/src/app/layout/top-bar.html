@@ -40,18 +40,17 @@
           </span>
         }
 
-        <!-- Notifications: unread badge; new ones arrive live over SignalR -->
+        <!-- Notifications: unread badge; new ones arrive live over SignalR. The dropdown loads on first use. -->
         <button
           vxButton
           type="button"
           variant="ghost"
           size="icon"
           class="relative"
-          cdkOverlayOrigin
-          #bellOrigin="cdkOverlayOrigin"
+          aria-haspopup="dialog"
           [attr.aria-label]="notifications.unreadCount() > 0 ? 'Notifications, ' + notifications.unreadCount() + ' unread' : 'Notifications'"
-          [attr.aria-expanded]="notificationsOpen()"
-          (click)="notificationsOpen.set(!notificationsOpen())"
+          [attr.aria-expanded]="openPopup() === 'notifications'"
+          (click)="toggle('notifications', $event)"
         >
           <lucide-icon [img]="icons.bell" [size]="18" aria-hidden="true" />
           @if (notifications.unreadCount() > 0) {
@@ -63,67 +62,20 @@
             </span>
           }
         </button>
-        <ng-template
-          cdkConnectedOverlay
-          [cdkConnectedOverlayOrigin]="bellOrigin"
-          [cdkConnectedOverlayOpen]="notificationsOpen()"
-          [cdkConnectedOverlayPositions]="notificationPositions"
-          (overlayOutsideClick)="notificationsOpen.set(false)"
-          (overlayKeydown)="onOverlayKey($event)"
-          (detach)="notificationsOpen.set(false)"
-        >
-          <div class="w-[360px] max-w-[calc(100vw-32px)] animate-pop-in overflow-hidden rounded-card border border-border bg-surface shadow-pop" role="dialog" aria-label="Notifications">
-            <vx-notifications-panel (closed)="notificationsOpen.set(false)" />
-          </div>
-        </ng-template>
 
-        <!-- Account menu -->
+        <!-- Account menu (top-bar-popups.ts) -->
         @if (auth.user(); as user) {
           <button
             type="button"
             class="flex items-center gap-1.5 rounded-full p-0.5 pr-1.5 transition-colors duration-200 hover:bg-surface-2"
-            [cdkMenuTriggerFor]="accountMenu"
             aria-label="Account menu"
+            aria-haspopup="menu"
+            [attr.aria-expanded]="openPopup() === 'account'"
+            (click)="toggle('account', $event)"
           >
             <vx-avatar [src]="user.avatarUrl" [name]="user.nickname" size="sm" />
             <lucide-icon [img]="icons.chevronDown" [size]="14" class="hidden text-muted md:inline-flex" aria-hidden="true" />
           </button>
-
-          <ng-template #accountMenu>
-            <div cdkMenu class="w-60 animate-pop-in rounded-card border border-border bg-surface p-1.5 shadow-pop">
-              <div class="flex items-center gap-3 px-3 py-2.5">
-                <vx-avatar [src]="user.avatarUrl" [name]="user.nickname" size="md" />
-                <div class="min-w-0">
-                  <p class="truncate text-sm font-semibold">{{ user.nickname }}</p>
-                  <p class="truncate text-xs text-muted">{{ user.email }}</p>
-                </div>
-              </div>
-              <div class="my-1 h-px bg-border" role="separator"></div>
-              <a cdkMenuItem routerLink="/profile" [class]="menuItem">
-                <lucide-icon [img]="icons.user" [size]="16" class="text-muted" aria-hidden="true" /> Profile
-              </a>
-              <a cdkMenuItem routerLink="/wallet" [class]="menuItem">
-                <lucide-icon [img]="icons.wallet" [size]="16" class="text-muted" aria-hidden="true" /> Wallet
-              </a>
-              <a cdkMenuItem routerLink="/history" [class]="menuItem">
-                <lucide-icon [img]="icons.history" [size]="16" class="text-muted" aria-hidden="true" /> History
-              </a>
-              <!-- Role-dependent pages (on phones this menu is the only way to reach them) -->
-              @for (item of menuExtras(); track item.path) {
-                <a cdkMenuItem [routerLink]="item.path" [class]="menuItem">
-                  <lucide-icon [img]="item.icon" [size]="16" class="text-muted" aria-hidden="true" /> {{ item.label }}
-                </a>
-              }
-              <button cdkMenuItem type="button" [class]="menuItem" (cdkMenuItemTriggered)="preferences.toggleTheme()">
-                <lucide-icon [img]="theme.theme() === 'dark' ? icons.sun : icons.moon" [size]="16" class="text-muted" aria-hidden="true" />
-                {{ theme.theme() === 'dark' ? 'Light theme' : 'Dark theme' }}
-              </button>
-              <div class="my-1 h-px bg-border" role="separator"></div>
-              <button cdkMenuItem type="button" [class]="menuItem + ' text-danger!'" (cdkMenuItemTriggered)="logout()">
-                <lucide-icon [img]="icons.logout" [size]="16" aria-hidden="true" /> Log out
-              </button>
-            </div>
-          </ng-template>
         }
       } @else {
         <vx-theme-toggle />
