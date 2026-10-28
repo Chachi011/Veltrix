@@ -1,11 +1,11 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, input, signal, effect, untracked } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { firstValueFrom } from 'rxjs';
 import { ProfileApi } from '../../core/api/profile.api';
 import { AuthStore } from '../../core/auth/auth.store';
+import { LocalDatePipe, ServerTextPipe, TranslatePipe } from '../../core/i18n/i18n-pipes';
 import { PublicProfileDto } from '../../core/models/api.models';
 import { VlxPipe } from '../../shared/pipes';
 import { Avatar, Badge, Button, Card, EmptyState, Icons, MultiplierPill, PageHeader, Skeleton, StatCard } from '../../shared/ui';
@@ -16,15 +16,31 @@ import { Avatar, Badge, Button, Card, EmptyState, Icons, MultiplierPill, PageHea
  */
 @Component({
   selector: 'vx-player-page',
-  imports: [DatePipe, RouterLink, LucideAngularModule, VlxPipe, Avatar, Badge, Button, Card, EmptyState, MultiplierPill, PageHeader, Skeleton, StatCard],
+  imports: [
+    RouterLink,
+    LucideAngularModule,
+    VlxPipe,
+    LocalDatePipe,
+    ServerTextPipe,
+    TranslatePipe,
+    Avatar,
+    Badge,
+    Button,
+    Card,
+    EmptyState,
+    MultiplierPill,
+    PageHeader,
+    Skeleton,
+    StatCard
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <vx-page-header [title]="profile()?.nickname ?? nickname()" description="Public profile: level and best results." />
+    <vx-page-header [title]="profile()?.nickname ?? nickname()" [description]="'Public profile: level and best results.' | t" />
 
     @if (notFound()) {
       <vx-card>
-        <vx-empty-state [icon]="icons.user" title="Player not found" message="This nickname does not exist, or the account is not public.">
-          <a vxButton routerLink="/leaderboard" variant="primary" size="sm">Open the leaderboard</a>
+        <vx-empty-state [icon]="icons.user" [title]="'Player not found' | t" [message]="'This nickname does not exist, or the account is not public.' | t">
+          <a vxButton routerLink="/leaderboard" variant="primary" size="sm">{{ 'Open the leaderboard' | t }}</a>
         </vx-empty-state>
       </vx-card>
     } @else if (profile(); as p) {
@@ -35,40 +51,46 @@ import { Avatar, Badge, Button, Card, EmptyState, Icons, MultiplierPill, PageHea
             <h2 class="flex flex-wrap items-center gap-2 text-xl font-semibold">
               <span class="truncate">{{ p.nickname }}</span>
               @if (isMe()) {
-                <vx-badge tone="primary">You</vx-badge>
+                <vx-badge tone="primary">{{ 'You' | t }}</vx-badge>
               }
             </h2>
             <p class="mt-1 text-sm text-muted">
-              Level {{ p.level }}{{ p.levelTitle ? ' · ' + p.levelTitle : '' }} · member since {{ p.memberSince | date: 'mediumDate' }}
+              {{ 'Level {level}' | t: { level: p.level } }}{{ p.levelTitle ? ' · ' + (p.levelTitle | serverText) : '' }} ·
+              {{ 'member since {date}' | t: { date: (p.memberSince | vxDate: 'mediumDate') } }}
             </p>
           </div>
           @if (isMe()) {
             <a vxButton routerLink="/profile" variant="secondary" size="sm">
-              <lucide-icon [img]="icons.edit" [size]="15" aria-hidden="true" />Edit my profile
+              <lucide-icon [img]="icons.edit" [size]="15" aria-hidden="true" />{{ 'Edit my profile' | t }}
             </a>
           }
         </div>
       </vx-card>
 
       <div class="mt-4 grid grid-cols-2 gap-4 md:mt-6 md:gap-6 lg:grid-cols-4">
-        <vx-stat-card label="Bets placed" [value]="p.totalBets" [icon]="icons.history" />
-        <vx-stat-card label="Cashed out" [value]="p.cashOutCount" [icon]="icons.trendingUp" [hint]="p.totalBets ? (p.cashOutCount * 100 / p.totalBets).toFixed(1) + '% of bets' : undefined" />
-        <vx-stat-card label="Best multiplier" [value]="p.biggestMultiplier" [decimals]="2" unit="x" [icon]="icons.zap" />
-        <vx-stat-card label="Biggest win" [value]="p.biggestWin" [decimals]="2" unit="VLX" [icon]="icons.vlx" />
+        <vx-stat-card [label]="'Bets placed' | t" [value]="p.totalBets" [icon]="icons.history" />
+        <vx-stat-card
+          [label]="'Cashed out' | t"
+          [value]="p.cashOutCount"
+          [icon]="icons.trendingUp"
+          [hint]="p.totalBets ? ('{percent}% of bets' | t: { percent: ((p.cashOutCount * 100) / p.totalBets).toFixed(1) }) : undefined"
+        />
+        <vx-stat-card [label]="'Best multiplier' | t" [value]="p.biggestMultiplier" [decimals]="2" unit="x" [icon]="icons.zap" />
+        <vx-stat-card [label]="'Biggest win' | t" [value]="p.biggestWin" [decimals]="2" unit="VLX" [icon]="icons.vlx" />
       </div>
 
-      <vx-card class="mt-4 md:mt-6" title="Best cash-outs" subtitle="The highest multipliers this player cashed out at." padding="none">
+      <vx-card class="mt-4 md:mt-6" [title]="'Best cash-outs' | t" [subtitle]="'The highest multipliers this player cashed out at.' | t" padding="none">
         @if (p.bestCashOuts.length === 0) {
-          <vx-empty-state [icon]="icons.zap" title="No cash-outs yet" message="Best results appear here after the first win." />
+          <vx-empty-state [icon]="icons.zap" [title]="'No cash-outs yet' | t" [message]="'Best results appear here after the first win.' | t" />
         } @else {
           <div class="vx-table-wrap">
             <table class="vx-table">
               <thead>
                 <tr>
                   <th>#</th>
-                  <th>Multiplier</th>
-                  <th class="text-right">Payout</th>
-                  <th class="hidden text-right sm:table-cell">Date</th>
+                  <th>{{ 'Multiplier' | t }}</th>
+                  <th class="text-right">{{ 'Payout' | t }}</th>
+                  <th class="hidden text-right sm:table-cell">{{ 'Date' | t }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -77,7 +99,7 @@ import { Avatar, Badge, Button, Card, EmptyState, Icons, MultiplierPill, PageHea
                     <td class="num text-muted">{{ $index + 1 }}</td>
                     <td><vx-multiplier-pill [value]="best.multiplier" /></td>
                     <td class="num text-right font-semibold text-success">+{{ best.payout | vlx: false }}</td>
-                    <td class="hidden text-right text-muted sm:table-cell">{{ best.cashedOutAt | date: 'MMM d, y' }}</td>
+                    <td class="hidden text-right text-muted sm:table-cell">{{ best.cashedOutAt | vxDate: 'MMM d, y' }}</td>
                   </tr>
                 }
               </tbody>

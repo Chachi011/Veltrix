@@ -17,14 +17,20 @@ public sealed class StaticPageService : IStaticPageService
         _db = db;
     }
 
+    /// <summary>
+    /// Every page exists in English (the seed). Deliberately NOT the UI default language (Georgian): the Georgian
+    /// text of a page may live elsewhere (the client's ka.json) or not exist yet.
+    /// </summary>
+    private const string FallbackLanguage = "en";
+
     public async Task<StaticPageDto> GetAsync(string slug, string? language, CancellationToken ct = default)
     {
-        var wanted = string.IsNullOrWhiteSpace(language) ? UserPreference.DefaultLanguage : language.Trim().ToLowerInvariant();
+        var wanted = string.IsNullOrWhiteSpace(language) ? FallbackLanguage : language.Trim().ToLowerInvariant();
 
         // The requested language first, English as the fallback (a page may not be translated yet)
         var pages = await _db.StaticPages
             .AsNoTracking()
-            .Where(p => p.Slug == slug && (p.Language == wanted || p.Language == UserPreference.DefaultLanguage))
+            .Where(p => p.Slug == slug && (p.Language == wanted || p.Language == FallbackLanguage))
             .ToListAsync(ct);
 
         var page = pages.FirstOrDefault(p => p.Language == wanted) ?? pages.FirstOrDefault()

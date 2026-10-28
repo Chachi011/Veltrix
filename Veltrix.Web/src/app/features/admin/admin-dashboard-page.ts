@@ -2,15 +2,17 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, u
 import { LucideAngularModule } from 'lucide-angular';
 import { firstValueFrom } from 'rxjs';
 import { AdminApi } from '../../core/api/admin.api';
+import { I18n, mark } from '../../core/i18n/i18n';
+import { TranslateLabelsPipe, TranslatePipe } from '../../core/i18n/i18n-pipes';
 import { AdminOverviewDto, DailyStatisticDto } from '../../core/models/api.models';
 import { Card, ChartSeries, ChartView, Icons, PageHeader, Skeleton, StatCard, TabItem, Tabs } from '../../shared/ui';
 import { formatDay, formatWhole } from '../../shared/format';
 import { AdminNav } from './admin-nav';
 
 const RANGES: TabItem[] = [
-  { value: '7', label: '7 days' },
-  { value: '30', label: '30 days' },
-  { value: '90', label: '90 days' }
+  { value: '7', label: mark('7 days') },
+  { value: '30', label: mark('30 days') },
+  { value: '90', label: mark('90 days') }
 ];
 
 const whole = formatWhole;
@@ -27,12 +29,13 @@ function utcDay(daysAgo: number): string {
 /** Admin dashboard: today's numbers and the trends of the last days (spec: active users, rounds per day, volume, crash points). */
 @Component({
   selector: 'vx-admin-dashboard-page',
-  imports: [LucideAngularModule, AdminNav, Card, ChartView, PageHeader, Skeleton, StatCard, Tabs],
+  imports: [LucideAngularModule, AdminNav, Card, ChartView, PageHeader, Skeleton, StatCard, Tabs, TranslatePipe, TranslateLabelsPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './admin-dashboard-page.html'
 })
 export class AdminDashboardPage {
   private readonly api = inject(AdminApi);
+  private readonly i18n = inject(I18n);
 
   protected readonly icons = Icons;
   protected readonly ranges = RANGES;
@@ -44,22 +47,22 @@ export class AdminDashboardPage {
   protected readonly vlx = vlx;
   protected readonly percent = percent;
 
-  protected readonly dayLabels = computed(() => (this.daily() ?? []).map((d) => formatDay(d.date)));
+  protected readonly dayLabels = computed(() => (this.daily() ?? []).map((d) => formatDay(d.date, this.i18n.locale())));
 
   protected readonly activitySeries = computed<ChartSeries[]>(() => {
     const days = this.daily() ?? [];
     return [
-      { label: 'Active players', data: days.map((d) => d.activeUsers), tone: 'primary', kind: 'line', fill: true },
-      { label: 'New users', data: days.map((d) => d.newUsers), tone: 'success', kind: 'line' },
-      { label: 'Rounds', data: days.map((d) => d.roundsPlayed), tone: 'accent', kind: 'bar', axis: 'right' }
+      { label: this.i18n.t('Active players'), data: days.map((d) => d.activeUsers), tone: 'primary', kind: 'line', fill: true },
+      { label: this.i18n.t('New users'), data: days.map((d) => d.newUsers), tone: 'success', kind: 'line' },
+      { label: this.i18n.t('Rounds'), data: days.map((d) => d.roundsPlayed), tone: 'accent', kind: 'bar', axis: 'right' }
     ];
   });
 
   protected readonly volumeSeries = computed<ChartSeries[]>(() => {
     const days = this.daily() ?? [];
     return [
-      { label: 'Staked', data: days.map((d) => d.betsVolume), tone: 'primary' },
-      { label: 'Paid out', data: days.map((d) => d.payoutVolume), tone: 'success' }
+      { label: this.i18n.t('Staked'), data: days.map((d) => d.betsVolume), tone: 'primary' },
+      { label: this.i18n.t('Paid out'), data: days.map((d) => d.payoutVolume), tone: 'success' }
     ];
   });
 
@@ -67,8 +70,8 @@ export class AdminDashboardPage {
   protected readonly distributionSeries = computed<ChartSeries[]>(() => {
     const buckets = this.overview()?.crashPointDistribution ?? [];
     return [
-      { label: 'Observed', data: buckets.map((b) => b.percent), tone: 'accent' },
-      { label: 'Expected by the formula', data: buckets.map((b) => b.expectedPercent ?? 0), tone: 'muted' }
+      { label: this.i18n.t('Observed'), data: buckets.map((b) => b.percent), tone: 'accent' },
+      { label: this.i18n.t('Expected by the formula'), data: buckets.map((b) => b.expectedPercent ?? 0), tone: 'muted' }
     ];
   });
 

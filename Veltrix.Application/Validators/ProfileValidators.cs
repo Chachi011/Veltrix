@@ -1,5 +1,6 @@
 using FluentValidation;
 using Veltrix.Application.DTOs.Profile;
+using Veltrix.Domain.Entities;
 
 namespace Veltrix.Application.Validators;
 
@@ -16,6 +17,9 @@ public sealed class UpdatePreferencesRequestValidator : AbstractValidator<Update
     public UpdatePreferencesRequestValidator()
     {
         RuleFor(x => x.Theme).IsInEnum().WithMessage("Choose System, Dark or Light.");
+        RuleFor(x => x.Language)
+            .Must(language => UserPreference.Languages.Contains(language))
+            .WithMessage("Choose ka (Georgian) or en (English).");
     }
 }
 

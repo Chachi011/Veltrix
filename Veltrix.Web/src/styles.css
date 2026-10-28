@@ -99,8 +99,8 @@
   --color-warning: var(--warning);
   --color-on-warning: var(--on-warning);
 
-  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, 'Segoe UI', sans-serif;
-  --font-mono: 'JetBrains Mono Variable', ui-monospace, 'Cascadia Code', Consolas, monospace;
+  --font-sans: 'Inter Variable', 'Noto Sans Georgian Variable', ui-sans-serif, system-ui, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, 'Cascadia Code', Consolas, 'Noto Sans Georgian Variable', monospace;
 
   --radius-card: 12px;
   --radius-control: 10px;

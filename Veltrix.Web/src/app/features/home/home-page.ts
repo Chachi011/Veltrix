@@ -5,6 +5,7 @@ import { firstValueFrom } from 'rxjs';
 import { GamesApi } from '../../core/api/games.api';
 import { StatsApi } from '../../core/api/stats.api';
 import { AuthStore } from '../../core/auth/auth.store';
+import { TranslatePipe } from '../../core/i18n/i18n-pipes';
 import { GameDto, LeaderboardEntryDto } from '../../core/models/api.models';
 import { Avatar, Button, Card, EmptyState, Icons, MultiplierPill, PageHeader, Skeleton } from '../../shared/ui';
 import { GameCard } from '../games/game-card';
@@ -16,7 +17,20 @@ import { LiveRoundCard } from './live-round-card';
  */
 @Component({
   selector: 'vx-home-page',
-  imports: [RouterLink, LucideAngularModule, Avatar, Button, Card, EmptyState, MultiplierPill, PageHeader, Skeleton, GameCard, LiveRoundCard],
+  imports: [
+    RouterLink,
+    LucideAngularModule,
+    Avatar,
+    Button,
+    Card,
+    EmptyState,
+    MultiplierPill,
+    PageHeader,
+    Skeleton,
+    GameCard,
+    LiveRoundCard,
+    TranslatePipe
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './home-page.html'
 })

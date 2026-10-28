@@ -191,6 +191,7 @@ public sealed class ProfileService : IProfileService
         preference.Theme = request.Theme;
         preference.SoundEnabled = request.SoundEnabled;
         preference.AnimationsEnabled = request.AnimationsEnabled;
+        preference.Language = request.Language;
         preference.UpdatedAt = Now;
         await _db.SaveChangesAsync(ct);
 
@@ -202,6 +203,7 @@ public sealed class ProfileService : IProfileService
         Theme = preference.Theme,
         SoundEnabled = preference.SoundEnabled,
         AnimationsEnabled = preference.AnimationsEnabled,
+        Language = preference.Language,
         UpdatedAt = preference.UpdatedAt
     };
 

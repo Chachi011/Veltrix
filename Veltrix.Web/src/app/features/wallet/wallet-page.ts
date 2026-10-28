@@ -1,9 +1,10 @@
-import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
+import { KnownTextPipe, LocalDatePipe, TranslatePipe } from '../../core/i18n/i18n-pipes';
 import { TransactionType } from '../../core/models/api.models';
 import { WalletStore } from '../../core/state/wallet.store';
+import { TRANSACTION_TYPE_LABELS } from '../../shared/labels';
 import { VlxPipe } from '../../shared/pipes';
 import {
   AnimatedNumber,
@@ -24,7 +25,9 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 @Component({
   selector: 'vx-wallet-page',
   imports: [
-    DatePipe,
+    LocalDatePipe,
+    KnownTextPipe,
+    TranslatePipe,
     FormsModule,
     LucideAngularModule,
     VlxPipe,
@@ -46,6 +49,7 @@ export class WalletPage {
   protected readonly icons = Icons;
 
   protected readonly types: TransactionType[] = ['Bet', 'Win', 'Refund', 'Bonus', 'AdminAdjustment'];
+  protected readonly typeLabels = TRANSACTION_TYPE_LABELS;
   protected readonly skeletonRows = [1, 2, 3, 4, 5];
 
   /** Ticks every second for the "next bonus in ..." countdown. */
@@ -83,10 +87,6 @@ export class WalletPage {
 
   protected goToPage(page: number): void {
     void this.store.loadTransactions({ page });
-  }
-
-  protected typeLabel(type: TransactionType): string {
-    return type === 'AdminAdjustment' ? 'Adjustment' : type;
   }
 
   protected typeTone(type: TransactionType): BadgeTone {

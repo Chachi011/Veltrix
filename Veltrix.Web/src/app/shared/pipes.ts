@@ -1,4 +1,6 @@
-import { Pipe, PipeTransform } from '@angular/core';
+import { formatDate } from '@angular/common';
+import { Pipe, PipeTransform, inject } from '@angular/core';
+import { I18n } from '../core/i18n/i18n';
 
 const vlxFormat = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -32,28 +34,31 @@ export class ShortHashPipe implements PipeTransform {
   }
 }
 
-const shortDate = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
-
-/** ISO date → "just now", "5 min ago", "3 h ago", "2 d ago", then "Oct 24". */
-@Pipe({ name: 'timeAgo' })
+/**
+ * ISO date → "just now", "5 min ago", "3 h ago", "2 d ago", then "Oct 24", in the current language.
+ * Impure so it follows a language switch (see TranslatePipe).
+ */
+@Pipe({ name: 'timeAgo', pure: false })
 export class TimeAgoPipe implements PipeTransform {
+  private readonly i18n = inject(I18n);
+
   transform(value: string | null | undefined, now = Date.now()): string {
     if (!value) {
       return '—';
     }
     const seconds = Math.max(0, Math.round((now - Date.parse(value)) / 1000));
     if (seconds < 60) {
-      return 'just now';
+      return this.i18n.t('just now');
     }
     const minutes = Math.floor(seconds / 60);
     if (minutes < 60) {
-      return `${minutes} min ago`;
+      return this.i18n.t('{count} min ago', { count: minutes });
     }
     const hours = Math.floor(minutes / 60);
     if (hours < 24) {
-      return `${hours} h ago`;
+      return this.i18n.t('{count} h ago', { count: hours });
     }
     const days = Math.floor(hours / 24);
-    return days < 7 ? `${days} d ago` : shortDate.format(new Date(value));
+    return days < 7 ? this.i18n.t('{count} d ago', { count: days }) : formatDate(value, 'MMM d', this.i18n.locale());
   }
 }

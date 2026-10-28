@@ -5,8 +5,10 @@ import { LucideAngularModule } from 'lucide-angular';
 import { firstValueFrom } from 'rxjs';
 import { GamesApi } from '../../core/api/games.api';
 import { AuthStore } from '../../core/auth/auth.store';
+import { TranslatePipe } from '../../core/i18n/i18n-pipes';
 import { GameDto, GameQuery, GameStatus } from '../../core/models/api.models';
 import { Button, Card, EmptyState, Icons, PageHeader, Skeleton } from '../../shared/ui';
+import { GAME_STATUS_LABELS } from '../../shared/labels';
 import { GameCard } from './game-card';
 
 const SEARCH_DELAY_MS = 300;
@@ -14,10 +16,10 @@ const SEARCH_DELAY_MS = 300;
 /** Games catalog (spec 4.7): search and filters by type and status. Public; staff also see Disabled games. */
 @Component({
   selector: 'vx-games-page',
-  imports: [FormsModule, LucideAngularModule, Button, Card, EmptyState, PageHeader, Skeleton, GameCard],
+  imports: [FormsModule, LucideAngularModule, Button, Card, EmptyState, PageHeader, Skeleton, GameCard, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <vx-page-header title="Games" description="Every game runs its own rounds on the server. Virtual VLX points only." />
+    <vx-page-header [title]="'Games' | t" [description]="'Every game runs its own rounds on the server. Virtual VLX points only.' | t" />
 
     <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
       <div class="vx-input-wrap min-w-0 flex-1 sm:max-w-sm">
@@ -25,27 +27,27 @@ const SEARCH_DELAY_MS = 300;
         <input
           class="vx-input"
           type="search"
-          placeholder="Search games"
-          aria-label="Search games"
+          [placeholder]="'Search games' | t"
+          [attr.aria-label]="'Search games' | t"
           [ngModel]="searchText()"
           (ngModelChange)="searchText.set($event)"
         />
       </div>
       <div class="grid grid-cols-2 gap-3 sm:flex">
-        <select class="vx-input sm:w-36" aria-label="Filter by type" [ngModel]="type()" (ngModelChange)="type.set($event)">
-          <option [ngValue]="null">All types</option>
+        <select class="vx-input sm:w-36" [attr.aria-label]="'Filter by type' | t" [ngModel]="type()" (ngModelChange)="type.set($event)">
+          <option [ngValue]="null">{{ 'All types' | t }}</option>
           <option ngValue="Crash">Crash</option>
         </select>
-        <select class="vx-input sm:w-44" aria-label="Filter by status" [ngModel]="status()" (ngModelChange)="status.set($event)">
-          <option [ngValue]="null">All statuses</option>
+        <select class="vx-input sm:w-44" [attr.aria-label]="'Filter by status' | t" [ngModel]="status()" (ngModelChange)="status.set($event)">
+          <option [ngValue]="null">{{ 'All statuses' | t }}</option>
           @for (s of statuses(); track s) {
-            <option [ngValue]="s">{{ s }}</option>
+            <option [ngValue]="s">{{ statusLabels[s] | t }}</option>
           }
         </select>
       </div>
       @if (searchText() || type() || status()) {
         <button vxButton type="button" variant="ghost" size="sm" (click)="clear()">
-          <lucide-icon [img]="icons.close" [size]="14" aria-hidden="true" />Clear
+          <lucide-icon [img]="icons.close" [size]="14" aria-hidden="true" />{{ 'Clear' | t }}
         </button>
       }
     </div>
@@ -53,7 +55,7 @@ const SEARCH_DELAY_MS = 300;
     @if (games(); as list) {
       @if (list.length === 0) {
         <vx-card>
-          <vx-empty-state [icon]="icons.gamepad" title="No games found" message="Try another search or clear the filters." />
+          <vx-empty-state [icon]="icons.gamepad" [title]="'No games found' | t" [message]="'Try another search or clear the filters.' | t" />
         </vx-card>
       } @else {
         <div class="grid gap-4 transition-opacity duration-200 sm:grid-cols-2 md:gap-6 xl:grid-cols-3" [class.opacity-60]="loading()">
@@ -91,6 +93,7 @@ export class GamesPage {
   /** Disabled games exist only for staff (the server hides them from everyone else). */
   protected readonly statuses = () =>
     (this.auth.isStaff() ? ['Active', 'Maintenance', 'Disabled'] : ['Active', 'Maintenance']) as GameStatus[];
+  protected readonly statusLabels = GAME_STATUS_LABELS;
 
   constructor() {
     let timer: ReturnType<typeof setTimeout> | undefined;

@@ -1,10 +1,11 @@
-import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
 import { firstValueFrom } from 'rxjs';
 import { AdminApi } from '../../core/api/admin.api';
 import { applyServerErrors } from '../../core/http/problem';
+import { I18n } from '../../core/i18n/i18n';
+import { LocalDatePipe, TranslatePipe } from '../../core/i18n/i18n-pipes';
 import { SystemSettingsDto } from '../../core/models/api.models';
 import { ToastStore } from '../../core/ui/toast.store';
 import { Button, Card, Field, Icons, PageHeader, Skeleton } from '../../shared/ui';
@@ -14,25 +15,39 @@ import { AdminNav } from './admin-nav';
 /** System settings (spec: starting balance, daily bonus amount). Default change detection: it shows form errors. */
 @Component({
   selector: 'vx-admin-settings-page',
-  imports: [DatePipe, ReactiveFormsModule, LucideAngularModule, AdminNav, Button, Card, Field, PageHeader, Skeleton],
+  imports: [LocalDatePipe, TranslatePipe, ReactiveFormsModule, LucideAngularModule, AdminNav, Button, Card, Field, PageHeader, Skeleton],
   changeDetection: ChangeDetectionStrategy.Default,
   template: `
-    <vx-page-header title="Settings" description="Platform values an admin can change without a new deployment." />
+    <vx-page-header [title]="'Settings' | t" [description]="'Platform values an admin can change without a new deployment.' | t" />
     <vx-admin-nav />
 
     <div class="grid gap-4 md:gap-6 lg:grid-cols-3">
-      <vx-card class="lg:col-span-2" title="Virtual points" subtitle="Changes apply immediately: the server reads them on every registration and bonus claim.">
+      <vx-card
+        class="lg:col-span-2"
+        [title]="'Virtual points' | t"
+        [subtitle]="'Changes apply immediately: the server reads them on every registration and bonus claim.' | t"
+      >
         @if (settings(); as s) {
           <form class="flex flex-col gap-4" [formGroup]="form" (ngSubmit)="save()" novalidate>
             <div class="grid gap-4 sm:grid-cols-2">
-              <vx-field label="Starting balance" for="starting" [control]="form.controls.startingBalance" hint="Given to every NEW account. Existing balances do not change.">
+              <vx-field
+                [label]="'Starting balance' | t"
+                for="starting"
+                [control]="form.controls.startingBalance"
+                [hint]="'Given to every NEW account. Existing balances do not change.' | t"
+              >
                 <div class="vx-input-wrap">
                   <lucide-icon [img]="icons.vlx" [size]="16" class="vx-input-icon" aria-hidden="true" />
                   <input id="starting" class="vx-input num" type="number" inputmode="decimal" formControlName="startingBalance" />
                   <span class="vx-input-suffix">VLX</span>
                 </div>
               </vx-field>
-              <vx-field label="Daily bonus" for="bonus" [control]="form.controls.dailyBonusAmount" hint="Claimable once every 24 hours.">
+              <vx-field
+                [label]="'Daily bonus' | t"
+                for="bonus"
+                [control]="form.controls.dailyBonusAmount"
+                [hint]="'Claimable once every 24 hours.' | t"
+              >
                 <div class="vx-input-wrap">
                   <lucide-icon [img]="icons.gift" [size]="16" class="vx-input-icon" aria-hidden="true" />
                   <input id="bonus" class="vx-input num" type="number" inputmode="decimal" formControlName="dailyBonusAmount" />
@@ -41,10 +56,10 @@ import { AdminNav } from './admin-nav';
               </vx-field>
             </div>
             <div class="flex flex-wrap items-center justify-between gap-3">
-              <p class="text-xs text-muted">Last changed {{ s.updatedAt | date: 'MMM d, y, HH:mm' }}</p>
+              <p class="text-xs text-muted">{{ 'Last changed {date}' | t: { date: (s.updatedAt | vxDate: 'MMM d, y, HH:mm') } }}</p>
               <div class="flex gap-2">
-                <button vxButton type="button" variant="ghost" [disabled]="form.pristine" (click)="reset()">Discard</button>
-                <button vxButton type="submit" variant="primary" [loading]="saving()" [disabled]="form.pristine">Save settings</button>
+                <button vxButton type="button" variant="ghost" [disabled]="form.pristine" (click)="reset()">{{ 'Discard' | t }}</button>
+                <button vxButton type="submit" variant="primary" [loading]="saving()" [disabled]="form.pristine">{{ 'Save settings' | t }}</button>
               </div>
             </div>
           </form>
@@ -56,15 +71,15 @@ import { AdminNav } from './admin-nav';
         }
       </vx-card>
 
-      <vx-card title="Good to know">
+      <vx-card [title]="'Good to know' | t">
         <ul class="flex flex-col gap-3 text-[13px] text-muted">
           <li class="flex items-start gap-2">
             <lucide-icon [img]="icons.audit" [size]="15" class="mt-0.5 shrink-0 text-accent" aria-hidden="true" />
-            Each changed value is written to the audit log with its old and new value.
+            {{ 'Each changed value is written to the audit log with its old and new value.' | t }}
           </li>
           <li class="flex items-start gap-2">
             <lucide-icon [img]="icons.shield" [size]="15" class="mt-0.5 shrink-0 text-accent" aria-hidden="true" />
-            VLX are virtual points: there is no deposit, purchase or withdrawal anywhere in the system.
+            {{ 'VLX are virtual points: there is no deposit, purchase or withdrawal anywhere in the system.' | t }}
           </li>
         </ul>
       </vx-card>
@@ -74,6 +89,7 @@ import { AdminNav } from './admin-nav';
 export class AdminSettingsPage {
   private readonly api = inject(AdminApi);
   private readonly toasts = inject(ToastStore);
+  private readonly i18n = inject(I18n);
 
   protected readonly icons = Icons;
   protected readonly settings = signal<SystemSettingsDto | null>(null);
@@ -106,7 +122,7 @@ export class AdminSettingsPage {
     this.saving.set(true);
     try {
       this.apply(await firstValueFrom(this.api.updateSettings(startingBalance, dailyBonusAmount)));
-      this.toasts.success('Settings saved.');
+      this.toasts.success(this.i18n.t('Settings saved.'));
     } catch (error) {
       applyServerErrors(this.form, error);
     } finally {

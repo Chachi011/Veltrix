@@ -1,8 +1,10 @@
-import { DatePipe } from '@angular/common';
+import { formatDate } from '@angular/common';
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
+import { I18n, mark } from '../../core/i18n/i18n';
+import { LocalDatePipe, TranslatePipe, TranslateSplitPipe } from '../../core/i18n/i18n-pipes';
 import { SelfExclusionPeriod } from '../../core/models/api.models';
 import { LimitsStore } from '../../core/state/limits.store';
 import { ToastStore } from '../../core/ui/toast.store';
@@ -17,18 +19,18 @@ interface ExclusionOption {
 }
 
 const EXCLUSIONS: ExclusionOption[] = [
-  { period: 'Hours24', label: '24 hours', hours: 24 },
-  { period: 'Days7', label: '7 days', hours: 7 * 24 },
-  { period: 'Days30', label: '30 days', hours: 30 * 24 }
+  { period: 'Hours24', label: mark('24 hours'), hours: 24 },
+  { period: 'Days7', label: mark('7 days'), hours: 7 * 24 },
+  { period: 'Days30', label: mark('30 days'), hours: 30 * 24 }
 ];
 
 const REMINDER_OPTIONS = [
-  { value: 0, label: 'Off' },
-  { value: 15, label: 'Every 15 minutes' },
-  { value: 30, label: 'Every 30 minutes' },
-  { value: 60, label: 'Every 60 minutes' },
-  { value: 90, label: 'Every 90 minutes' },
-  { value: 120, label: 'Every 2 hours' }
+  { value: 0, label: mark('Off') },
+  { value: 15, label: mark('Every 15 minutes') },
+  { value: 30, label: mark('Every 30 minutes') },
+  { value: 60, label: mark('Every 60 minutes') },
+  { value: 90, label: mark('Every 90 minutes') },
+  { value: 120, label: mark('Every 2 hours') }
 ];
 
 const LIMIT_PRESETS = [50, 100, 250, 500];
@@ -40,7 +42,20 @@ const LIMIT_PRESETS = [50, 100, 250, 500];
  */
 @Component({
   selector: 'vx-limits-page',
-  imports: [DatePipe, ReactiveFormsModule, LucideAngularModule, VlxPipe, Button, Card, Field, PageHeader, ProgressBar, Skeleton],
+  imports: [
+    LocalDatePipe,
+    TranslatePipe,
+    TranslateSplitPipe,
+    ReactiveFormsModule,
+    LucideAngularModule,
+    VlxPipe,
+    Button,
+    Card,
+    Field,
+    PageHeader,
+    ProgressBar,
+    Skeleton
+  ],
   templateUrl: './limits-page.html',
   changeDetection: ChangeDetectionStrategy.Default
 })
@@ -48,6 +63,7 @@ export class LimitsPage {
   protected readonly store = inject(LimitsStore);
   private readonly modal = inject(ModalService);
   private readonly toasts = inject(ToastStore);
+  private readonly i18n = inject(I18n);
   private readonly fb = inject(NonNullableFormBuilder);
 
   protected readonly icons = Icons;
@@ -82,7 +98,9 @@ export class LimitsPage {
       return '';
     }
     const minutes = Math.max(0, Math.round((Date.parse(l.dayResetsAt) - this.now()) / 60_000));
-    return minutes >= 60 ? `${Math.floor(minutes / 60)} h ${minutes % 60} min` : `${minutes} min`;
+    return minutes >= 60
+      ? this.i18n.t('{hours} h {minutes} min', { hours: Math.floor(minutes / 60), minutes: minutes % 60 })
+      : this.i18n.t('{minutes} min', { minutes });
   });
 
   constructor() {
@@ -137,8 +155,8 @@ export class LimitsPage {
     const after = this.store.limits();
     this.toasts.success(
       after?.hasPendingLimitChange
-        ? `Saved. The higher limit starts in ${after.limitIncreaseDelayHours} hours.`
-        : 'Daily limit saved. It applies right away.'
+        ? this.i18n.t('Saved. The higher limit starts in {hours} hours.', { hours: after.limitIncreaseDelayHours })
+        : this.i18n.t('Daily limit saved. It applies right away.')
     );
   }
 
@@ -148,7 +166,9 @@ export class LimitsPage {
     const dailyBetLimit = l?.hasPendingLimitChange ? l.pendingDailyBetLimit : (l?.dailyBetLimit ?? null);
     const ok = await this.store.update({ dailyBetLimit, sessionReminderMin: this.reminder.value });
     if (ok) {
-      this.toasts.success(this.reminder.value === 0 ? 'Session reminder turned off.' : 'Session reminder saved.');
+      this.toasts.success(
+        this.reminder.value === 0 ? this.i18n.t('Session reminder turned off.') : this.i18n.t('Session reminder saved.')
+      );
     }
   }
 
@@ -162,15 +182,16 @@ export class LimitsPage {
     const option = this.selectedOption();
     const endsAt = new Date(Date.now() + option.hours * 3_600_000);
     const confirmed = await this.modal.confirm({
-      title: `Pause betting for ${option.label}?`,
-      message:
-        `Until ${endsAt.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}. ` +
-        'You will not be able to place bets. This cannot be cancelled or shortened, not even by support.',
-      confirmText: 'Pause betting',
+      title: this.i18n.t('Pause betting for {period}?', { period: this.i18n.t(option.label) }),
+      message: this.i18n.t('Until {date}. You will not be able to place bets. This cannot be cancelled or shortened, not even by support.', {
+        date: formatDate(endsAt, 'medium', this.i18n.locale())
+      }),
+      confirmText: this.i18n.t('Pause betting'),
+      cancelText: this.i18n.t('Cancel'),
       tone: 'danger'
     });
     if (confirmed && (await this.store.selfExclude(option.period))) {
-      this.toasts.success(`Betting is paused for ${option.label}.`);
+      this.toasts.success(this.i18n.t('Betting is paused for {period}.', { period: this.i18n.t(option.label) }));
     }
   }
 }

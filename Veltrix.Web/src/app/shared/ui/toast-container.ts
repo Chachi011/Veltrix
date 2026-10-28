@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { LucideAngularModule } from 'lucide-angular';
+import { TranslatePipe } from '../../core/i18n/i18n-pipes';
 import { ToastKind, ToastStore } from '../../core/ui/toast.store';
 import { Button } from './button';
 import { Icons } from './icons';
@@ -7,7 +8,7 @@ import { Icons } from './icons';
 /** Toasts: top of the screen on mobile (above the bottom nav and bet sheet), bottom-right on desktop. */
 @Component({
   selector: 'vx-toast-container',
-  imports: [LucideAngularModule, Button],
+  imports: [LucideAngularModule, Button, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
@@ -22,7 +23,7 @@ import { Icons } from './icons';
             <lucide-icon [img]="icon(toast.kind)" [size]="14" aria-hidden="true" />
           </span>
           <p class="min-w-0 flex-1 pt-0.5 text-[13px] leading-5">{{ toast.message }}</p>
-          <button vxButton type="button" variant="ghost" size="icon-sm" aria-label="Dismiss" (click)="store.dismiss(toast.id)">
+          <button vxButton type="button" variant="ghost" size="icon-sm" [attr.aria-label]="'Dismiss' | t" (click)="store.dismiss(toast.id)">
             <lucide-icon [img]="icons.close" [size]="14" aria-hidden="true" />
           </button>
         </div>

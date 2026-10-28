@@ -4,7 +4,10 @@ import { ActivatedRouteSnapshot, NavigationEnd, Router, RouterLink } from '@angu
 import { LucideAngularModule } from 'lucide-angular';
 import { filter } from 'rxjs';
 import { AuthStore } from '../core/auth/auth.store';
+import { I18n } from '../core/i18n/i18n';
+import { TranslatePipe } from '../core/i18n/i18n-pipes';
 import { NotificationsStore } from '../core/state/notifications.store';
+import { PreferencesStore } from '../core/state/preferences.store';
 import { WalletStore } from '../core/state/wallet.store';
 import { AnimatedNumber } from '../shared/ui/animated-number';
 import { Avatar } from '../shared/ui/avatar';
@@ -19,7 +22,7 @@ const loadPopups = () => import('./top-bar-popups');
 /** Sticky glass bar: page title, balance, daily bonus, notifications, account menu. */
 @Component({
   selector: 'vx-top-bar',
-  imports: [RouterLink, LucideAngularModule, AnimatedNumber, Avatar, Button, ThemeToggle],
+  imports: [RouterLink, LucideAngularModule, AnimatedNumber, Avatar, Button, ThemeToggle, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './top-bar.html'
 })
@@ -27,6 +30,8 @@ export class TopBar {
   protected readonly auth = inject(AuthStore);
   protected readonly wallet = inject(WalletStore);
   protected readonly notifications = inject(NotificationsStore);
+  protected readonly preferences = inject(PreferencesStore);
+  protected readonly i18n = inject(I18n);
   protected readonly icons = Icons;
 
   private readonly injector = inject(Injector);

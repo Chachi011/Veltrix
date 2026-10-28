@@ -12,6 +12,7 @@ import {
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { AuthStore } from '../../core/auth/auth.store';
+import { TranslatePipe } from '../../core/i18n/i18n-pipes';
 import { CrashHub } from '../../core/realtime/crash-hub';
 import { LimitsStore } from '../../core/state/limits.store';
 import { WalletStore } from '../../core/state/wallet.store';
@@ -40,7 +41,8 @@ import { CrashStore } from './crash.store';
     HashBadge,
     PageHeader,
     ProgressRing,
-    Skeleton
+    Skeleton,
+    TranslatePipe
   ],
   // A fresh store for every visit; it is destroyed (and SignalR disconnected) when the user leaves the page
   providers: [CrashStore],

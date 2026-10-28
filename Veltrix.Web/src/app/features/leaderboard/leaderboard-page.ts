@@ -4,6 +4,8 @@ import { LucideAngularModule } from 'lucide-angular';
 import { firstValueFrom } from 'rxjs';
 import { StatsApi } from '../../core/api/stats.api';
 import { AuthStore } from '../../core/auth/auth.store';
+import { mark } from '../../core/i18n/i18n';
+import { TranslateLabelsPipe, TranslatePipe } from '../../core/i18n/i18n-pipes';
 import { LeaderboardDto, LeaderboardEntryDto, LeaderboardPeriod, LeaderboardType } from '../../core/models/api.models';
 import { MultiplierPipe, VlxPipe } from '../../shared/pipes';
 import {
@@ -21,14 +23,14 @@ import {
 } from '../../shared/ui';
 
 const PERIODS: TabItem[] = [
-  { value: 'Day', label: '24 hours' },
-  { value: 'Week', label: '7 days' },
-  { value: 'All', label: 'All time' }
+  { value: 'Day', label: mark('24 hours') },
+  { value: 'Week', label: mark('7 days') },
+  { value: 'All', label: mark('All time') }
 ];
 
 const TYPES: TabItem[] = [
-  { value: 'Multiplier', label: 'Best multiplier' },
-  { value: 'Profit', label: 'Profit' }
+  { value: 'Multiplier', label: mark('Best multiplier') },
+  { value: 'Profit', label: mark('Profit') }
 ];
 
 /** Podium order on wide screens: 2nd, 1st, 3rd (the winner in the middle). */
@@ -49,7 +51,9 @@ const PODIUM_ORDER = [1, 0, 2];
     MultiplierPill,
     PageHeader,
     Skeleton,
-    Tabs
+    Tabs,
+    TranslatePipe,
+    TranslateLabelsPipe
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './leaderboard-page.html'

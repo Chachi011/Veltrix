@@ -3,7 +3,10 @@ import { ChangeDetectionStrategy, Component, effect, inject, input, signal, untr
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { FairnessApi } from '../../core/api/fairness.api';
+import { mark } from '../../core/i18n/i18n';
+import { TranslatePipe } from '../../core/i18n/i18n-pipes';
 import { FairnessRoundDto, VerifyFairnessResult } from '../../core/models/api.models';
+import { ROUND_STATE_LABELS } from '../../shared/labels';
 import { LucideAngularModule } from 'lucide-angular';
 import { MultiplierPipe } from '../../shared/pipes';
 import { Badge, Button, Card, CopyButton, EmptyState, Field, Icons, PageHeader } from '../../shared/ui';
@@ -23,21 +26,40 @@ interface BrowserCheck {
  */
 @Component({
   selector: 'vx-fairness-page',
-  imports: [NgTemplateOutlet, ReactiveFormsModule, LucideAngularModule, MultiplierPipe, Badge, Button, Card, CopyButton, EmptyState, Field, PageHeader],
+  imports: [
+    NgTemplateOutlet,
+    ReactiveFormsModule,
+    LucideAngularModule,
+    MultiplierPipe,
+    TranslatePipe,
+    Badge,
+    Button,
+    Card,
+    CopyButton,
+    EmptyState,
+    Field,
+    PageHeader
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './fairness-page.html'
 })
 export class FairnessPage {
   private readonly api = inject(FairnessApi);
   protected readonly icons = Icons;
+  protected readonly stateLabels = ROUND_STATE_LABELS;
 
-  /** Shown as numbered steps (static, trusted text, so innerHTML is safe here). */
+  /**
+   * Shown as numbered steps. Static, trusted text (from this code or the app's own ka.json), so innerHTML is safe here;
+   * the Georgian versions keep the same <code> parts.
+   */
   protected readonly steps = [
-    'Before betting opens, the server publishes <code class="num text-text">SHA-256(seed)</code> of a secret random seed.',
-    'The crash point comes only from that seed: <code class="num text-text">h</code> = first 52 bits of <code class="num text-text">HMAC-SHA256(seed, "VELTRIX")</code>, <code class="num text-text">r = h / 2^52</code>.',
-    '<code class="num text-text">crash = max(1.00, floor(100 · 0.97 / (1 − r)) / 100)</code>',
-    'After the crash the seed is revealed. If it matches the hash and gives the same crash point, the result was fixed in advance.',
-    'The 3% house edge means every strategy returns 97% on average: there is no winning system.'
+    mark('Before betting opens, the server publishes <code class="num text-text">SHA-256(seed)</code> of a secret random seed.'),
+    mark(
+      'The crash point comes only from that seed: <code class="num text-text">h</code> = first 52 bits of <code class="num text-text">HMAC-SHA256(seed, "VELTRIX")</code>, <code class="num text-text">r = h / 2^52</code>.'
+    ),
+    mark('<code class="num text-text">crash = max(1.00, floor(100 · 0.97 / (1 − r)) / 100)</code>'),
+    mark('After the crash the seed is revealed. If it matches the hash and gives the same crash point, the result was fixed in advance.'),
+    mark('The 3% house edge means every strategy returns 97% on average: there is no winning system.')
   ];
 
   /** ?round=123 (bound from the query string). */

@@ -1,25 +1,28 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { firstValueFrom } from 'rxjs';
 import { PagesApi } from '../../core/api/pages.api';
+import { I18n } from '../../core/i18n/i18n';
+import { TranslatePipe } from '../../core/i18n/i18n-pipes';
 import { StaticPageDto } from '../../core/models/api.models';
 import { Button, Card, Icons, Markdown, PageHeader, Skeleton } from '../../shared/ui';
 
 /**
  * Rules (guest rights in spec section 3) and "why Crash has no winning strategy" (spec 4.8).
- * The text comes from the StaticPages table, so it can be changed without a new deployment.
+ * The English text comes from the StaticPages table, so it can be changed without a new deployment;
+ * the Georgian text is in the one Georgian file (src/i18n/ka.json, section "pages").
  */
 @Component({
   selector: 'vx-rules-page',
-  imports: [RouterLink, LucideAngularModule, Button, Card, Markdown, PageHeader, Skeleton],
+  imports: [RouterLink, LucideAngularModule, Button, Card, Markdown, PageHeader, Skeleton, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <vx-page-header title="Rules" description="How a round works, how fairness is proven, and why no strategy beats the game." />
+    <vx-page-header [title]="'Rules' | t" [description]="'How a round works, how fairness is proven, and why no strategy beats the game.' | t" />
 
     <div class="grid gap-4 md:gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
       <div class="flex min-w-0 flex-col gap-4 md:gap-6">
-        @for (page of pages(); track page.slug) {
+        @for (page of shown(); track page.slug) {
           <vx-card [title]="page.title">
             <vx-markdown [source]="page.content" />
           </vx-card>
@@ -38,20 +41,20 @@ import { Button, Card, Icons, Markdown, PageHeader, Skeleton } from '../../share
       </div>
 
       <div class="flex flex-col gap-4 md:gap-6">
-        <vx-card title="Check any round" subtitle="The crash point is fixed and hashed before betting opens.">
+        <vx-card [title]="'Check any round' | t" [subtitle]="'The crash point is fixed and hashed before betting opens.' | t">
           <a vxButton routerLink="/fairness" variant="secondary" block>
-            <lucide-icon [img]="icons.shield" [size]="16" aria-hidden="true" />Provably fair
+            <lucide-icon [img]="icons.shield" [size]="16" aria-hidden="true" />{{ 'Provably fair' | t }}
           </a>
         </vx-card>
-        <vx-card title="Play responsibly" subtitle="A daily limit, break reminders and a pause you cannot undo.">
+        <vx-card [title]="'Play responsibly' | t" [subtitle]="'A daily limit, break reminders and a pause you cannot undo.' | t">
           <a vxButton routerLink="/limits" variant="secondary" block>
-            <lucide-icon [img]="icons.responsible" [size]="16" aria-hidden="true" />Responsible play
+            <lucide-icon [img]="icons.responsible" [size]="16" aria-hidden="true" />{{ 'Responsible play' | t }}
           </a>
         </vx-card>
         <vx-card>
           <p class="flex items-start gap-2 text-[13px] text-muted">
             <lucide-icon [img]="icons.vlx" [size]="16" class="mt-0.5 shrink-0 text-accent" aria-hidden="true" />
-            Educational project. VLX points are virtual: they cannot be bought, sold, withdrawn or exchanged.
+            {{ 'Educational project. VLX points are virtual: they cannot be bought, sold, withdrawn or exchanged.' | t }}
           </p>
         </vx-card>
       </div>
@@ -60,9 +63,18 @@ import { Button, Card, Icons, Markdown, PageHeader, Skeleton } from '../../share
 })
 export class RulesPage {
   private readonly api = inject(PagesApi);
+  private readonly i18n = inject(I18n);
 
   protected readonly icons = Icons;
-  protected readonly pages = signal<StaticPageDto[]>([]);
+  private readonly pages = signal<StaticPageDto[]>([]);
+
+  /** In Georgian, each page's Georgian version from ka.json (the English one from the database otherwise). */
+  protected readonly shown = computed(() =>
+    this.pages().map((page) => {
+      const translated = this.i18n.page(page.slug);
+      return translated ? { ...page, ...translated } : page;
+    })
+  );
 
   constructor() {
     void Promise.all(['rules', 'no-winning-strategy'].map((slug) => firstValueFrom(this.api.get(slug)).catch(() => null))).then(

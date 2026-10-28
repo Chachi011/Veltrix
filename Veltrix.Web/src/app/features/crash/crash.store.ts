@@ -22,6 +22,7 @@ import { CrashHub, CrashHubHandlers } from '../../core/realtime/crash-hub';
 import { WalletStore } from '../../core/state/wallet.store';
 import { SessionReminder } from '../limits/session-reminder';
 import { SoundService } from '../../core/ui/sound.service';
+import { I18n } from '../../core/i18n/i18n';
 import { ToastStore } from '../../core/ui/toast.store';
 import { elapsedFor, multiplierAt } from './crash-math';
 
@@ -160,6 +161,7 @@ export const CrashStore = signalStore(
       auth = inject(AuthStore),
       wallet = inject(WalletStore),
       toasts = inject(ToastStore),
+      i18n = inject(I18n),
       reminder = inject(SessionReminder),
       sound = inject(SoundService)
     ) => {
@@ -233,7 +235,7 @@ export const CrashStore = signalStore(
           if (e.state === 'Cancelled') {
             addToHistory({ roundId: e.roundId, roundNumber: e.roundNumber, crashPoint: null, cancelled: true });
             if (store.myBet()?.roundId === e.roundId) {
-              toasts.info('The round was cancelled. Your bet was refunded.');
+              toasts.info(i18n.t('The round was cancelled. Your bet was refunded.'));
             }
           }
         },
@@ -320,7 +322,7 @@ export const CrashStore = signalStore(
         try {
           await hub.connect(store.slug(), handlers);
         } catch {
-          toasts.error('Live connection failed. The game will not update until you reconnect.');
+          toasts.error(i18n.t('Live connection failed. The game will not update until you reconnect.'));
         }
       };
 
@@ -386,7 +388,7 @@ export const CrashStore = signalStore(
             wallet.setBalance(result.balance);
             reminder.recordBet(amount);
             sound.play('bet');
-            toasts.success(`Bet placed: ${amount.toFixed(2)} VLX`);
+            toasts.success(i18n.t('Bet placed: {amount} VLX', { amount: amount.toFixed(2) }));
           } catch {
             // Reason already shown by the error interceptor (betting closed, limit, balance...)
           } finally {
@@ -410,7 +412,10 @@ export const CrashStore = signalStore(
             patchState(store, { myBet: toMyBet(result.bet) });
             wallet.setBalance(result.balance);
             toasts.success(
-              `Cashed out at ${result.bet.cashOutMultiplier?.toFixed(2)}x: +${result.bet.payout?.toFixed(2)} VLX`
+              i18n.t('Cashed out at {multiplier}x: +{payout} VLX', {
+                multiplier: result.bet.cashOutMultiplier?.toFixed(2) ?? '',
+                payout: result.bet.payout?.toFixed(2) ?? ''
+              })
             );
           } catch {
             // e.g. "Too late: the round has already crashed"

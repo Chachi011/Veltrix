@@ -39,20 +39,30 @@ public class ContentAndPreferencesServiceTests : IDisposable
         Assert.Equal(ThemePreference.System, defaults.Theme);
         Assert.True(defaults.SoundEnabled);
         Assert.True(defaults.AnimationsEnabled);
+        Assert.Equal("ka", defaults.Language); // Georgian is the default UI language
 
-        await Profiles().UpdateMyPreferencesAsync(new UpdatePreferencesRequest { Theme = ThemePreference.Light, SoundEnabled = false, AnimationsEnabled = false });
+        await Profiles().UpdateMyPreferencesAsync(new UpdatePreferencesRequest
+        {
+            Theme = ThemePreference.Light,
+            SoundEnabled = false,
+            AnimationsEnabled = false,
+            Language = "en"
+        });
 
         // A new request (e.g. another device) sees the saved values
         var saved = await Profiles().GetMyPreferencesAsync();
         Assert.Equal(ThemePreference.Light, saved.Theme);
         Assert.False(saved.SoundEnabled);
         Assert.False(saved.AnimationsEnabled);
+        Assert.Equal("en", saved.Language);
         Assert.Equal(ServiceTestContext.Now, saved.UpdatedAt);
     }
 
     [Fact]
     public async Task ContentPage_IsServedFromTheSeededTable_WithEnglishAsTheFallback()
     {
+        // Regression: the fallback once followed the UI default language; when that became Georgian,
+        // every page (stored in English only) answered 404
         var pages = new StaticPageService(_ctx.Db);
 
         var rules = await pages.GetAsync("rules", null);

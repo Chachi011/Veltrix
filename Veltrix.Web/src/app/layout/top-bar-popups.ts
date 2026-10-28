@@ -6,6 +6,8 @@ import { NavigationStart, Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { Subscription, filter } from 'rxjs';
 import { AuthStore } from '../core/auth/auth.store';
+import { I18n } from '../core/i18n/i18n';
+import { TranslatePipe } from '../core/i18n/i18n-pipes';
 import { PreferencesStore } from '../core/state/preferences.store';
 import { ThemeService } from '../core/ui/theme.service';
 import { Avatar } from '../shared/ui/avatar';
@@ -26,11 +28,11 @@ const MENU_ITEM =
 /** Account menu: profile, wallet, history, the role's extra pages, theme, log out. Arrow keys move between items. */
 @Component({
   selector: 'vx-account-menu',
-  imports: [RouterLink, LucideAngularModule, CdkMenu, CdkMenuItem, Avatar],
+  imports: [RouterLink, LucideAngularModule, CdkMenu, CdkMenuItem, Avatar, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (auth.user(); as user) {
-      <div cdkMenu class="w-60 animate-pop-in rounded-card border border-border bg-surface p-1.5 shadow-pop" aria-label="Account menu">
+      <div cdkMenu class="w-60 animate-pop-in rounded-card border border-border bg-surface p-1.5 shadow-pop" [attr.aria-label]="'Account menu' | t">
         <div class="flex items-center gap-3 px-3 py-2.5">
           <vx-avatar [src]="user.avatarUrl" [name]="user.nickname" size="md" />
           <div class="min-w-0">
@@ -40,27 +42,32 @@ const MENU_ITEM =
         </div>
         <div class="my-1 h-px bg-border" role="separator"></div>
         <a cdkMenuItem routerLink="/profile" [class]="menuItem">
-          <lucide-icon [img]="icons.user" [size]="16" class="text-muted" aria-hidden="true" /> Profile
+          <lucide-icon [img]="icons.user" [size]="16" class="text-muted" aria-hidden="true" /> {{ 'Profile' | t }}
         </a>
         <a cdkMenuItem routerLink="/wallet" [class]="menuItem">
-          <lucide-icon [img]="icons.wallet" [size]="16" class="text-muted" aria-hidden="true" /> Wallet
+          <lucide-icon [img]="icons.wallet" [size]="16" class="text-muted" aria-hidden="true" /> {{ 'Wallet' | t }}
         </a>
         <a cdkMenuItem routerLink="/history" [class]="menuItem">
-          <lucide-icon [img]="icons.history" [size]="16" class="text-muted" aria-hidden="true" /> History
+          <lucide-icon [img]="icons.history" [size]="16" class="text-muted" aria-hidden="true" /> {{ 'History' | t }}
         </a>
         <!-- Role-dependent pages (on phones this menu is the only way to reach them) -->
         @for (item of extras(); track item.path) {
           <a cdkMenuItem [routerLink]="item.path" [class]="menuItem">
-            <lucide-icon [img]="item.icon" [size]="16" class="text-muted" aria-hidden="true" /> {{ item.label }}
+            <lucide-icon [img]="item.icon" [size]="16" class="text-muted" aria-hidden="true" /> {{ item.label | t }}
           </a>
         }
         <button cdkMenuItem type="button" [class]="menuItem" (cdkMenuItemTriggered)="preferences.toggleTheme(); closed.emit()">
           <lucide-icon [img]="theme.theme() === 'dark' ? icons.sun : icons.moon" [size]="16" class="text-muted" aria-hidden="true" />
-          {{ theme.theme() === 'dark' ? 'Light theme' : 'Dark theme' }}
+          {{ theme.theme() === 'dark' ? ('Light theme' | t) : ('Dark theme' | t) }}
+        </button>
+        <button cdkMenuItem type="button" [class]="menuItem" (cdkMenuItemTriggered)="preferences.toggleLanguage(); closed.emit()">
+          <lucide-icon [img]="icons.languages" [size]="16" class="text-muted" aria-hidden="true" />
+          <!-- Each language is named in its own language, so it can be found by someone who cannot read the other -->
+          {{ i18n.language() === 'ka' ? 'English' : 'ქართული' }}
         </button>
         <div class="my-1 h-px bg-border" role="separator"></div>
         <button cdkMenuItem type="button" [class]="menuItem + ' text-danger!'" (cdkMenuItemTriggered)="logout()">
-          <lucide-icon [img]="icons.logout" [size]="16" aria-hidden="true" /> Log out
+          <lucide-icon [img]="icons.logout" [size]="16" aria-hidden="true" /> {{ 'Log out' | t }}
         </button>
       </div>
     }
@@ -70,6 +77,7 @@ export class AccountMenu {
   protected readonly auth = inject(AuthStore);
   protected readonly theme = inject(ThemeService);
   protected readonly preferences = inject(PreferencesStore);
+  protected readonly i18n = inject(I18n);
   protected readonly icons = Icons;
   protected readonly menuItem = MENU_ITEM;
 
@@ -98,10 +106,10 @@ export class AccountMenu {
 /** The bell dropdown: a dialog with the notifications panel. */
 @Component({
   selector: 'vx-notifications-popup',
-  imports: [NotificationsPanel],
+  imports: [NotificationsPanel, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="w-[360px] max-w-[calc(100vw-32px)] animate-pop-in overflow-hidden rounded-card border border-border bg-surface shadow-pop" role="dialog" aria-label="Notifications">
+    <div class="w-[360px] max-w-[calc(100vw-32px)] animate-pop-in overflow-hidden rounded-card border border-border bg-surface shadow-pop" role="dialog" [attr.aria-label]="'Notifications' | t">
       <vx-notifications-panel (closed)="closed.emit()" />
     </div>
   `

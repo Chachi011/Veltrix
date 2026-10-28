@@ -545,11 +545,15 @@ export interface DailyStatisticDto {
 /** System = follow the device setting. */
 export type ThemePreference = 'System' | 'Dark' | 'Light';
 
+/** UI language: Georgian (default) or English. */
+export type LanguageCode = 'ka' | 'en';
+
 export interface UserPreferencesDto {
   theme: ThemePreference;
   soundEnabled: boolean;
   /** False = reduce motion. */
   animationsEnabled: boolean;
+  language: LanguageCode;
   updatedAt: string;
 }
 
@@ -557,6 +561,7 @@ export interface UpdatePreferencesRequest {
   theme: ThemePreference;
   soundEnabled: boolean;
   animationsEnabled: boolean;
+  language: LanguageCode;
 }
 
 export interface StaticPageDto {

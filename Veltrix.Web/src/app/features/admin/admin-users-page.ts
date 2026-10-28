@@ -1,11 +1,13 @@
-import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
 import { firstValueFrom } from 'rxjs';
 import { AdminApi } from '../../core/api/admin.api';
 import { AuthStore } from '../../core/auth/auth.store';
+import { I18n } from '../../core/i18n/i18n';
+import { LocalDatePipe, TranslatePipe } from '../../core/i18n/i18n-pipes';
 import { AdminUserListItemDto, PagedResult, UserRole } from '../../core/models/api.models';
+import { ROLE_LABELS } from '../../shared/labels';
 import { VlxPipe } from '../../shared/pipes';
 import { Avatar, Badge, Card, EmptyState, Icons, ModalService, PageHeader, Pagination, Skeleton } from '../../shared/ui';
 import { AdminNav } from './admin-nav';
@@ -17,7 +19,21 @@ const SEARCH_DELAY_MS = 300;
 /** Admin users table: search, role and status filters, paging; a row opens the user drawer. */
 @Component({
   selector: 'vx-admin-users-page',
-  imports: [DatePipe, FormsModule, LucideAngularModule, VlxPipe, AdminNav, Avatar, Badge, Card, EmptyState, PageHeader, Pagination, Skeleton],
+  imports: [
+    LocalDatePipe,
+    TranslatePipe,
+    FormsModule,
+    LucideAngularModule,
+    VlxPipe,
+    AdminNav,
+    Avatar,
+    Badge,
+    Card,
+    EmptyState,
+    PageHeader,
+    Pagination,
+    Skeleton
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './admin-users-page.html'
 })
@@ -25,9 +41,11 @@ export class AdminUsersPage {
   private readonly api = inject(AdminApi);
   private readonly modal = inject(ModalService);
   protected readonly auth = inject(AuthStore);
+  private readonly i18n = inject(I18n);
 
   protected readonly icons = Icons;
   protected readonly roleTones = ROLE_TONES;
+  protected readonly roleLabels = ROLE_LABELS;
   protected readonly roles: UserRole[] = ['Player', 'Operator', 'Admin'];
   protected readonly skeletonRows = [1, 2, 3, 4, 5, 6];
 
@@ -72,7 +90,7 @@ export class AdminUsersPage {
   protected async open(user: AdminUserListItemDto): Promise<void> {
     const ref = this.modal.openDrawer<void, number, UserDrawer>(UserDrawer, {
       data: user.id,
-      ariaLabel: `User ${user.nickname}`,
+      ariaLabel: this.i18n.t('User {nickname}', { nickname: user.nickname }),
       width: '520px'
     });
     await firstValueFrom(ref.closed);

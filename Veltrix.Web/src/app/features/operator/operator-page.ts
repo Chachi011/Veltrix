@@ -1,13 +1,15 @@
-import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, DestroyRef, afterNextRender, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { firstValueFrom } from 'rxjs';
 import { GamesApi } from '../../core/api/games.api';
+import { I18n, mark } from '../../core/i18n/i18n';
+import { LocalDatePipe, TranslateLabelsPipe, TranslatePipe, TranslateSplitPipe } from '../../core/i18n/i18n-pipes';
 import { GameDto, GameStatus, RoundCancellationDto, RoundState } from '../../core/models/api.models';
 import { CrashHub } from '../../core/realtime/crash-hub';
 import { ToastStore } from '../../core/ui/toast.store';
+import { GAME_STATUS_LABELS, ROUND_STATE_LABELS } from '../../shared/labels';
 import { MultiplierPipe, VlxPipe } from '../../shared/pipes';
 import {
   Badge,
@@ -40,16 +42,6 @@ const STATE_TONES: Record<RoundState, BadgeTone> = {
   Cancelled: 'warning'
 };
 
-const STATE_LABELS: Record<RoundState, string> = {
-  Waiting: 'Waiting',
-  BettingOpen: 'Betting open',
-  BettingClosed: 'Betting closed',
-  Running: 'Running',
-  Crashed: 'Crashed',
-  Finished: 'Finished',
-  Cancelled: 'Cancelled'
-};
-
 const STATUS_TONES: Record<GameStatus, BadgeTone> = { Active: 'success', Maintenance: 'warning', Disabled: 'neutral' };
 
 /**
@@ -59,7 +51,10 @@ const STATUS_TONES: Record<GameStatus, BadgeTone> = { Active: 'success', Mainten
 @Component({
   selector: 'vx-operator-page',
   imports: [
-    DatePipe,
+    LocalDatePipe,
+    TranslatePipe,
+    TranslateLabelsPipe,
+    TranslateSplitPipe,
     FormsModule,
     RouterLink,
     LucideAngularModule,
@@ -87,11 +82,14 @@ export class OperatorPage {
   private readonly gamesApi = inject(GamesApi);
   private readonly modal = inject(ModalService);
   private readonly toasts = inject(ToastStore);
+  private readonly i18n = inject(I18n);
 
   protected readonly icons = Icons;
+  protected readonly stateLabels = ROUND_STATE_LABELS;
+  protected readonly statusLabels = GAME_STATUS_LABELS;
   protected readonly tabs: TabItem[] = [
-    { value: 'live', label: 'Live round' },
-    { value: 'games', label: 'Games' }
+    { value: 'live', label: mark('Live round') },
+    { value: 'games', label: mark('Games') }
   ];
   protected readonly tab = signal('live');
   protected readonly statuses: GameStatus[] = ['Active', 'Maintenance', 'Disabled'];
@@ -139,10 +137,6 @@ export class OperatorPage {
     return state ? STATE_TONES[state] : 'neutral';
   }
 
-  protected stateLabel(state: RoundState | null): string {
-    return state ? STATE_LABELS[state] : 'No round yet';
-  }
-
   protected statusTone(status: GameStatus): BadgeTone {
     return STATUS_TONES[status];
   }
@@ -159,13 +153,17 @@ export class OperatorPage {
         activeBets: this.activeBets().length,
         activeTotal: this.activeTotal()
       },
-      ariaLabel: 'Cancel round',
+      ariaLabel: this.i18n.t('Cancel round'),
       width: '480px'
     });
     const result = await firstValueFrom(ref.closed);
     if (result) {
       this.toasts.success(
-        `Round #${round.roundNumber} cancelled: ${result.refundedBetsCount} bets refunded (${result.refundedTotal.toFixed(2)} VLX).`
+        this.i18n.t('Round #{number} cancelled: {count} bets refunded ({amount} VLX).', {
+          number: round.roundNumber,
+          count: result.refundedBetsCount,
+          amount: result.refundedTotal.toFixed(2)
+        })
       );
     }
   }
@@ -173,12 +171,14 @@ export class OperatorPage {
   protected async editGame(game: GameDto | null): Promise<void> {
     const ref = this.modal.open<GameDto, GameDto | null, GameFormDialog>(GameFormDialog, {
       data: game,
-      ariaLabel: game ? `Edit ${game.name}` : 'New game',
+      ariaLabel: game ? this.i18n.t('Edit {name}', { name: game.name }) : this.i18n.t('New game'),
       width: '560px'
     });
     const saved = await firstValueFrom(ref.closed);
     if (saved) {
-      this.toasts.success(game ? `${saved.name} saved.` : `${saved.name} created.`);
+      this.toasts.success(
+        game ? this.i18n.t('{name} saved.', { name: saved.name }) : this.i18n.t('{name} created.', { name: saved.name })
+      );
       await this.loadGames();
     }
   }
@@ -188,13 +188,14 @@ export class OperatorPage {
       return;
     }
     if (status !== 'Active') {
+      const statusName = this.i18n.t(GAME_STATUS_LABELS[status]);
       const confirmed = await this.modal.confirm({
-        title: `Set ${game.name} to ${status}?`,
+        title: this.i18n.t('Set {name} to {status}?', { name: game.name, status: statusName }),
         message:
           status === 'Disabled'
-            ? 'Players will no longer see the game, and no new bets are accepted.'
-            : 'No new bets are accepted until the game is Active again. A round already running finishes normally.',
-        confirmText: `Set to ${status}`,
+            ? this.i18n.t('Players will no longer see the game, and no new bets are accepted.')
+            : this.i18n.t('No new bets are accepted until the game is Active again. A round already running finishes normally.'),
+        confirmText: this.i18n.t('Set to {status}', { status: statusName }),
         tone: 'danger'
       });
       if (!confirmed) {
@@ -207,7 +208,7 @@ export class OperatorPage {
     try {
       const updated = await firstValueFrom(this.gamesApi.setStatus(game.id, status));
       this.games.update((list) => list?.map((g) => (g.id === updated.id ? updated : g)) ?? null);
-      this.toasts.success(`${updated.name} is now ${updated.status}.`);
+      this.toasts.success(this.i18n.t('{name} is now {status}.', { name: updated.name, status: this.i18n.t(GAME_STATUS_LABELS[updated.status]) }));
     } catch {
       await this.loadGames();
     } finally {

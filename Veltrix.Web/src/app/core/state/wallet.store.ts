@@ -3,6 +3,7 @@ import { patchState, signalStore, withMethods, withState } from '@ngrx/signals';
 import { firstValueFrom } from 'rxjs';
 import { WalletApi } from '../api/wallet.api';
 import { PagedResult, TransactionQuery, WalletDto, WalletTransactionDto } from '../models/api.models';
+import { I18n } from '../i18n/i18n';
 import { ToastStore } from '../ui/toast.store';
 
 type WalletState = {
@@ -27,7 +28,7 @@ const initialState: WalletState = {
 export const WalletStore = signalStore(
   { providedIn: 'root' },
   withState(initialState),
-  withMethods((store, api = inject(WalletApi), toasts = inject(ToastStore)) => ({
+  withMethods((store, api = inject(WalletApi), toasts = inject(ToastStore), i18n = inject(I18n)) => ({
     async load(): Promise<void> {
       const wallet = await firstValueFrom(api.get());
       patchState(store, { wallet, balance: wallet.balance });
@@ -43,7 +44,7 @@ export const WalletStore = signalStore(
       try {
         const wallet = await firstValueFrom(api.claimDailyBonus());
         patchState(store, { wallet, balance: wallet.balance });
-        toasts.success(`Daily bonus claimed: +${wallet.dailyBonusAmount} VLX`);
+        toasts.success(i18n.t('Daily bonus claimed: +{amount} VLX', { amount: wallet.dailyBonusAmount }));
       } catch {
         // The error interceptor already showed the reason (e.g. "available again at ...")
       } finally {

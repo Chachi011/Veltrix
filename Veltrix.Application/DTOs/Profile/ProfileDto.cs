@@ -1,3 +1,4 @@
+using Veltrix.Domain.Entities;
 using Veltrix.Domain.Enums;
 
 namespace Veltrix.Application.DTOs.Profile;
@@ -55,6 +56,9 @@ public sealed class UserPreferencesDto
     /// <summary>False = reduce motion (no counting numbers, no chart animations, no shake).</summary>
     public bool AnimationsEnabled { get; set; }
 
+    /// <summary>UI language: "ka" (Georgian, the default) or "en".</summary>
+    public string Language { get; set; } = UserPreference.DefaultLanguage;
+
     public DateTime UpdatedAt { get; set; }
 }
 
@@ -63,6 +67,9 @@ public sealed class UpdatePreferencesRequest
     public ThemePreference Theme { get; set; }
     public bool SoundEnabled { get; set; } = true;
     public bool AnimationsEnabled { get; set; } = true;
+
+    /// <summary>"ka" or "en".</summary>
+    public string Language { get; set; } = UserPreference.DefaultLanguage;
 }
 
 public sealed class BestCashOutDto

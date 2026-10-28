@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
+import { TranslatePipe } from '../../core/i18n/i18n-pipes';
 import { CopyButton } from './copy-button';
 import { Icons } from './icons';
 
@@ -10,7 +11,7 @@ import { Icons } from './icons';
  */
 @Component({
   selector: 'vx-hash-badge',
-  imports: [LucideAngularModule, RouterLink, CopyButton],
+  imports: [LucideAngularModule, RouterLink, CopyButton, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     class:
@@ -23,19 +24,20 @@ import { Icons } from './icons';
         routerLink="/fairness"
         [queryParams]="{ round: id }"
         class="font-medium whitespace-nowrap text-muted transition-colors duration-200 hover:text-text"
-        >{{ label() }}</a
+        >{{ label() ?? ('Provably fair' | t) }}</a
       >
     } @else {
-      <span class="font-medium whitespace-nowrap text-muted">{{ label() }}</span>
+      <span class="font-medium whitespace-nowrap text-muted">{{ label() ?? ('Provably fair' | t) }}</span>
     }
     <span class="num truncate text-text" [title]="hash()">{{ short() }}</span>
-    <vx-copy-button [text]="hash()" label="Copy hash" />
+    <vx-copy-button [text]="hash()" [label]="'Copy hash' | t" />
   `
 })
 export class HashBadge {
   readonly hash = input.required<string>();
   readonly roundId = input<number | null>(null);
-  readonly label = input('Provably fair');
+  /** Already translated; "Provably fair" by default. */
+  readonly label = input<string>();
 
   protected readonly icons = Icons;
   protected readonly short = computed(() => {

@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { TranslatePipe } from '../../../core/i18n/i18n-pipes';
 import { Avatar, Card, EmptyState, Icons } from '../../../shared/ui';
 import { MultiplierPipe, VlxPipe } from '../../../shared/pipes';
 import { LiveBet } from '../crash.store';
@@ -7,23 +8,23 @@ import { LiveBet } from '../crash.store';
 /** Everyone's bets in the current round, updated live by BetPlaced / PlayerCashedOut / RoundCrashed. */
 @Component({
   selector: 'vx-live-bets',
-  imports: [RouterLink, Avatar, Card, EmptyState, VlxPipe, MultiplierPipe],
+  imports: [RouterLink, Avatar, Card, EmptyState, VlxPipe, MultiplierPipe, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <vx-card title="Live bets" padding="none">
+    <vx-card [title]="'Live bets' | t" padding="none">
       <span card-actions class="num text-xs text-muted">{{ bets().length }} · {{ total() | vlx }}</span>
 
       @if (sorted().length === 0) {
-        <vx-empty-state [icon]="icons.users" title="No bets yet" message="Bets placed in this round appear here live." />
+        <vx-empty-state [icon]="icons.users" [title]="'No bets yet' | t" [message]="'Bets placed in this round appear here live.' | t" />
       } @else {
         <div class="vx-table-wrap mt-2 max-h-[420px] overflow-y-auto">
           <table class="vx-table vx-table-compact">
             <thead>
               <tr>
-                <th>Player</th>
-                <th class="text-right">Bet</th>
-                <th class="text-right">At</th>
-                <th class="text-right">Payout</th>
+                <th>{{ 'Player' | t }}</th>
+                <th class="text-right">{{ 'Bet' | t }}</th>
+                <th class="text-right">{{ 'At' | t }}</th>
+                <th class="text-right">{{ 'Payout' | t }}</th>
               </tr>
             </thead>
             <tbody>
@@ -37,7 +38,7 @@ import { LiveBet } from '../crash.store';
                         [class.text-primary-text]="bet.nickname === me()"
                         [class.text-text]="bet.nickname !== me()"
                         [routerLink]="['/players', bet.nickname]"
-                        [title]="bet.nickname === me() ? 'You' : 'Profile of ' + bet.nickname"
+                        [title]="bet.nickname === me() ? ('You' | t) : ('Profile of {nickname}' | t: { nickname: bet.nickname })"
                       >
                         {{ bet.nickname }}
                       </a>
@@ -56,7 +57,7 @@ import { LiveBet } from '../crash.store';
                         <span class="text-danger">−{{ bet.amount | vlx: false }}</span>
                       }
                       @case ('Refunded') {
-                        <span class="text-xs font-normal text-muted">refunded</span>
+                        <span class="text-xs font-normal text-muted">{{ 'refunded' | t }}</span>
                       }
                       @default {
                         <span class="text-muted">…</span>

@@ -1,28 +1,29 @@
-<vx-drawer [title]="user()?.nickname ?? 'User'" [description]="user()?.email ?? 'Loading…'">
+<vx-drawer [title]="user()?.nickname ?? ('User' | t)" [description]="user()?.email ?? ('Loading…' | t)">
   @if (user(); as u) {
     <!-- Who -->
     <div class="flex items-center gap-4">
       <vx-avatar [src]="u.avatarUrl" [name]="u.nickname" size="lg" />
       <div class="min-w-0">
         <div class="flex flex-wrap gap-1.5">
-          <vx-badge [tone]="roleTones[u.role]">{{ u.role }}</vx-badge>
+          <vx-badge [tone]="roleTones[u.role]">{{ roleLabels[u.role] | t }}</vx-badge>
           @if (u.isBlocked) {
-            <vx-badge tone="danger" dot>Blocked</vx-badge>
+            <vx-badge tone="danger" dot>{{ 'Blocked' | t }}</vx-badge>
           } @else {
-            <vx-badge tone="success" dot>Active</vx-badge>
+            <vx-badge tone="success" dot>{{ 'Active' | t }}</vx-badge>
           }
           @if (u.selfExcludedUntil) {
-            <vx-badge tone="warning">Self-excluded</vx-badge>
+            <vx-badge tone="warning">{{ 'Self-excluded' | t }}</vx-badge>
           }
           @if (u.lockoutUntil) {
-            <vx-badge tone="warning">Locked out</vx-badge>
+            <vx-badge tone="warning">{{ 'Locked out' | t }}</vx-badge>
           }
           @if (isSelf()) {
-            <vx-badge tone="primary">You</vx-badge>
+            <vx-badge tone="primary">{{ 'You' | t }}</vx-badge>
           }
         </div>
         <p class="mt-2 text-xs text-muted">
-          Member since {{ u.createdAt | date: 'mediumDate' }} · last login {{ u.lastLoginAt ? (u.lastLoginAt | date: 'MMM d, HH:mm') : 'never' }}
+          {{ 'Member since {date}' | t: { date: (u.createdAt | vxDate: 'mediumDate') } }} ·
+          {{ 'last login {date}' | t: { date: u.lastLoginAt ? (u.lastLoginAt | vxDate: 'MMM d, HH:mm') : ('never' | t) } }}
         </p>
       </div>
     </div>
@@ -30,86 +31,107 @@
     <!-- Facts -->
     <dl class="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-control border border-border bg-border text-sm">
       <div class="bg-surface p-3">
-        <dt class="text-xs text-muted">Balance</dt>
+        <dt class="text-xs text-muted">{{ 'Balance' | t }}</dt>
         <dd class="num mt-0.5 font-semibold">{{ u.balance | vlx }}</dd>
       </div>
       <div class="bg-surface p-3">
-        <dt class="text-xs text-muted">Settled bets</dt>
-        <dd class="num mt-0.5 font-semibold">{{ u.totalBets }} <span class="text-xs font-normal text-muted">({{ u.cashOutCount }} won)</span></dd>
+        <dt class="text-xs text-muted">{{ 'Settled bets' | t }}</dt>
+        <dd class="num mt-0.5 font-semibold">
+          {{ u.totalBets }} <span class="text-xs font-normal text-muted">({{ '{count} won' | t: { count: u.cashOutCount } }})</span>
+        </dd>
       </div>
       <div class="bg-surface p-3">
-        <dt class="text-xs text-muted">Staked / paid out</dt>
+        <dt class="text-xs text-muted">{{ 'Staked / paid out' | t }}</dt>
         <dd class="num mt-0.5 font-semibold">{{ u.totalWagered | vlx: false }} / {{ u.totalPayout | vlx: false }}</dd>
       </div>
       <div class="bg-surface p-3">
-        <dt class="text-xs text-muted">Best multiplier</dt>
+        <dt class="text-xs text-muted">{{ 'Best multiplier' | t }}</dt>
         <dd class="num mt-0.5 font-semibold">{{ u.biggestMultiplier | mult }}</dd>
       </div>
       <div class="bg-surface p-3">
-        <dt class="text-xs text-muted">Daily limit</dt>
-        <dd class="num mt-0.5 font-semibold">{{ u.dailyBetLimit === null ? 'None' : (u.dailyBetLimit | vlx) }}</dd>
+        <dt class="text-xs text-muted">{{ 'Daily limit' | t }}</dt>
+        <dd class="num mt-0.5 font-semibold">{{ u.dailyBetLimit === null ? ('None' | t) : (u.dailyBetLimit | vlx) }}</dd>
       </div>
       <div class="bg-surface p-3">
-        <dt class="text-xs text-muted">Signed in on</dt>
-        <dd class="num mt-0.5 font-semibold">{{ u.activeSessions }} {{ u.activeSessions === 1 ? 'device' : 'devices' }}</dd>
+        <dt class="text-xs text-muted">{{ 'Signed in on' | t }}</dt>
+        <dd class="num mt-0.5 font-semibold">
+          {{ u.activeSessions === 1 ? ('{count} device' | t: { count: 1 }) : ('{count} devices' | t: { count: u.activeSessions }) }}
+        </dd>
       </div>
     </dl>
 
     @if (isSelf()) {
       <p class="mt-5 flex items-start gap-2 rounded-control border border-border bg-surface-2 p-3 text-[13px] text-muted">
         <lucide-icon [img]="icons.info" [size]="15" class="mt-0.5 shrink-0" aria-hidden="true" />
-        This is your own account: you cannot change your own role, block yourself or adjust your own balance.
+        {{ 'This is your own account: you cannot change your own role, block yourself or adjust your own balance.' | t }}
       </p>
     } @else {
       <!-- Role -->
       <section class="mt-6" aria-labelledby="role-title">
-        <h3 id="role-title" class="text-sm font-semibold">Role</h3>
+        <h3 id="role-title" class="text-sm font-semibold">{{ 'Role' | t }}</h3>
         <div class="mt-2 flex gap-2">
-          <select class="vx-input flex-1" aria-label="Role" [formControl]="role">
+          <select class="vx-input flex-1" [attr.aria-label]="'Role' | t" [formControl]="role">
             @for (r of roles; track r) {
-              <option [ngValue]="r">{{ r }}</option>
+              <option [ngValue]="r">{{ roleLabels[r] | t }}</option>
             }
           </select>
-          <button vxButton type="button" variant="secondary" [loading]="savingRole()" [disabled]="role.value === u.role" (click)="saveRole()">Save</button>
+          <button vxButton type="button" variant="secondary" [loading]="savingRole()" [disabled]="role.value === u.role" (click)="saveRole()">
+            {{ 'Save' | t }}
+          </button>
         </div>
       </section>
 
       <!-- Block -->
       <section class="mt-6" aria-labelledby="block-title">
-        <h3 id="block-title" class="text-sm font-semibold">{{ u.isBlocked ? 'Unblock account' : 'Block account' }}</h3>
+        <h3 id="block-title" class="text-sm font-semibold">{{ u.isBlocked ? ('Unblock account' | t) : ('Block account' | t) }}</h3>
         <p class="mt-1 text-[13px] text-muted">
-          {{ u.isBlocked ? 'The user can sign in and play again; a login lockout is cleared too.' : 'Signs the user out everywhere and refuses their bets at once.' }}
+          {{
+            u.isBlocked
+              ? ('The user can sign in and play again; a login lockout is cleared too.' | t)
+              : ('Signs the user out everywhere and refuses their bets at once.' | t)
+          }}
         </p>
         <div class="mt-2 flex flex-col gap-2 sm:flex-row">
           @if (!u.isBlocked) {
-            <input class="vx-input sm:flex-1" placeholder="Reason (optional, saved in the audit log)" aria-label="Block reason" [formControl]="blockReason" maxlength="500" />
+            <input
+              class="vx-input sm:flex-1"
+              [placeholder]="'Reason (optional, saved in the audit log)' | t"
+              [attr.aria-label]="'Block reason' | t"
+              [formControl]="blockReason"
+              maxlength="500"
+            />
           }
           <button vxButton type="button" [variant]="u.isBlocked ? 'success' : 'danger'" [loading]="savingBlock()" (click)="toggleBlock()">
             <lucide-icon [img]="u.isBlocked ? icons.unlock : icons.block" [size]="16" aria-hidden="true" />
-            {{ u.isBlocked ? 'Unblock' : 'Block' }}
+            {{ u.isBlocked ? ('Unblock' | t) : ('Block' | t) }}
           </button>
         </div>
       </section>
 
       <!-- Balance adjustment -->
       <section class="mt-6" aria-labelledby="adjust-title">
-        <h3 id="adjust-title" class="text-sm font-semibold">Adjust balance</h3>
-        <p class="mt-1 text-[13px] text-muted">Virtual VLX only. A reason is required; the balance can never go below zero.</p>
+        <h3 id="adjust-title" class="text-sm font-semibold">{{ 'Adjust balance' | t }}</h3>
+        <p class="mt-1 text-[13px] text-muted">{{ 'Virtual VLX only. A reason is required; the balance can never go below zero.' | t }}</p>
         <form class="mt-3 flex flex-col gap-3" [formGroup]="adjustForm" (ngSubmit)="adjust()" novalidate>
-          <vx-tabs [items]="directions" [value]="direction()" (valueChange)="direction.set($event)" label="Add or remove" />
-          <vx-field label="Amount" for="adjust-amount" [control]="adjustForm.controls.amount">
+          <vx-tabs [items]="directions | tLabels" [value]="direction()" (valueChange)="direction.set($event)" [label]="'Add or remove' | t" />
+          <vx-field [label]="'Amount' | t" for="adjust-amount" [control]="adjustForm.controls.amount">
             <div class="vx-input-wrap">
               <lucide-icon [img]="direction() === 'add' ? icons.plus : icons.minus" [size]="16" class="vx-input-icon" aria-hidden="true" />
               <input id="adjust-amount" class="vx-input num" type="number" inputmode="decimal" min="0.01" step="0.01" formControlName="amount" />
               <span class="vx-input-suffix">VLX</span>
             </div>
           </vx-field>
-          <vx-field label="Reason" for="adjust-reason" [control]="adjustForm.controls.reason" hint="5 to 500 characters. The player sees it.">
+          <vx-field
+            [label]="'Reason' | t"
+            for="adjust-reason"
+            [control]="adjustForm.controls.reason"
+            [hint]="'5 to 500 characters. The player sees it.' | t"
+          >
             <textarea id="adjust-reason" class="vx-input h-20! py-2" formControlName="reason" maxlength="500"></textarea>
           </vx-field>
           <div>
             <button vxButton type="submit" [variant]="direction() === 'add' ? 'primary' : 'danger'" [loading]="adjusting()">
-              {{ direction() === 'add' ? 'Add VLX' : 'Remove VLX' }}
+              {{ direction() === 'add' ? ('Add VLX' | t) : ('Remove VLX' | t) }}
             </button>
           </div>
         </form>
@@ -118,16 +140,18 @@
 
     <!-- History -->
     <section class="mt-8" aria-labelledby="adjustments-title">
-      <h3 id="adjustments-title" class="text-sm font-semibold">Recent adjustments</h3>
+      <h3 id="adjustments-title" class="text-sm font-semibold">{{ 'Recent adjustments' | t }}</h3>
       @if (u.recentAdjustments.length === 0) {
-        <p class="mt-2 text-[13px] text-muted">No adjustments yet.</p>
+        <p class="mt-2 text-[13px] text-muted">{{ 'No adjustments yet.' | t }}</p>
       } @else {
         <ul class="mt-2 divide-y divide-border rounded-control border border-border">
           @for (a of u.recentAdjustments; track a.id) {
             <li class="flex items-start justify-between gap-3 p-3 text-[13px]">
               <span class="min-w-0">
                 <span class="block truncate">{{ a.reason }}</span>
-                <span class="block text-xs text-muted">by {{ a.adminNickname }} · {{ a.createdAt | date: 'MMM d, HH:mm' }}</span>
+                <span class="block text-xs text-muted"
+                  >{{ 'by {nickname}' | t: { nickname: a.adminNickname } }} · {{ a.createdAt | vxDate: 'MMM d, HH:mm' }}</span
+                >
               </span>
               <span class="num shrink-0 font-semibold" [class.text-success]="a.amount > 0" [class.text-danger]="a.amount < 0">
                 {{ a.amount > 0 ? '+' : '' }}{{ a.amount | vlx: false }}
@@ -139,25 +163,25 @@
     </section>
 
     <section class="mt-6" aria-labelledby="tx-title">
-      <h3 id="tx-title" class="text-sm font-semibold">Recent transactions</h3>
+      <h3 id="tx-title" class="text-sm font-semibold">{{ 'Recent transactions' | t }}</h3>
       @if (u.recentTransactions.length === 0) {
-        <p class="mt-2 text-[13px] text-muted">No transactions yet.</p>
+        <p class="mt-2 text-[13px] text-muted">{{ 'No transactions yet.' | t }}</p>
       } @else {
         <div class="vx-table-wrap mt-2 rounded-control border border-border">
           <table class="vx-table vx-table-compact">
             <thead>
               <tr>
-                <th>Date</th>
-                <th>Type</th>
-                <th class="text-right">Amount</th>
-                <th class="text-right">After</th>
+                <th>{{ 'Date' | t }}</th>
+                <th>{{ 'Type' | t }}</th>
+                <th class="text-right">{{ 'Amount' | t }}</th>
+                <th class="text-right">{{ 'After' | t }}</th>
               </tr>
             </thead>
             <tbody>
               @for (tx of u.recentTransactions; track tx.id) {
                 <tr>
-                  <td class="text-muted">{{ tx.createdAt | date: 'MMM d, HH:mm' }}</td>
-                  <td>{{ txLabels[tx.type] }}</td>
+                  <td class="text-muted">{{ tx.createdAt | vxDate: 'MMM d, HH:mm' }}</td>
+                  <td>{{ txLabels[tx.type] | t }}</td>
                   <td class="num text-right" [class.text-success]="tx.amount > 0" [class.text-danger]="tx.amount < 0">
                     {{ tx.amount > 0 ? '+' : '' }}{{ tx.amount | vlx: false }}
                   </td>
@@ -171,7 +195,7 @@
     </section>
 
     <a class="mt-6 inline-flex items-center gap-1.5 text-[13px] font-medium" routerLink="/admin/audit" [queryParams]="{ entityType: 'User', entityId: u.id }">
-      <lucide-icon [img]="icons.audit" [size]="15" aria-hidden="true" />Audit log for this user
+      <lucide-icon [img]="icons.audit" [size]="15" aria-hidden="true" />{{ 'Audit log for this user' | t }}
     </a>
   } @else {
     <div class="flex flex-col gap-4">

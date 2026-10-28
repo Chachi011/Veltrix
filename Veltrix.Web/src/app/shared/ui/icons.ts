@@ -35,6 +35,7 @@ import {
   Inbox,
   Info,
   KeyRound,
+  Languages,
   LayoutDashboard,
   LoaderCircle,
   Lock,
@@ -151,7 +152,10 @@ export const Icons = {
   shieldAlert: ShieldAlert,
   edit: SquarePen,
   userCog: UserCog,
-  pause: CirclePause
+  pause: CirclePause,
+
+  // Phase 5
+  languages: Languages
 } as const;
 
 export type IconName = keyof typeof Icons;

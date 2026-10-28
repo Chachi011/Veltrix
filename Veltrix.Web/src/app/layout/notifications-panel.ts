@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, output } from '@angular/cor
 import { Router } from '@angular/router';
 import { LucideAngularModule, LucideIconData } from 'lucide-angular';
 import { NotificationDto, NotificationType } from '../core/models/api.models';
+import { ServerTextPipe, TranslatePipe } from '../core/i18n/i18n-pipes';
 import { NotificationsStore } from '../core/state/notifications.store';
 import { TimeAgoPipe } from '../shared/pipes';
 // Single files, not the shared/ui barrel: the layout is in the initial bundle, the barrel would pull in every component
@@ -33,19 +34,19 @@ const FALLBACK: TypeStyle = { icon: Icons.bell, tone: 'bg-surface-2 text-muted',
 /** Content of the bell dropdown: newest first, unread ones marked, "Mark all read". */
 @Component({
   selector: 'vx-notifications-panel',
-  imports: [LucideAngularModule, Button, EmptyState, Skeleton, TimeAgoPipe],
+  imports: [LucideAngularModule, Button, EmptyState, Skeleton, TimeAgoPipe, TranslatePipe, ServerTextPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex items-center justify-between gap-3 border-b border-border py-2.5 pr-2 pl-4">
       <h2 class="text-sm font-semibold">
-        Notifications
+        {{ 'Notifications' | t }}
         @if (store.unreadCount() > 0) {
-          <span class="num ml-1 text-xs font-medium text-muted">{{ store.unreadCount() }} new</span>
+          <span class="num ml-1 text-xs font-medium text-muted">{{ '{count} new' | t: { count: store.unreadCount() } }}</span>
         }
       </h2>
       <button vxButton type="button" variant="ghost" size="sm" [disabled]="store.unreadCount() === 0" (click)="store.markAllRead()">
         <lucide-icon [img]="icons.markAllRead" [size]="15" aria-hidden="true" />
-        Mark all read
+        {{ 'Mark all read' | t }}
       </button>
     </div>
 
@@ -62,7 +63,7 @@ const FALLBACK: TypeStyle = { icon: Icons.bell, tone: 'bg-surface-2 text-muted',
         }
       </div>
     } @else if (store.items().length === 0) {
-      <vx-empty-state [icon]="icons.bell" title="You're all caught up" message="Bonuses and account changes will appear here." />
+      <vx-empty-state [icon]="icons.bell" [title]="'You are all caught up' | t" [message]="'Bonuses and account changes will appear here.' | t" />
     } @else {
       <ul class="max-h-[min(420px,calc(100vh-160px))] overflow-y-auto py-1">
         @for (n of store.items(); track n.id) {
@@ -77,13 +78,13 @@ const FALLBACK: TypeStyle = { icon: Icons.bell, tone: 'bg-surface-2 text-muted',
               </span>
               <span class="min-w-0 flex-1">
                 <span class="flex items-start justify-between gap-2">
-                  <span class="text-[13px] font-semibold" [class.text-muted]="n.isRead">{{ n.title }}</span>
+                  <span class="text-[13px] font-semibold" [class.text-muted]="n.isRead">{{ n.title | serverText }}</span>
                   @if (!n.isRead) {
                     <span class="mt-1.5 size-2 shrink-0 rounded-full bg-primary" aria-hidden="true"></span>
-                    <span class="sr-only">(unread)</span>
+                    <span class="sr-only">{{ '(unread)' | t }}</span>
                   }
                 </span>
-                <span class="mt-0.5 line-clamp-2 block text-xs text-muted">{{ n.message }}</span>
+                <span class="mt-0.5 line-clamp-2 block text-xs text-muted">{{ n.message | serverText }}</span>
                 <span class="mt-1 block text-[11px] text-muted">{{ n.createdAt | timeAgo }}</span>
               </span>
             </button>

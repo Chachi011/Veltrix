@@ -10,6 +10,7 @@ import {
   signal,
   viewChild
 } from '@angular/core';
+import { I18n } from '../../../core/i18n/i18n';
 import { ThemeService } from '../../../core/ui/theme.service';
 import { withAlpha } from '../../../shared/color';
 import { curveAt } from '../crash-math';
@@ -58,6 +59,7 @@ export class CrashChart {
   private readonly canvas = viewChild<ElementRef<HTMLCanvasElement>>('canvas');
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly theme = inject(ThemeService);
+  private readonly i18n = inject(I18n);
   private readonly size = signal<Size>({ width: 0, height: 0, dpr: 1 });
   private readonly destroyRef = inject(DestroyRef);
 
@@ -200,7 +202,7 @@ export class CrashChart {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     for (let t = 0; t <= tMax + 1e-9; t += tStep) {
-      ctx.fillText(`${Math.round(t / 1000)}s`, x(t), y(1) + 8);
+      ctx.fillText(this.i18n.t('{count}s', { count: Math.round(t / 1000) }), x(t), y(1) + 8);
     }
   }
 }
