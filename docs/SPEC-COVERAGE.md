@@ -2,7 +2,7 @@
 
 Audit of the project against the specification **VELTRIX-პროექტის-აღწერა.pdf** (14 pages, Oct 23, 2026), a copy of which is kept in this repository as [`docs/SPEC.pdf`](SPEC.pdf), section by section.
 
-- Audited on **2026-10-27** as **Phase 5 · Step 1**, branch `feature/phase5` (Phases 1–4 done and merged into `develop`). Updated at the end of every Phase 5 step; last update: **Step 2 (quality)**, see [§ Phase 5 Step 2](#phase-5-step-2-quality).
+- Audited on **2026-10-27** as **Phase 5 · Step 1**, branch `feature/phase5` (Phases 1–4 done and merged into `develop`). Updated at the end of every Phase 5 step; last update: **Step 3 (optional features)**, see [§ Phase 5 Step 3](#phase-5-step-3-optional-features).
 - **Status:** ✅ done · 🟡 partial · ❌ missing.
 - Items marked **(\*)** in the spec are optional ("after the main part"); they are listed separately in [§ Optional (\*) items](#optional--items).
 - **Added in this pass** = the gap was found by this audit and closed in Step 1 (see [§ Gaps closed in this pass](#gaps-closed-in-this-pass)).
@@ -13,7 +13,7 @@ Audit of the project against the specification **VELTRIX-პროექტი�
 | | ✅ Done | 🟡 Partial | ❌ Missing |
 |---|---|---|---|
 | Required (non-\*) items | 147 | 5 | 0 |
-| Optional (\*) items | 2 | 3 | 13 |
+| Optional (\*) items | 3 | 2 | 13 |
 
 The 5 partial required items are all decisions or Phase 5 delivery work, not missing features: README screenshots, the standalone seed SQL script and the presentation (Phase 5 by plan), the `master` branch name (the spec says `main`) and plain CSS via Tailwind v4 instead of SCSS. Details in [§ Still open](#still-open-non-).
 
@@ -174,7 +174,7 @@ The 5 partial required items are all decisions or Phase 5 delivery work, not mis
 | History page: bets and rounds, filters by date and result, pagination | ✅ | `features/history` (My bets: status + date range; All rounds) |
 | Personal statistics with charts: bet count, win share, average cash-out | ✅ | `features/profile/my-stats.ts`, `GET /api/stats/me` |
 | Settings: dark/light theme, sound, animations off | ✅ | `/settings` (`features/settings`), `PreferencesStore`, `SoundService`, `GET/PUT /api/profile/preferences` (`UserPreference` table), `[data-motion='reduce']` in `styles.css` — **sound + animations + account sync added in this pass** (theme existed) |
-| Georgian and English (\*) | ❌ | see optional items |
+| Georgian and English (\*) | ✅ | Georgian default + English, switch in Settings / account menu / top bar for guests; see [§ Phase 5 Step 3](#phase-5-step-3-optional-features) |
 
 ### 4.8 Self-control tools
 
@@ -349,7 +349,7 @@ Beyond the spec: 19 supporting tables (30 in total), listed in README → Databa
 | Chat with moderation | 4.5, 4.9 | ❌ | `ChatMessage`, `ChatMute` tables exist |
 | Achievements / badges | 4.6 | ❌ | `Achievement` (5 seeded), `UserAchievement` tables; no unlock logic or endpoints |
 | Levels and XP | 4.6 | 🟡 | `Level` table (10 seeded) and `PlayerStats.Xp/LevelNumber`; XP is never awarded, so everyone is level 1 |
-| Georgian and English | 4.7 | 🟡 | Language columns on `UserPreference` and `StaticPage`; `GET /api/pages/{slug}?lang=` falls back to English; no UI translation |
+| Georgian and English | 4.7 | ✅ | Whole UI, API messages and Rules pages in Georgian (default) and English; `core/i18n`, `src/i18n/ka.json`, `UserPreference.Language` — Step 3 |
 | Page: why Crash has no winning strategy | 4.8 | ✅ | `/rules` renders the seeded `no-winning-strategy` page — **added in this pass** |
 | CSV export of reports | 4.10 | ❌ | |
 | Email notifications | 4.11 | ❌ | Only the development email sender (logs reset codes) |
@@ -388,6 +388,18 @@ Beyond the spec: 19 supporting tables (30 in total), listed in README → Databa
 | **Development demo seed:** 15 demo players (`<nickname>@demo.veltrix.dev` / `Player123!`) with 30 days of play (≈ 230 rounds, 1300 bets), played by the real domain and settlement code with a clock set to the past: real seeds and crash points, ledger rows for every bet / win / daily bonus, cash-outs below the crash point, PlayerStats and daily statistics recalculated. Runs once, only with `Database:SeedDemoData` (Development). `DemoDataSeederTests` checks the rules on SQL Server | `Persistence/DemoDataSeeder.cs`, `appsettings.Development.json` |
 | Warnings: `dotnet build --no-incremental` 0, `ng build` 0; the Karma log no longer shows a 404 for the web font (unit tests do not load fonts) | `angular.json` (test target) |
 
+## Phase 5 Step 3 (optional features)
+
+| Feature | What | Where |
+|---|---|---|
+| Preparation | The top-bar dropdowns (account menu, notifications) load on first use: the CDK Overlay/Menu left the first download (499 → 405 kB), making room for the features below in the 500 kB budget | `layout/top-bar-popups.ts` |
+| **(1) Georgian + English** | Georgian is the default, English the second language; instant switch (no reload) in Settings → Language, the account menu, and a top-bar button for guests; saved on the account (`GET/PUT /api/profile/preferences` → `language`, validated `ka`/`en`); existing accounts moved to `ka` by the migration `GeorgianDefaultLanguage` | `core/i18n/*`, `PreferencesStore`, `settings-page.ts`, `UserPreference` |
+| | ALL Georgian text in one file `Veltrix.Web/src/i18n/ka.json` (685 UI texts, every API message, the two Rules pages), natural Georgian; Crash, Cash out and VLX kept | `src/i18n/ka.json` |
+| | API messages (errors, notifications, ledger reasons, audit reasons, level titles) shown in Georgian by the client, with placeholders for changing values | `I18n.server()`, `serverText` / `knownText` pipes |
+| | Georgian dates (month names), browser tab titles, Noto Sans Georgian font, layout fixes for longer text | `vxDate` pipe, `TranslatedTitleStrategy`, DESIGN.md §8b |
+| | Guards: `npm run i18n:check` (0 missing / 0 unused), Jasmine `i18n.spec.ts` (+12), xUnit `GeorgianTranslationTests` (every user-facing API message has Georgian), integration `PreferencesApiTests`; browser sweep 132 loads in each language at 1440 / 768 / 375, both themes | `scripts/i18n-check.mjs`, tests |
+| | **Bug found and fixed:** the content-page fallback used the UI default language, so when it became Georgian every Rules page answered 404; the fallback is now always English (`ContentPage_IsServedFromTheSeededTable_WithEnglishAsTheFallback` failed before the fix) | `StaticPageService` |
+
 ## Decisions to review
 
 Choices made while working without the author. Each one follows the spec and DESIGN.md as closely as possible; all are easy to change.
@@ -406,6 +418,13 @@ Choices made while working without the author. Each one follows the spec and DES
 | The demo seed runs automatically on the first Development start (`Database:SeedDemoData: true`) and also ran on the existing development database | The step asked for a non-empty leaderboard, charts and dashboard in development; it only ADDS rows (15 users, their rounds, bets and ledger) and never touches existing accounts (a nickname that is already taken is skipped) | Set `SeedDemoData` to `false`; the demo players can be blocked from the admin panel |
 | On a database that already had rounds, the demo rounds got the next round numbers although they are dated in the past (on a fresh database the numbers follow the dates) | Round numbers must stay unique and increasing per game; renumbering existing rounds would change real data | — (only the order of the round history looks unusual on the existing development database) |
 | Demo players are ordinary Player accounts with the same password as the test players (`Player123!`) | Easy to log in as one during the demo to show filled-in profile charts | — |
+| Translation keys are the English texts themselves (no `crash.betPanel.title`-style ids); English needs no file | Templates stay readable, and a missing translation shows English instead of a broken id. `npm run i18n:check` keeps code and ka.json in step | — |
+| The Georgian Rules pages are in `ka.json` (`pages`), not as `ka` rows of the StaticPages table | Your instruction: ALL Georgian text in one file. The table and `GET /api/pages/{slug}?lang=` still support languages | Add `ka` rows to StaticPages and drop `pages` from ka.json |
+| API messages are translated in the browser (ka.json `server`), the API itself stays English | Keeps the one-file rule and the API simple; unknown messages (e.g. free text an admin typed) stay as written | Server-side localization (resx) |
+| Existing accounts were switched to `ka` by a migration | Nobody could choose a language before, so the stored `en` was only the old default | — |
+| Amounts and multipliers keep the international format (`1,234.56`, `2.35x`) in Georgian too; dates are Georgian | One number format across the game (players compare multipliers); Georgian betting sites show multipliers the same way | Use `formatNumber` with the `ka` locale |
+| Kept untranslated besides Crash / Cash out / VLX: "Provably fair" (nav and badge) and "seed" | Established technical terms of crash games; the home page explains them in Georgian ("დამტკიცებადი სამართლიანობა") | Edit ka.json |
+| "Responsible play" is "უსაფრთხო თამაში" (not "პასუხისმგებლიანი თამაში") | The longer phrase did not fit the sidebar; both are common | Edit ka.json |
 
 ## Still open (non-\*)
 

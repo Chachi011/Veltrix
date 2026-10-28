@@ -70,7 +70,7 @@ Veltrix.Web            Angular client: core/ (api, auth, http, realtime, state, 
 | 2 | Round engine, bets, cash-out, wallet, SignalR, provably fair (**MVP gate**) | **Done** (merged into `develop`) |
 | 3 | Angular UI: design system, login/register, Crash page (Canvas), wallet, history, profile, responsive, dark/light | **Done** (verified by the author on desktop and phone; merged into `develop`) |
 | 4 | Operator/Admin panels, leaderboard, limits/self-exclusion UI, notifications, settings, charts | **Done** (checked by the author; merged into `develop`) |
-| 5 | Spec audit, quality, optional (*) features, delivery (4 steps below) | **In progress** on `feature/phase5`. Steps 1 and 2 **done**; next: Step 3 (optional features). Working autonomously: commit after every step, never push |
+| 5 | Spec audit, quality, optional (*) features, delivery (4 steps below) | **In progress** on `feature/phase5`. Steps 1 and 2 **done**; Step 3 in progress: (1) Georgian + English **done**. Working autonomously: commit after every feature, never push |
 
 ### Phase 5 steps (update this file and `docs/SPEC-COVERAGE.md` at the end of every step; unclear choices go to "Decisions to review" in SPEC-COVERAGE.md)
 
@@ -89,6 +89,7 @@ dotnet test                                                # backend tests (inte
 cd Veltrix.Web && npm start                                # http://localhost:4200, proxies /api /hubs /uploads to :5295
 cd Veltrix.Web && npx ng test --watch=false --browsers=ChromeHeadless
 cd Veltrix.Web && npx ng build                             # production build: must have no warnings
+cd Veltrix.Web && npm run i18n:check                       # every UI text has Georgian in src/i18n/ka.json (0 missing, 0 unused)
 dotnet ef migrations add <Name> --project Veltrix.Infrastructure --startup-project Veltrix.API --output-dir Persistence/Migrations
 dotnet ef migrations has-pending-model-changes --project Veltrix.Infrastructure --startup-project Veltrix.API
 ```
@@ -110,4 +111,5 @@ Stop the running API before `dotnet build` (it locks the DLLs). Check that port 
 - **Shell + backticks:** never write files containing backticks through bash `node -e` / heredocs (the shell eats them and has corrupted files); use the Write/Edit tools.
 - **Tests:** every bug fix gets a test that fails without the fix. Integration tests (`Veltrix.Tests/Integration`) share ONE `VeltrixApiFactory` (collection "api"): a throwaway SQL Server database, the engine loop off (tests move rounds with `RoundSettlementService`), a `TestClock` that can freeze/advance (keep total advances well under the 30 s JWT clock skew), and one fake IP per client (`X-Test-Client-IP`) so the auth rate limit does not bleed between tests.
 - **Demo data:** `DemoDataSeeder` must keep using the real domain and settlement code (`GameRound.Create`, `Bet.Place`, wallet `Debit`/`Credit`, `RoundSettlementService`) with a past clock; never insert bets, rounds or balances directly. Nothing may be dated after "now". `DemoDataSeederTests` guards the rules.
+- **Languages (ka default, en):** the code is written in English and the English text is the key: templates use `{{ 'Place bet' | t }}` (`t: { name: value }` for `{name}` placeholders), TypeScript uses `i18n.t('...')`, texts in constants use `mark('...')` and are translated where shown (`| t`, `| tLabels` for tab/select items). Translate each branch of a ternary (`cond ? ('A' | t) : ('B' | t)`), never `(cond ? 'A' : 'B') | t` (the checker cannot see it). A sentence with a styled value uses `tSplit`. API messages: `| serverText` / `i18n.server()`; free text that may be a server text: `| knownText`. Dates: `| vxDate` (not `date`). ALL Georgian text is in `Veltrix.Web/src/i18n/ka.json` (`ui`, `server`, `pages`); keep Crash, Cash out and VLX untranslated. Every new text: add it to ka.json in natural Georgian and run `npm run i18n:check` (0 missing, 0 unused). Server messages are guarded by `GeorgianTranslationTests` (xUnit) and ka.json by `i18n.spec.ts` (placeholders, terms). Avoid apostrophes inside single-quoted template strings (rephrase).
 - **ProblemDetails content type:** controllers carry `[Produces("application/json")]`, which rewrites the content type of every `ObjectResult`. An error written from a filter must be a `JsonResult` with `ContentType = "application/problem+json"` (see `FluentValidationFilter`).

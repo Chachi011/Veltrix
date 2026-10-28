@@ -16,7 +16,7 @@ Implementation: tokens and base styles in [`Veltrix.Web/src/styles.css`](../Velt
 | Overlays | **Angular CDK**: Dialog (modals and drawers), Menu (account menu), Overlay (notifications panel). The top-bar dropdowns live in `layout/top-bar-popups.ts`, loaded on the first click (prefetched when the browser is idle), so the CDK Overlay and Menu code (~75 kB) is not part of the first download |
 | Charts | **Chart.js 4** wrapped in `vx-chart` (token colors, design-system fonts). Loaded with a dynamic `import()` on first use, so pages without charts never download it |
 | Icons | **lucide-angular**. Only the icons listed in `shared/ui/icons.ts` are bundled |
-| Fonts | **Inter** (UI) and **JetBrains Mono** (all numbers), the Google Fonts families served from npm (`@fontsource-variable/*`) so they also work offline |
+| Fonts | **Inter** (UI) and **JetBrains Mono** (all numbers), the Google Fonts families served from npm (`@fontsource-variable/*`) so they also work offline. **Noto Sans Georgian** for Georgian letters (Inter has none); its `unicode-range` means only pages that show Georgian download it |
 | Not allowed | Bootstrap, the default Angular Material look, any other component library |
 
 The global stylesheet is plain CSS (`styles.css`), because Tailwind v4 does not support Sass. Component styles may use SCSS but must not use Tailwind directives.
@@ -92,6 +92,8 @@ Rule: write **complete class strings** (e.g. a `Record<Variant, string>`), never
 | Hints, table headers | 11–12px; table headers uppercase, `tracking-wide`, muted |
 | **All numbers** (balance, multiplier, amounts, countdowns, hashes) | `num` utility: JetBrains Mono, `tabular-nums`, so digits don't shift while they change |
 | Live multiplier | 64–96px mono semibold |
+| Georgian text | Same sizes and weights; the browser takes the Georgian letters from Noto Sans Georgian (next in the `--font-sans` stack) |
+| Big number + unit | The unit is smaller and muted ("5 s" / "5 წმ" countdowns), so a Georgian unit does not dominate the number |
 
 Never: gradients on text, all-caps body text, more than two font families.
 
@@ -205,6 +207,20 @@ Rules:
 
 ---
 
+## 8b. Language (Georgian and English)
+
+| Rule | Value |
+|---|---|
+| Default | **Georgian**; English is the second language. `<html lang>` follows the choice |
+| Switch | Guests: a ghost button in the top bar (languages icon + "EN" / "KA"). Logged in: Settings → Language (tabs, each language named in its own language: ქართული / English) and an item in the account menu. Switching is instant (no reload) and is saved on the account |
+| Where the text lives | The code is written in English and shows text through the `t` pipe; **all Georgian text is in one file, `src/i18n/ka.json`** (UI texts, API messages, Rules pages). A missing translation shows the English text |
+| Terms kept as they are | **Crash, Cash out, VLX** (and "Provably fair", "seed" on the fairness page) |
+| Numbers | Amounts and multipliers keep one international format in both languages (`1,234.56 VLX`, `2.35x`, mono); dates use the language's month names |
+| Longer text | Georgian is about 30% longer: rows of buttons and filters use `flex-wrap`, labels never get fixed widths, the top-bar bonus button is icon-only below 1024px, sidebar labels are kept short ("უსაფრთხო თამაში") |
+| Word order | A sentence with a highlighted value is translated whole (`tSplit`), because Georgian puts suffixes after the number ("Cash out 2.00x-ზე") |
+
+---
+
 ## 9. Crash game page
 
 - Large Canvas: the curve in `--accent` (turns `--danger` after the crash) with a soft fill below, faint grid (muted at 14%), mono axis labels. Canvas needs concrete colors, so tokens are read with `getComputedStyle` and converted to rgba.
@@ -291,3 +307,4 @@ After every page, check at **1440px, 768px and 375px**, in **both themes**:
 | 2026-10-27 | Spec coverage pass: Home, Games catalog, Player profile, Rules and Settings pages (§9b); `vx-markdown`; Home / Games / Rules in the navigation, Settings in the account menu, logo → Home |
 | 2026-10-27 | Settings: theme System / Dark / Light (System follows the device live), "Animations off" = reduced motion (`data-motion`), game sounds for the player's own actions only; all saved on the account |
 | 2026-10-28 | Top-bar dropdowns (account menu, notifications) load on demand: the initial download went from 499 kB to 405 kB with the same look and keyboard behavior |
+| 2026-10-28 | Georgian and English (§8b): Georgian default, Noto Sans Georgian for Georgian letters, language button for guests, Settings → Language, all Georgian in `ka.json`; the bonus text button only from 1024px; big countdowns show a small unit |
