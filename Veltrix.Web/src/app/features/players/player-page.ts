@@ -8,10 +8,23 @@ import { AuthStore } from '../../core/auth/auth.store';
 import { LocalDatePipe, ServerTextPipe, TranslatePipe } from '../../core/i18n/i18n-pipes';
 import { PublicProfileDto } from '../../core/models/api.models';
 import { VlxPipe } from '../../shared/pipes';
-import { Avatar, Badge, Button, Card, EmptyState, Icons, MultiplierPill, PageHeader, Skeleton, StatCard } from '../../shared/ui';
+import {
+  Avatar,
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  Icons,
+  LevelProgress,
+  MultiplierPill,
+  PageHeader,
+  Skeleton,
+  StatCard,
+  achievementIcon
+} from '../../shared/ui';
 
 /**
- * Public player profile (spec 4.6): nickname, avatar, level and best results. Open to guests.
+ * Public player profile (spec 4.6): nickname, avatar, level, achievements and best results. Open to guests.
  * Built from a separate DTO that has no private fields (email, balance, date of birth), so they can never leak.
  */
 @Component({
@@ -28,6 +41,7 @@ import { Avatar, Badge, Button, Card, EmptyState, Icons, MultiplierPill, PageHea
     Button,
     Card,
     EmptyState,
+    LevelProgress,
     MultiplierPill,
     PageHeader,
     Skeleton,
@@ -66,6 +80,28 @@ import { Avatar, Badge, Button, Card, EmptyState, Icons, MultiplierPill, PageHea
           }
         </div>
       </vx-card>
+
+      <div class="mt-4 grid gap-4 md:mt-6 md:gap-6 lg:grid-cols-2">
+        <vx-card [title]="'Level' | t">
+          <vx-level-progress [profile]="p" />
+        </vx-card>
+        <vx-card [title]="'Achievements' | t">
+          @if (p.badges.length === 0) {
+            <p class="text-sm text-muted">{{ 'No achievements yet.' | t }}</p>
+          } @else {
+            <ul class="flex flex-wrap gap-2">
+              @for (badge of p.badges; track badge.code) {
+                <li
+                  class="flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/10 py-1 pr-3 pl-2 text-xs font-medium text-accent"
+                  [title]="'Unlocked {date}' | t: { date: (badge.unlockedAt | vxDate: 'mediumDate') }"
+                >
+                  <lucide-icon [img]="iconFor(badge.icon)" [size]="14" aria-hidden="true" />{{ badge.title | serverText }}
+                </li>
+              }
+            </ul>
+          }
+        </vx-card>
+      </div>
 
       <div class="mt-4 grid grid-cols-2 gap-4 md:mt-6 md:gap-6 lg:grid-cols-4">
         <vx-stat-card [label]="'Bets placed' | t" [value]="p.totalBets" [icon]="icons.history" />
@@ -128,6 +164,7 @@ export class PlayerPage {
   readonly nickname = input.required<string>();
 
   protected readonly icons = Icons;
+  protected readonly iconFor = achievementIcon;
   protected readonly profile = signal<PublicProfileDto | null>(null);
   protected readonly notFound = signal(false);
   protected readonly isMe = () => this.profile()?.nickname.toLowerCase() === this.auth.user()?.nickname.toLowerCase();

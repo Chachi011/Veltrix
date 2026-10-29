@@ -3,11 +3,13 @@ using Microsoft.Extensions.Logging;
 using Veltrix.Application.Common.Exceptions;
 using Veltrix.Application.Common.Files;
 using Veltrix.Application.Common.Interfaces;
+using Veltrix.Application.DTOs.Achievements;
 using Veltrix.Application.DTOs.Profile;
 using Veltrix.Application.Interfaces;
 using Veltrix.Domain.Common;
 using Veltrix.Domain.Entities;
 using Veltrix.Domain.Enums;
+using Veltrix.Domain.Progress;
 using Veltrix.Infrastructure.Persistence;
 
 namespace Veltrix.Infrastructure.Services;
@@ -147,6 +149,7 @@ public sealed class ProfileService : IProfileService
                 MemberSince = u.CreatedAt,
                 Level = u.Stats != null ? u.Stats.LevelNumber : 1,
                 LevelTitle = u.Stats != null && u.Stats.Level != null ? u.Stats.Level.Title : string.Empty,
+                Xp = u.Stats != null ? u.Stats.Xp : 0,
                 TotalBets = u.Stats != null ? u.Stats.TotalBets : 0,
                 CashOutCount = u.Stats != null ? u.Stats.CashOutCount : 0,
                 BiggestMultiplier = u.Stats != null ? u.Stats.BiggestMultiplier : 0,
@@ -166,7 +169,31 @@ public sealed class ProfileService : IProfileService
             })
             .FirstOrDefaultAsync(ct);
 
-        return profile ?? throw new NotFoundException($"Player '{nickname}' was not found.");
+        if (profile is null)
+            throw new NotFoundException($"Player '{nickname}' was not found.");
+
+        // Level progress: from the current level's XP to the next level's (the level table has 10 rows)
+        var levels = await _db.Levels.AsNoTracking().ToListAsync(ct);
+        profile.LevelXp = levels.FirstOrDefault(l => l.Number == profile.Level)?.XpRequired ?? 0;
+        var next = Experience.NextLevel(profile.Level, levels);
+        profile.NextLevel = next?.Number;
+        profile.NextLevelTitle = next?.Title;
+        profile.NextLevelXp = next?.XpRequired;
+
+        profile.Badges = await _db.UserAchievements
+            .AsNoTracking()
+            .Where(u => u.User!.Nickname == nickname)
+            .OrderByDescending(u => u.UnlockedAt)
+            .Select(u => new BadgeDto
+            {
+                Code = u.Achievement!.Code,
+                Title = u.Achievement.Title,
+                Icon = u.Achievement.Icon,
+                UnlockedAt = u.UnlockedAt
+            })
+            .ToListAsync(ct);
+
+        return profile;
     }
 
     public async Task<UserPreferencesDto> GetMyPreferencesAsync(CancellationToken ct = default)

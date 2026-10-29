@@ -1,4 +1,5 @@
 import {
+  type LucideIconData,
   Activity,
   ArrowRight,
   Ban,
@@ -21,6 +22,7 @@ import {
   CircleX,
   Clock,
   Copy,
+  Crosshair,
   Crown,
   ExternalLink,
   Eye,
@@ -58,6 +60,7 @@ import {
   ShieldAlert,
   ShieldCheck,
   SquarePen,
+  Star,
   Sun,
   Timer,
   TrendingDown,
@@ -155,7 +158,25 @@ export const Icons = {
   pause: CirclePause,
 
   // Phase 5
-  languages: Languages
+  languages: Languages,
+  star: Star,
+  target: Crosshair
 } as const;
 
 export type IconName = keyof typeof Icons;
+
+/**
+ * The server stores an icon NAME per achievement (database seed); the client chooses the picture.
+ * "coins" shows the VLX gem on purpose: VLX is not money, so the UI never draws coins.
+ */
+const ACHIEVEMENT_ICONS: Record<string, LucideIconData> = {
+  rocket: Icons.rocket,
+  coins: Icons.vlx,
+  bolt: Icons.zap,
+  trophy: Icons.trophy,
+  star: Icons.star,
+  target: Icons.target,
+  timer: Icons.timer
+};
+
+export const achievementIcon = (name: string): LucideIconData => ACHIEVEMENT_ICONS[name] ?? Icons.medal;

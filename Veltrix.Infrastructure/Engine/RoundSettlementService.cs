@@ -5,6 +5,7 @@ using Veltrix.Application.DTOs.Rounds;
 using Veltrix.Domain.Common;
 using Veltrix.Domain.Entities;
 using Veltrix.Domain.Enums;
+using Veltrix.Domain.Progress;
 using Veltrix.Infrastructure.Persistence;
 using Veltrix.Infrastructure.Services;
 
@@ -17,6 +18,12 @@ public sealed record CashOutNotice(int UserId, string Nickname, decimal Multipli
 public sealed record BalanceChange(int UserId, decimal Balance);
 
 public sealed record CancelOutcome(GameRound Round, RoundCancellationDto Cancellation, IReadOnlyList<BalanceChange> Balances);
+
+/// <summary>
+/// The crashed round, plus what the engine must push live after the commit: new balances (achievement rewards)
+/// and new bell notifications (achievement unlocked, level up).
+/// </summary>
+public sealed record CrashOutcome(GameRound Round, IReadOnlyList<BalanceChange> Balances, IReadOnlyList<Notification> Notifications);
 
 /// <summary>
 /// Every database step of a round's life. The engine decides WHEN; this class decides WHAT is saved.
@@ -97,10 +104,11 @@ public sealed class RoundSettlementService
         });
 
     /// <summary>
-    /// The round crashes: every bet that is still active is lost, and player statistics are updated.
-    /// One transaction, so the round is never "crashed" with some bets still unsettled.
+    /// The round crashes: every bet that is still active is lost, player statistics and XP are updated, and
+    /// achievements and level-ups are awarded. One transaction, so the round is never "crashed" with some
+    /// bets still unsettled, and a reward is never paid twice.
     /// </summary>
-    public Task<GameRound> CrashAsync(int roundId, CancellationToken ct) =>
+    public Task<CrashOutcome> CrashAsync(int roundId, CancellationToken ct) =>
         ConcurrencyRetry.ExecuteAsync(_db, async () =>
         {
             await using var transaction = await _db.Database.BeginTransactionAsync(ct);
@@ -115,16 +123,17 @@ public sealed class RoundSettlementService
             foreach (var bet in bets.Where(b => b.Status == BetStatus.Active))
                 bet.MarkLost();
 
-            await UpdatePlayerStatsAsync(bets, now, ct);
+            var stats = await UpdatePlayerStatsAsync(bets, now, ct);
+            var (balances, notifications) = await AwardProgressAsync(bets, stats, now, ct);
 
             // If a manual cash-out changed one of these bets meanwhile, this throws a concurrency
             // error and the whole step is retried with fresh data
             await _db.SaveChangesAsync(ct);
             await transaction.CommitAsync(ct);
 
-            _logger.LogInformation("Round {RoundId} crashed at {CrashPoint}x; {BetCount} bets settled ({Lost} lost)",
-                round.Id, round.CrashPoint, bets.Count, bets.Count(b => b.Status == BetStatus.Lost));
-            return round;
+            _logger.LogInformation("Round {RoundId} crashed at {CrashPoint}x; {BetCount} bets settled ({Lost} lost), {Rewards} rewards",
+                round.Id, round.CrashPoint, bets.Count, bets.Count(b => b.Status == BetStatus.Lost), notifications.Count);
+            return new CrashOutcome(round, balances, notifications);
         });
 
     /// <summary>Cancels a round and gives every active bet its stake back.</summary>
@@ -229,7 +238,8 @@ public sealed class RoundSettlementService
         return round;
     }
 
-    private async Task UpdatePlayerStatsAsync(IReadOnlyCollection<Bet> bets, DateTime now, CancellationToken ct)
+    /// <summary>Totals, records and XP of every player in the round (PlayerStats.AddSettledBet, a Domain rule).</summary>
+    private async Task<Dictionary<int, PlayerStats>> UpdatePlayerStatsAsync(IReadOnlyCollection<Bet> bets, DateTime now, CancellationToken ct)
     {
         var userIds = bets.Select(b => b.UserId).Distinct().ToList();
         var stats = await _db.PlayerStats.Where(s => userIds.Contains(s.UserId)).ToDictionaryAsync(s => s.UserId, ct);
@@ -243,19 +253,71 @@ public sealed class RoundSettlementService
                 stats[bet.UserId] = s;
             }
 
-            s.TotalBets++;
-            s.TotalWagered += bet.Amount;
+            s.AddSettledBet(bet, now);
+        }
 
-            if (bet.Status == BetStatus.CashedOut)
+        return stats;
+    }
+
+    /// <summary>
+    /// Achievements and levels (spec 4.6) for the players of this round. Rules: AchievementRules / Experience in the Domain.
+    /// An unlocked achievement adds its XP and pays its VLX reward into the wallet with a ledger row (Bonus, unique key
+    /// "achievement:{user}:{code}", so it can never be paid twice); a higher level and each unlock create a bell notification.
+    /// Everything is saved with the crash itself.
+    /// </summary>
+    private async Task<(List<BalanceChange> Balances, List<Notification> Notifications)> AwardProgressAsync(
+        IReadOnlyCollection<Bet> bets, Dictionary<int, PlayerStats> stats, DateTime now, CancellationToken ct)
+    {
+        var notifications = new List<Notification>();
+        var rewarded = new Dictionary<int, Wallet>();
+        if (stats.Count == 0)
+            return (new List<BalanceChange>(), notifications);
+
+        var userIds = stats.Keys.ToList();
+        var achievements = await _db.Achievements.AsNoTracking().OrderBy(a => a.Id).ToListAsync(ct);
+        var levels = await _db.Levels.AsNoTracking().ToListAsync(ct);
+        var unlocked = (await _db.UserAchievements
+                .Where(u => userIds.Contains(u.UserId))
+                .Select(u => new { u.UserId, u.AchievementId })
+                .ToListAsync(ct))
+            .Select(u => (u.UserId, u.AchievementId))
+            .ToHashSet();
+
+        foreach (var (userId, s) in stats)
+        {
+            var betsOfThePlayer = bets.Where(b => b.UserId == userId).ToList();
+
+            foreach (var achievement in achievements)
             {
-                var payout = bet.Payout ?? 0;
-                s.CashOutCount++;
-                s.TotalPayout += payout;
-                s.BiggestWin = Math.Max(s.BiggestWin, payout - bet.Amount);
-                s.BiggestMultiplier = Math.Max(s.BiggestMultiplier, bet.CashOutMultiplier ?? 0);
+                if (unlocked.Contains((userId, achievement.Id)) || !AchievementRules.IsEarned(achievement.Code, s, betsOfThePlayer))
+                    continue;
+
+                _db.UserAchievements.Add(new UserAchievement { UserId = userId, AchievementId = achievement.Id, UnlockedAt = now });
+                s.AddXp(achievement.XpReward, now);
+
+                if (achievement.VlxReward > 0)
+                {
+                    if (!rewarded.TryGetValue(userId, out var wallet))
+                    {
+                        wallet = await _db.Wallets.FirstAsync(w => w.UserId == userId, ct);
+                        rewarded[userId] = wallet;
+                    }
+                    wallet.Credit(achievement.VlxReward, TransactionType.Bonus, $"achievement:{userId}:{achievement.Code}", now,
+                        $"Achievement: {achievement.Title}");
+                }
+
+                notifications.Add(UserNotifications.Add(_db, userId, NotificationTypes.AchievementUnlocked, "Achievement unlocked",
+                    $"{achievement.Title}: +{achievement.XpReward} XP, +{achievement.VlxReward} VLX.", now));
             }
 
-            s.UpdatedAt = now;
+            if (s.UpdateLevel(levels))
+            {
+                var level = levels.First(l => l.Number == s.LevelNumber);
+                notifications.Add(UserNotifications.Add(_db, userId, NotificationTypes.LevelUp, "Level up",
+                    $"You reached level {level.Number}: {level.Title}.", now));
+            }
         }
+
+        return (rewarded.Values.Select(w => new BalanceChange(w.UserId, w.Balance)).ToList(), notifications);
     }
 }

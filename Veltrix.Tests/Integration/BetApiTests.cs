@@ -138,7 +138,8 @@ public class BetApiTests
         var settled = Assert.Single(myBets.Items);
         Assert.Equal(BetStatus.Lost, settled.Status);
         Assert.Equal(round.CrashPoint, settled.CrashPoint); // revealed now that the round is over
-        Assert.Equal(990m, await BalanceAsync(client));
+        // −10 for the lost bet, +10 for the "First bet" achievement unlocked by this settlement
+        Assert.Equal(1000m, await BalanceAsync(client));
     }
 
     [Fact]

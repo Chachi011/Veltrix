@@ -26,7 +26,9 @@ const STYLES: Record<NotificationType, TypeStyle> = {
   AccountBlocked: { icon: Icons.block, tone: 'bg-danger/12 text-danger', link: null },
   AccountUnblocked: { icon: Icons.unlock, tone: 'bg-success/12 text-success', link: null },
   PasswordChanged: { icon: Icons.key, tone: 'bg-warning/12 text-warning', link: '/profile' },
-  SelfExcluded: { icon: Icons.pause, tone: 'bg-warning/12 text-warning', link: '/limits' }
+  SelfExcluded: { icon: Icons.pause, tone: 'bg-warning/12 text-warning', link: '/limits' },
+  AchievementUnlocked: { icon: Icons.medal, tone: 'bg-accent/12 text-accent', link: '/profile' },
+  LevelUp: { icon: Icons.trophy, tone: 'bg-accent/12 text-accent', link: '/profile' }
 };
 
 const FALLBACK: TypeStyle = { icon: Icons.bell, tone: 'bg-surface-2 text-muted', link: null };
@@ -38,13 +40,13 @@ const FALLBACK: TypeStyle = { icon: Icons.bell, tone: 'bg-surface-2 text-muted',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex items-center justify-between gap-3 border-b border-border py-2.5 pr-2 pl-4">
-      <h2 class="text-sm font-semibold">
+      <h2 class="min-w-0 text-sm font-semibold">
         {{ 'Notifications' | t }}
         @if (store.unreadCount() > 0) {
           <span class="num ml-1 text-xs font-medium text-muted">{{ '{count} new' | t: { count: store.unreadCount() } }}</span>
         }
       </h2>
-      <button vxButton type="button" variant="ghost" size="sm" [disabled]="store.unreadCount() === 0" (click)="store.markAllRead()">
+      <button vxButton type="button" variant="ghost" size="sm" class="shrink-0" [disabled]="store.unreadCount() === 0" (click)="store.markAllRead()">
         <lucide-icon [img]="icons.markAllRead" [size]="15" aria-hidden="true" />
         {{ 'Mark all read' | t }}
       </button>

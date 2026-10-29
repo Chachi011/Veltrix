@@ -68,8 +68,14 @@
     <vx-stat-card [label]="'Biggest win' | t" [value]="stats()?.biggestWin ?? null" [decimals]="2" unit="VLX" [icon]="icons.vlx" />
   </div>
 
-  <!-- Personal statistics with charts (players; staff do not bet) -->
+  <!-- Level, achievements and personal statistics (players; staff do not bet) -->
   @if (p.role === 'Player') {
+    <h2 class="mt-8 mb-4 text-[15px] font-semibold md:mt-10">{{ 'Level and achievements' | t }}</h2>
+    @if (stats(); as s) {
+      <vx-card class="mb-4 md:mb-6"><vx-level-progress [profile]="s" /></vx-card>
+    }
+    <vx-my-achievements />
+
     <h2 class="mt-8 mb-4 text-[15px] font-semibold md:mt-10">{{ 'Statistics' | t }}</h2>
     <vx-my-stats />
   }

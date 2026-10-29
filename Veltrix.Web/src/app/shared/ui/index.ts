@@ -9,6 +9,7 @@ export * from './copy-button';
 export * from './empty-state';
 export * from './field';
 export * from './hash-badge';
+export * from './level-progress';
 export * from './icons';
 export * from './markdown';
 export * from './modal';

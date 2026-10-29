@@ -50,6 +50,9 @@ namespace Veltrix.Infrastructure.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<int>("VlxReward")
+                        .HasColumnType("int");
+
                     b.Property<int>("XpReward")
                         .HasColumnType("int");
 
@@ -60,6 +63,8 @@ namespace Veltrix.Infrastructure.Persistence.Migrations
 
                     b.ToTable("Achievements", null, t =>
                         {
+                            t.HasCheckConstraint("CK_Achievements_VlxReward", "[VlxReward] >= 0");
+
                             t.HasCheckConstraint("CK_Achievements_XpReward", "[XpReward] >= 0");
                         });
 
@@ -71,6 +76,7 @@ namespace Veltrix.Infrastructure.Persistence.Migrations
                             Description = "Place your first bet.",
                             Icon = "rocket",
                             Title = "First bet",
+                            VlxReward = 10,
                             XpReward = 10
                         },
                         new
@@ -80,6 +86,7 @@ namespace Veltrix.Infrastructure.Persistence.Migrations
                             Description = "Cash out before the crash for the first time.",
                             Icon = "coins",
                             Title = "First cash-out",
+                            VlxReward = 20,
                             XpReward = 20
                         },
                         new
@@ -89,6 +96,7 @@ namespace Veltrix.Infrastructure.Persistence.Migrations
                             Description = "Cash out at 10.00x or higher.",
                             Icon = "bolt",
                             Title = "To the moon",
+                            VlxReward = 100,
                             XpReward = 100
                         },
                         new
@@ -98,6 +106,7 @@ namespace Veltrix.Infrastructure.Persistence.Migrations
                             Description = "Place 100 bets.",
                             Icon = "trophy",
                             Title = "Regular",
+                            VlxReward = 50,
                             XpReward = 50
                         },
                         new
@@ -107,7 +116,28 @@ namespace Veltrix.Infrastructure.Persistence.Migrations
                             Description = "Win 1000 VLX or more in a single bet.",
                             Icon = "star",
                             Title = "Big win",
+                            VlxReward = 100,
                             XpReward = 100
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Code = "CASHOUTS_50",
+                            Description = "Cash out 50 times.",
+                            Icon = "target",
+                            Title = "Sharp eye",
+                            VlxReward = 50,
+                            XpReward = 75
+                        },
+                        new
+                        {
+                            Id = 7,
+                            Code = "AUTO_CASHOUT",
+                            Description = "Win a bet with auto cash-out.",
+                            Icon = "timer",
+                            Title = "Set and forget",
+                            VlxReward = 10,
+                            XpReward = 20
                         });
                 });
 

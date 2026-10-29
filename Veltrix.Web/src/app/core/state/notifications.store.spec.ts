@@ -106,6 +106,13 @@ describe('NotificationsStore (the bell)', () => {
     expect(router.navigateByUrl).toHaveBeenCalledWith('/crash');
   });
 
+  it('an achievement toast names the achievement and its reward, not just "Achievement unlocked"', async () => {
+    await store.receive({ ...note(7, 'AchievementUnlocked'), title: 'Achievement unlocked', message: 'First bet: +10 XP, +10 VLX.' });
+    expect(toasts.success).toHaveBeenCalledWith('First bet: +10 XP, +10 VLX.');
+    expect(toasts.info).not.toHaveBeenCalled();
+    expect(store.unreadCount()).toBe(1);
+  });
+
   it('a block signs the user out immediately', async () => {
     await store.receive({ ...note(6, 'AccountBlocked'), message: 'An administrator blocked your account.' });
     expect(toasts.error).toHaveBeenCalledWith('An administrator blocked your account.');

@@ -79,6 +79,13 @@ export const NotificationsStore = signalStore(
           case 'BalanceAdjusted':
             await wallet.load().catch(() => undefined);
             break;
+
+          case 'AchievementUnlocked':
+          case 'LevelUp':
+            // The title alone ("Achievement unlocked") does not say which one; the message names it and the reward.
+            // The VLX reward is already in the balance: the engine pushes balances after settling the round.
+            toasts.success(i18n.server(notification.message));
+            return;
         }
         toasts.info(i18n.server(notification.title));
       };

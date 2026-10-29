@@ -18,6 +18,7 @@ import {
   Card,
   Field,
   Icons,
+  LevelProgress,
   PageHeader,
   PasswordInput,
   Skeleton,
@@ -25,6 +26,7 @@ import {
 } from '../../shared/ui';
 import { ROLE_LABELS } from '../../shared/labels';
 import { NICKNAME_PATTERN, fieldsMatch, strongPassword } from '../../shared/validators';
+import { MyAchievements } from './my-achievements';
 import { MyStats } from './my-stats';
 
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
@@ -44,10 +46,12 @@ const AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
     Button,
     Card,
     Field,
+    LevelProgress,
     PageHeader,
     PasswordInput,
     Skeleton,
     StatCard,
+    MyAchievements,
     MyStats
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,

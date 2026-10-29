@@ -139,8 +139,10 @@ export class I18n {
     for (const pattern of this.serverPatterns) {
       const match = pattern.regex.exec(message);
       if (match) {
-        // A captured value that is itself a known word ("Player", "Operator") is translated too
-        const values = Object.fromEntries(pattern.names.map((name, i) => [name, file?.ui[match[i + 1]] ?? match[i + 1]]));
+        // A captured value that is itself a known text ("Player", an achievement title) is translated too
+        const values = Object.fromEntries(
+          pattern.names.map((name, i) => [name, file?.ui[match[i + 1]] ?? file?.server[match[i + 1]] ?? match[i + 1]])
+        );
         return interpolate(pattern.georgian, values);
       }
     }

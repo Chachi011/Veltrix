@@ -1,9 +1,13 @@
+using Veltrix.Domain.Common;
+using Veltrix.Domain.Enums;
+using Veltrix.Domain.Progress;
+
 namespace Veltrix.Domain.Entities;
 
 /// <summary>
 /// Running totals per player, updated when a bet is settled. The leaderboard and public
 /// profile read this single row instead of summing thousands of bets on every request.
-/// 1-to-1 with User.
+/// Also holds the player's XP and level (spec 4.6). 1-to-1 with User.
 /// </summary>
 public class PlayerStats
 {
@@ -20,4 +24,43 @@ public class PlayerStats
 
     public User? User { get; set; }
     public Level? Level { get; set; }
+
+    /// <summary>A bet of this player was settled (lost or cashed out): totals, records and XP.</summary>
+    public void AddSettledBet(Bet bet, DateTime now)
+    {
+        TotalBets++;
+        TotalWagered += bet.Amount;
+
+        if (bet.Status == BetStatus.CashedOut)
+        {
+            var payout = bet.Payout ?? 0;
+            CashOutCount++;
+            TotalPayout += payout;
+            BiggestWin = Math.Max(BiggestWin, payout - bet.Amount);
+            BiggestMultiplier = Math.Max(BiggestMultiplier, bet.CashOutMultiplier ?? 0);
+        }
+
+        Xp += Experience.ForBet(bet);
+        UpdatedAt = now;
+    }
+
+    /// <summary>XP from an achievement.</summary>
+    public void AddXp(int xp, DateTime now)
+    {
+        if (xp < 0)
+            throw new DomainException("XP cannot be taken away.");
+        Xp += xp;
+        UpdatedAt = now;
+    }
+
+    /// <summary>Moves the player to the level their XP has reached. True when the level went up (never down).</summary>
+    public bool UpdateLevel(IReadOnlyCollection<Level> levels)
+    {
+        var level = Experience.LevelFor(Xp, levels);
+        if (level.Number <= LevelNumber)
+            return false;
+
+        LevelNumber = level.Number;
+        return true;
+    }
 }
