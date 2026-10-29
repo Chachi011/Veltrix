@@ -39,7 +39,7 @@ The one partial required item is a deliberate decision, not a missing feature: p
 | C# | ✅ | All `Veltrix.*` projects |
 | ASP.NET Core Web API (.NET 8) | ✅ | `Veltrix.API` (`net8.0`) |
 | Microsoft SQL Server | ✅ | `UseSqlServer` in `Veltrix.Infrastructure/DependencyInjection.cs` |
-| EF Core: Code First, migrations, seed | ✅ | `Persistence/Configurations/*`, `Persistence/Migrations/*` (4 migrations), `HasData` seeds + `DatabaseInitializer` (test users) + `DemoDataSeeder` (Development demo history) |
+| EF Core: Code First, migrations, seed | ✅ | `Persistence/Configurations/*`, `Persistence/Migrations/*` (6 migrations; all of them + the test accounts as one script in `database/veltrix.sql`), `HasData` seeds + `DatabaseInitializer` (test users) + `DemoDataSeeder` (Development demo history) |
 | SignalR real time | ✅ | `Veltrix.API/Hubs/CrashHub.cs`, `Services/SignalRGameNotifier.cs` |
 | JWT access + refresh token, role-based access | ✅ | `Infrastructure/Auth/JwtTokenService.cs`, `AuthService`, `RefreshToken` rotation |
 | BCrypt password hashing | ✅ | `Infrastructure/Auth/BCryptPasswordHasher.cs` |
@@ -47,7 +47,7 @@ The one partial required item is a deliberate decision, not a missing feature: p
 | Game engine as BackgroundService (IHostedService) | ✅ | `CrashGameEngine : BackgroundService` |
 | Serilog (console + file) | ✅ | `Program.cs` (`UseSerilog`), `appsettings.json` → `Serilog.WriteTo` Console + File |
 | Swagger / OpenAPI | ✅ | `API/Extensions/ApiServiceExtensions.cs` (`AddSwaggerWithJwt`), XML comments on every action |
-| Testing: xUnit + Moq | ✅ | `Veltrix.Tests` (246 tests); Moq service tests in `Veltrix.Tests/Services/*` — **Moq added in this pass**; WebApplicationFactory integration tests in `Veltrix.Tests/Integration/*` (Step 2) |
+| Testing: xUnit + Moq | ✅ | `Veltrix.Tests` (285 tests); Moq service tests in `Veltrix.Tests/Services/*` — **Moq added in this pass**; WebApplicationFactory integration tests in `Veltrix.Tests/Integration/*` (Step 2) |
 | Layered architecture (API → Application → Domain → Infrastructure) | ✅ | 4 projects + tests; dependencies point inward (CLAUDE.md → Architecture) |
 
 ### Front-end
@@ -64,7 +64,7 @@ The one partial required item is a deliberate decision, not a missing feature: p
 | Reactive Forms with validation | ✅ | Auth, profile, limits, bet panel, game form, admin drawer, settings forms; `shared/validators.ts` |
 | Chart.js (statistics, multiplier curve) | ✅ | `shared/ui/chart.ts` (`vx-chart`, lazy-loaded) for statistics and dashboards; the live multiplier curve uses HTML Canvas directly (`crash-chart.ts`), which the spec lists as the animation technology |
 | HTML Canvas for the multiplier | ✅ | `features/crash/components/crash-chart.ts` |
-| Jasmine / Karma (services and stores) | ✅ | 112 tests, `*.spec.ts` — **more store/service tests added in this pass** and in Step 2 |
+| Jasmine / Karma (services and stores) | ✅ | 125 tests, `*.spec.ts` — **more store/service tests added in this pass** and in Steps 2 and 3 |
 
 ### Tools
 
@@ -358,7 +358,7 @@ Beyond the spec: 19 supporting tables (30 in total), listed in README → Databa
 | Achievements endpoints `GET /api/achievements`, `/my` | 5 | ✅ | `AchievementsController` — Step 3 (2) |
 | `GET /api/admin/reports/export` | 5 | ❌ | |
 | SignalR `ChatMessage` / `SendChatMessage` | 5 | ❌ | |
-| Integration tests (WebApplicationFactory) | 7 | ✅ | `Veltrix.Tests/Integration` (28 tests): auth, bets, cash-out, refunds, admin role checks, demo data — Step 2 |
+| Integration tests (WebApplicationFactory) | 7 | ✅ | `Veltrix.Tests/Integration` (34 tests): auth, bets, cash-out, refunds, admin role checks, preferences, achievements, demo data — Steps 2 and 3 |
 | Docker Compose (SQL Server + API + Angular) | 2 | ❌ | Step 3 (8), not in `v1.0-diploma` |
 | GitHub Actions (build + tests on every push) | 2 | ❌ | Step 3 (8), not in `v1.0-diploma` |
 
