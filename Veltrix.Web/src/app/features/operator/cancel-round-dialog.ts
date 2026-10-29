@@ -4,6 +4,7 @@ import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
 import { firstValueFrom } from 'rxjs';
 import { GamesApi } from '../../core/api/games.api';
+import { TranslatePipe, TranslateSplitPipe } from '../../core/i18n/i18n-pipes';
 import { RoundCancellationDto } from '../../core/models/api.models';
 import { VlxPipe } from '../../shared/pipes';
 import { Button, Field, Icons, ModalShell } from '../../shared/ui';
@@ -18,26 +19,30 @@ export interface CancelRoundData {
 /** Cancel the live round with a reason (stored in the audit log). The server refunds every active bet. */
 @Component({
   selector: 'vx-cancel-round-dialog',
-  imports: [ReactiveFormsModule, LucideAngularModule, VlxPipe, Button, Field, ModalShell],
+  imports: [ReactiveFormsModule, LucideAngularModule, VlxPipe, Button, Field, ModalShell, TranslatePipe, TranslateSplitPipe],
   changeDetection: ChangeDetectionStrategy.Default,
   template: `
-    <vx-modal [title]="'Cancel round #' + data.roundNumber + '?'" description="Use this only if something went wrong (e.g. a technical problem).">
+    <vx-modal
+      [title]="'Cancel round #{number}?' | t: { number: data.roundNumber }"
+      [description]="'Use this only if something went wrong (e.g. a technical problem).' | t"
+    >
       <div class="mb-4 flex items-start gap-3 rounded-control border border-warning/25 bg-warning/12 p-3 text-[13px]">
         <lucide-icon [img]="icons.alert" [size]="16" class="mt-0.5 shrink-0 text-warning" aria-hidden="true" />
+        @let refund = '{count} active bets ({value}) will be refunded.' | tSplit: { count: data.activeBets };
         <span>
-          <span class="num font-semibold">{{ data.activeBets }}</span> active bets
-          (<span class="num font-semibold">{{ data.activeTotal | vlx }}</span>) will be refunded. Bets already cashed out keep their payout.
+          {{ refund.before }}<span class="num font-semibold">{{ data.activeTotal | vlx }}</span>{{ refund.after }}
+          {{ 'Bets already cashed out keep their payout.' | t }}
         </span>
       </div>
       <form id="cancel-form" (ngSubmit)="submit()" novalidate>
-        <vx-field label="Reason" for="reason" [control]="reason" hint="5 to 500 characters. Saved in the audit log.">
+        <vx-field [label]="'Reason' | t" for="reason" [control]="reason" [hint]="'5 to 500 characters. Saved in the audit log.' | t">
           <textarea id="reason" class="vx-input h-24! py-2" [formControl]="reason" maxlength="500"></textarea>
         </vx-field>
       </form>
       <ng-container modal-footer>
-        <button vxButton type="button" variant="ghost" (click)="ref.close()">Keep the round</button>
+        <button vxButton type="button" variant="ghost" (click)="ref.close()">{{ 'Keep the round' | t }}</button>
         <button vxButton type="submit" form="cancel-form" variant="danger" [loading]="saving()">
-          <lucide-icon [img]="icons.stop" [size]="16" aria-hidden="true" />Cancel round
+          <lucide-icon [img]="icons.stop" [size]="16" aria-hidden="true" />{{ 'Cancel round' | t }}
         </button>
       </ng-container>
     </vx-modal>

@@ -12,5 +12,8 @@ public class Achievement
     public string Icon { get; set; } = string.Empty;
     public int XpReward { get; set; }
 
+    /// <summary>Virtual points paid when unlocked (credited through the wallet ledger, like the daily bonus).</summary>
+    public int VlxReward { get; set; }
+
     public ICollection<UserAchievement> UnlockedBy { get; set; } = new List<UserAchievement>();
 }

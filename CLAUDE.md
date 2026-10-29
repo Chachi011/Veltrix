@@ -6,6 +6,12 @@ Diploma project: a real-time multiplayer web platform whose main module is a **C
 
 Source of truth for roles, endpoints and data models: the specification `VELTRIX-პროექტის-აღწერა.pdf` (on the author's Desktop).
 
+## Diploma version (frozen)
+
+**v1.0-diploma is frozen. Never move, delete or retag it. All later work goes on new branches.**
+
+The annotated tag `v1.0-diploma` on `main` is the version submitted for the exam ("Diploma version, ready for submission"). To look at it: `git checkout v1.0-diploma`; to build on it: `git switch -c <new-branch> v1.0-diploma` (or branch from `develop`).
+
 ## Always
 
 - **Always follow [docs/DESIGN.md](docs/DESIGN.md) for any UI work.**
@@ -70,7 +76,14 @@ Veltrix.Web            Angular client: core/ (api, auth, http, realtime, state, 
 | 2 | Round engine, bets, cash-out, wallet, SignalR, provably fair (**MVP gate**) | **Done** (merged into `develop`) |
 | 3 | Angular UI: design system, login/register, Crash page (Canvas), wallet, history, profile, responsive, dark/light | **Done** (verified by the author on desktop and phone; merged into `develop`) |
 | 4 | Operator/Admin panels, leaderboard, limits/self-exclusion UI, notifications, settings, charts | **Done** (checked by the author; merged into `develop`) |
-| 5 | Remaining tests (Moq service tests, more Jasmine), optional (*) features, README screenshots, seed script, presentation demo | Not started |
+| 5 | Spec audit, quality, optional (*) features, delivery (4 steps below) | **Done** (closed by the author; merged into `develop` and `main`, tag `v1.0-diploma`). Steps 1, 2 and 4 **done**; Step 3: (1) Georgian + English and (2) achievements + XP levels **done**, (3)–(8) **not done** (not in `v1.0-diploma`) |
+
+### Phase 5 steps (update this file and `docs/SPEC-COVERAGE.md` at the end of every step; unclear choices go to "Decisions to review" in SPEC-COVERAGE.md)
+
+1. **Spec audit** — `docs/SPEC-COVERAGE.md` (item / status / where in the code, (*) items separately) and every missing non-(*) item: Home, Games catalog, public player profile, Rules, Settings (sound, animations), Moq service tests, more Jasmine, OpenAPI for Postman. **Done.**
+2. **Quality** — Jasmine tests for the stores and key services (auth, wallet, round/crash, limits); integration tests with WebApplicationFactory (auth, bets, admin role checks); no build warnings (`dotnet build`, `ng build`) — **done** (28 integration tests, 112 Jasmine, 0 warnings); Development demo seed (~15 players with bet history, so the leaderboard, charts and admin dashboard are not empty) — **done** (`DemoDataSeeder`).
+3. **Optional (*) features, in this order** — (1) Georgian + English UI, ka default, switch in Settings — **done**; (2) achievements + XP levels — **done**; (3) auto-bet (number of rounds, stop on loss/profit); (4) two bets per round in the UI; (5) global chat with operator moderation; (6) CSV export in the admin panel; (7) PWA; (8) Docker Compose + GitHub Actions — (3)–(8) **not done**: the author locked the version after (2). If they are built later, it is on new branches. 2FA and email verification only if time remains.
+4. **Delivery** — README (overview, screenshots, architecture diagram, clean-PC setup, test accounts per role); `/database`: migrations + seed as one SQL script; `docs/PRESENTATION.md`: 10-minute demo script and the 10 most likely exam questions with short answers. **Done** (`database/veltrix.sql` is guarded by `DatabaseScriptTests`: regenerate it when a migration is added).
 
 Optional (*) features only after the MVP: auto-bet, two bets per round (backend supports slot 2), achievements/XP, chat with moderation, 2FA, email verification, ka/en, CSV export, Docker Compose, GitHub Actions.
 
@@ -78,26 +91,31 @@ Optional (*) features only after the MVP: auto-bet, two bets per round (backend 
 
 ```bash
 dotnet run --project Veltrix.API --launch-profile http     # API on http://localhost:5295 (Swagger: /swagger); dev: auto-migrate + seed
-dotnet test                                                # backend tests
+dotnet test                                                # backend tests (integration tests need SQL Server: localhost, or VELTRIX_TEST_SQL)
 cd Veltrix.Web && npm start                                # http://localhost:4200, proxies /api /hubs /uploads to :5295
 cd Veltrix.Web && npx ng test --watch=false --browsers=ChromeHeadless
 cd Veltrix.Web && npx ng build                             # production build: must have no warnings
+cd Veltrix.Web && npm run i18n:check                       # every UI text has Georgian in src/i18n/ka.json (0 missing, 0 unused)
 dotnet ef migrations add <Name> --project Veltrix.Infrastructure --startup-project Veltrix.API --output-dir Persistence/Migrations
 dotnet ef migrations has-pending-model-changes --project Veltrix.Infrastructure --startup-project Veltrix.API
 ```
 
-Test accounts (development seed): `admin@veltrix.dev / Admin123!`, `operator@veltrix.dev / Operator123!`, `player1@veltrix.dev`, `player2@veltrix.dev / Player123!`. The login page has quick-fill buttons in development.
+Test accounts (development seed): `admin@veltrix.dev / Admin123!`, `operator@veltrix.dev / Operator123!`, `player1@veltrix.dev`, `player2@veltrix.dev / Player123!`. The login page has quick-fill buttons in development. Demo players (`Database:SeedDemoData`, first Development start, once): 15 accounts `<nickname>@demo.veltrix.dev / Player123!` (e.g. `nova`) with 30 days of history.
 
 Stop the running API before `dotnet build` (it locks the DLLs). Check that port 4200 is free before `ng serve`.
 
 ## Conventions
 
-- **Git:** `master` ← `develop` ← `feature/<phase-or-topic>`. Small, logical commits with clear messages. Merge features into `develop` with `--no-ff`. Do not push unless asked.
+- **Git:** `main` ← `develop` ← `feature/<phase-or-topic>` (`master` was renamed to `main` when the diploma version was locked). Small, logical commits with clear messages. Merge features into `develop` with `--no-ff`. Do not push unless asked. The tag `v1.0-diploma` is frozen (see the top of this file).
 - **Line endings:** `.gitattributes` (CRLF for `.cs/.csproj/.slnx`, LF for `.ts/.html/.scss/.json`). Seed text in `HasData` is normalized with `ReplaceLineEndings("\n")`.
 - **EF:** after model changes run `has-pending-model-changes`; never edit an applied migration (add a new one). Data fixes go in the migration (`migrationBuilder.Sql`).
 - **Query DTOs:** computed values are methods, not properties (properties become query parameters; see `PageQuery.Offset()`).
 - **Angular:** standalone components, OnPush, signals; stores are NgRx SignalStores. Components that show reactive-form errors use Default change detection. Interceptor order: loading → error → auth.
+- **Settings:** theme / sound / animations live in `PreferencesStore` (saved on the account). "Animations off" sets `data-motion="reduce"` on `<html>`; JS animations must check `reducedMotion()` from `shared/motion.ts`, never `matchMedia` directly. Game sounds only for the player's own actions (`SoundService`).
 - **Real-time:** ONE SignalR connection per tab (`CrashHub`): the user session (balance, notifications) and a game page share it. Don't open a second connection (the online counter would count the tab twice).
-- **Bundle:** `ng build` must stay under the 500 kB initial budget. Heavy libraries (Chart.js, SignalR) load with dynamic `import()`; eager code (layout, core) imports single `shared/ui` files, not the barrel.
+- **Bundle:** `ng build` must stay under the 500 kB initial budget (about 417 kB; the top-bar dropdowns load on demand). Heavy libraries (Chart.js, SignalR, CDK Overlay/Menu/Dialog) load with dynamic `import()`; eager code (layout, core) imports single `shared/ui` files, not the barrel, and never a CDK overlay module (see `layout/top-bar-popups.ts`).
 - **Shell + backticks:** never write files containing backticks through bash `node -e` / heredocs (the shell eats them and has corrupted files); use the Write/Edit tools.
-- **Tests:** every bug fix gets a test that fails without the fix.
+- **Tests:** every bug fix gets a test that fails without the fix. Integration tests (`Veltrix.Tests/Integration`) share ONE `VeltrixApiFactory` (collection "api"): a throwaway SQL Server database, the engine loop off (tests move rounds with `RoundSettlementService`), a `TestClock` that can freeze/advance (keep total advances well under the 30 s JWT clock skew), and one fake IP per client (`X-Test-Client-IP`) so the auth rate limit does not bleed between tests.
+- **Demo data:** `DemoDataSeeder` must keep using the real domain and settlement code (`GameRound.Create`, `Bet.Place`, wallet `Debit`/`Credit`, `RoundSettlementService`) with a past clock; never insert bets, rounds or balances directly. Nothing may be dated after "now". `DemoDataSeederTests` guards the rules.
+- **Languages (ka default, en):** the code is written in English and the English text is the key: templates use `{{ 'Place bet' | t }}` (`t: { name: value }` for `{name}` placeholders), TypeScript uses `i18n.t('...')`, texts in constants use `mark('...')` and are translated where shown (`| t`, `| tLabels` for tab/select items). Translate each branch of a ternary (`cond ? ('A' | t) : ('B' | t)`), never `(cond ? 'A' : 'B') | t` (the checker cannot see it). A sentence with a styled value uses `tSplit`. API messages: `| serverText` / `i18n.server()`; free text that may be a server text: `| knownText`. Dates: `| vxDate` (not `date`). ALL Georgian text is in `Veltrix.Web/src/i18n/ka.json` (`ui`, `server`, `pages`); keep Crash, Cash out and VLX untranslated. Every new text: add it to ka.json in natural Georgian and run `npm run i18n:check` (0 missing, 0 unused). Server messages are guarded by `GeorgianTranslationTests` (xUnit) and ka.json by `i18n.spec.ts` (placeholders, terms). Avoid apostrophes inside single-quoted template strings (rephrase).
+- **ProblemDetails content type:** controllers carry `[Produces("application/json")]`, which rewrites the content type of every `ObjectResult`. An error written from a filter must be a `JsonResult` with `ContentType = "application/problem+json"` (see `FluentValidationFilter`).

@@ -1,4 +1,3 @@
-import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, effect, inject, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -6,7 +5,10 @@ import { LucideAngularModule } from 'lucide-angular';
 import { firstValueFrom } from 'rxjs';
 import { BetsApi } from '../../core/api/bets.api';
 import { GamesApi } from '../../core/api/games.api';
+import { mark } from '../../core/i18n/i18n';
+import { LocalDatePipe, TranslateLabelsPipe, TranslatePipe } from '../../core/i18n/i18n-pipes';
 import { BetDto, BetStatus, MyBetsQuery, PagedResult, RoundDto } from '../../core/models/api.models';
+import { BET_STATUS_LABELS } from '../../shared/labels';
 import { MultiplierPipe, VlxPipe } from '../../shared/pipes';
 import {
   Badge,
@@ -27,7 +29,9 @@ import {
 @Component({
   selector: 'vx-history-page',
   imports: [
-    DatePipe,
+    LocalDatePipe,
+    TranslatePipe,
+    TranslateLabelsPipe,
     FormsModule,
     RouterLink,
     LucideAngularModule,
@@ -53,12 +57,13 @@ export class HistoryPage {
 
   protected readonly icons = Icons;
   protected readonly tabs: TabItem[] = [
-    { value: 'bets', label: 'My bets' },
-    { value: 'rounds', label: 'All rounds' }
+    { value: 'bets', label: mark('My bets') },
+    { value: 'rounds', label: mark('All rounds') }
   ];
   protected readonly tab = signal('bets');
 
   protected readonly statuses: BetStatus[] = ['Active', 'CashedOut', 'Lost', 'Refunded'];
+  protected readonly statusLabels = BET_STATUS_LABELS;
   protected readonly skeletonRows = [1, 2, 3, 4, 5, 6];
 
   // Filters as plain signals; dates come from <input type="date"> as yyyy-MM-dd
@@ -125,10 +130,6 @@ export class HistoryPage {
   protected statusTone(status: BetStatus): BadgeTone {
     const tones: Record<BetStatus, BadgeTone> = { Active: 'primary', CashedOut: 'success', Lost: 'danger', Refunded: 'neutral' };
     return tones[status];
-  }
-
-  protected statusLabel(status: BetStatus): string {
-    return status === 'CashedOut' ? 'Cashed out' : status;
   }
 
   /** Profit of a settled bet: payout − stake (a refund is 0). */

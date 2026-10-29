@@ -4,6 +4,7 @@ import { ComponentType } from '@angular/cdk/portal';
 import { ChangeDetectionStrategy, Component, Injectable, inject, input } from '@angular/core';
 import { LucideAngularModule } from 'lucide-angular';
 import { firstValueFrom } from 'rxjs';
+import { TranslatePipe } from '../../core/i18n/i18n-pipes';
 import { Button, ButtonVariant } from './button';
 import { Icons } from './icons';
 
@@ -13,7 +14,7 @@ import { Icons } from './icons';
  */
 @Component({
   selector: 'vx-modal',
-  imports: [LucideAngularModule, Button],
+  imports: [LucideAngularModule, Button, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="glass animate-pop-in rounded-card border border-border shadow-pop">
@@ -24,7 +25,7 @@ import { Icons } from './icons';
             <p class="mt-1 text-[13px] text-muted">{{ description() }}</p>
           }
         </div>
-        <button vxButton type="button" variant="ghost" size="icon-sm" aria-label="Close" (click)="dialogRef.close()">
+        <button vxButton type="button" variant="ghost" size="icon-sm" [attr.aria-label]="'Close' | t" (click)="dialogRef.close()">
           <lucide-icon [img]="icons.close" [size]="16" aria-hidden="true" />
         </button>
       </header>
@@ -47,7 +48,7 @@ export class ModalShell {
  */
 @Component({
   selector: 'vx-drawer',
-  imports: [LucideAngularModule, Button],
+  imports: [LucideAngularModule, Button, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block h-full' },
   template: `
@@ -59,7 +60,7 @@ export class ModalShell {
             <p class="mt-0.5 truncate text-[13px] text-muted">{{ description() }}</p>
           }
         </div>
-        <button vxButton type="button" variant="ghost" size="icon-sm" aria-label="Close" (click)="dialogRef.close()">
+        <button vxButton type="button" variant="ghost" size="icon-sm" [attr.aria-label]="'Close' | t" (click)="dialogRef.close()">
           <lucide-icon [img]="icons.close" [size]="16" aria-hidden="true" />
         </button>
       </header>
@@ -86,14 +87,14 @@ export interface ConfirmOptions {
 /** Ready-made "Are you sure?" dialog. Use ModalService.confirm(...). */
 @Component({
   selector: 'vx-confirm-dialog',
-  imports: [ModalShell, Button],
+  imports: [ModalShell, Button, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <vx-modal [title]="data.title" [description]="data.message">
       <ng-container modal-footer>
-        <button vxButton type="button" variant="ghost" (click)="ref.close(false)">{{ data.cancelText ?? 'Cancel' }}</button>
+        <button vxButton type="button" variant="ghost" (click)="ref.close(false)">{{ data.cancelText ?? ('Cancel' | t) }}</button>
         <button vxButton type="button" [variant]="data.tone ?? 'primary'" (click)="ref.close(true)">
-          {{ data.confirmText ?? 'Confirm' }}
+          {{ data.confirmText ?? ('Confirm' | t) }}
         </button>
       </ng-container>
     </vx-modal>

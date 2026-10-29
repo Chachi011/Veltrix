@@ -1,5 +1,4 @@
 import { DIALOG_DATA } from '@angular/cdk/dialog';
-import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormControl, FormsModule, NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -8,21 +7,16 @@ import { firstValueFrom } from 'rxjs';
 import { AdminApi } from '../../core/api/admin.api';
 import { AuthStore } from '../../core/auth/auth.store';
 import { applyServerErrors } from '../../core/http/problem';
-import { AdminUserDetailsDto, TransactionType, UserRole } from '../../core/models/api.models';
+import { I18n, mark } from '../../core/i18n/i18n';
+import { LocalDatePipe, TranslateLabelsPipe, TranslatePipe } from '../../core/i18n/i18n-pipes';
+import { AdminUserDetailsDto, UserRole } from '../../core/models/api.models';
+import { ROLE_LABELS, TRANSACTION_TYPE_LABELS } from '../../shared/labels';
 import { ToastStore } from '../../core/ui/toast.store';
 import { MultiplierPipe, VlxPipe } from '../../shared/pipes';
 import { Avatar, Badge, BadgeTone, Button, DrawerShell, Field, Icons, ModalService, Skeleton, TabItem, Tabs } from '../../shared/ui';
 import { twoDecimals } from '../../shared/validators';
 
 export const ROLE_TONES: Record<UserRole, BadgeTone> = { Player: 'neutral', Operator: 'accent', Admin: 'primary' };
-
-const TX_LABELS: Record<TransactionType, string> = {
-  Bet: 'Bet',
-  Win: 'Win',
-  Refund: 'Refund',
-  Bonus: 'Bonus',
-  AdminAdjustment: 'Adjustment'
-};
 
 /** A new idempotency key for the next adjustment (one per submitted form). */
 function newRequestId(): string {
@@ -39,7 +33,9 @@ function newRequestId(): string {
 @Component({
   selector: 'vx-user-drawer',
   imports: [
-    DatePipe,
+    LocalDatePipe,
+    TranslatePipe,
+    TranslateLabelsPipe,
     FormsModule,
     ReactiveFormsModule,
     RouterLink,
@@ -63,15 +59,17 @@ export class UserDrawer {
   private readonly auth = inject(AuthStore);
   private readonly modal = inject(ModalService);
   private readonly toasts = inject(ToastStore);
+  private readonly i18n = inject(I18n);
   private readonly fb = inject(NonNullableFormBuilder);
 
   protected readonly icons = Icons;
   protected readonly roles: UserRole[] = ['Player', 'Operator', 'Admin'];
   protected readonly roleTones = ROLE_TONES;
-  protected readonly txLabels = TX_LABELS;
+  protected readonly roleLabels = ROLE_LABELS;
+  protected readonly txLabels = TRANSACTION_TYPE_LABELS;
   protected readonly directions: TabItem[] = [
-    { value: 'add', label: 'Add VLX' },
-    { value: 'remove', label: 'Remove VLX' }
+    { value: 'add', label: mark('Add VLX') },
+    { value: 'remove', label: mark('Remove VLX') }
   ];
 
   protected readonly user = signal<AdminUserDetailsDto | null>(null);
@@ -113,15 +111,17 @@ export class UserDrawer {
     if (!user || role === user.role) {
       return;
     }
+    const roleName = this.i18n.t(ROLE_LABELS[role]);
     const confirmed = await this.modal.confirm({
-      title: `Make ${user.nickname} ${role === 'Admin' ? 'an' : 'a'} ${role}?`,
+      title: this.i18n.t('Change the role of {nickname} to {role}?', { nickname: user.nickname, role: roleName }),
       message:
         role === 'Player'
-          ? 'They lose access to the staff panels.'
+          ? this.i18n.t('They lose access to the staff panels.')
           : role === 'Admin'
-            ? 'Admins can manage every user, the settings and the balances.'
-            : 'Operators can edit games and cancel rounds. Staff accounts cannot bet.',
-      confirmText: 'Change role'
+            ? this.i18n.t('Admins can manage every user, the settings and the balances.')
+            : this.i18n.t('Operators can edit games and cancel rounds. Staff accounts cannot bet.'),
+      confirmText: this.i18n.t('Change role'),
+      cancelText: this.i18n.t('Cancel')
     });
     if (!confirmed) {
       this.role.reset(user.role);
@@ -131,7 +131,7 @@ export class UserDrawer {
     this.savingRole.set(true);
     try {
       this.apply(await firstValueFrom(this.api.changeRole(user.id, role)));
-      this.toasts.success(`${user.nickname} is now ${role}.`);
+      this.toasts.success(this.i18n.t('{nickname} is now {role}.', { nickname: user.nickname, role: roleName }));
     } catch {
       this.role.reset(user.role);
     } finally {
@@ -147,9 +147,10 @@ export class UserDrawer {
     const block = !user.isBlocked;
     if (block) {
       const confirmed = await this.modal.confirm({
-        title: `Block ${user.nickname}?`,
-        message: 'They are signed out on every device at once and cannot log in or bet until unblocked.',
-        confirmText: 'Block account',
+        title: this.i18n.t('Block {nickname}?', { nickname: user.nickname }),
+        message: this.i18n.t('They are signed out on every device at once and cannot log in or bet until unblocked.'),
+        confirmText: this.i18n.t('Block account'),
+        cancelText: this.i18n.t('Cancel'),
         tone: 'danger'
       });
       if (!confirmed) {
@@ -162,7 +163,11 @@ export class UserDrawer {
       const reason = this.blockReason.value.trim() || null;
       this.apply(await firstValueFrom(this.api.setBlocked(user.id, block, reason)));
       this.blockReason.reset('');
-      this.toasts.success(block ? `${user.nickname} is blocked.` : `${user.nickname} is unblocked.`);
+      this.toasts.success(
+        block
+          ? this.i18n.t('{nickname} is blocked.', { nickname: user.nickname })
+          : this.i18n.t('{nickname} is unblocked.', { nickname: user.nickname })
+      );
     } catch {
       // Shown by the error interceptor
     } finally {
@@ -182,10 +187,15 @@ export class UserDrawer {
     const { amount, reason } = this.adjustForm.getRawValue();
     const signed = this.direction() === 'add' ? amount! : -amount!;
 
+    const amountText = Math.abs(signed).toFixed(2);
     const confirmed = await this.modal.confirm({
-      title: `${signed > 0 ? 'Add' : 'Remove'} ${Math.abs(signed).toFixed(2)} VLX?`,
-      message: `${user.nickname} will see this change and your reason ("${reason.trim()}") in their transaction history.`,
-      confirmText: signed > 0 ? 'Add VLX' : 'Remove VLX',
+      title: signed > 0 ? this.i18n.t('Add {amount} VLX?', { amount: amountText }) : this.i18n.t('Remove {amount} VLX?', { amount: amountText }),
+      message: this.i18n.t('{nickname} will see this change and your reason ("{reason}") in their transaction history.', {
+        nickname: user.nickname,
+        reason: reason.trim()
+      }),
+      confirmText: signed > 0 ? this.i18n.t('Add VLX') : this.i18n.t('Remove VLX'),
+      cancelText: this.i18n.t('Cancel'),
       tone: signed > 0 ? 'primary' : 'danger'
     });
     if (!confirmed) {
@@ -200,7 +210,13 @@ export class UserDrawer {
       );
       this.requestId = newRequestId();
       this.adjustForm.reset({ amount: null, reason: '' });
-      this.toasts.success(`Balance of ${user.nickname}: ${result.balanceBefore.toFixed(2)} → ${result.balanceAfter.toFixed(2)} VLX.`);
+      this.toasts.success(
+        this.i18n.t('Balance of {nickname}: {before} → {after} VLX.', {
+          nickname: user.nickname,
+          before: result.balanceBefore.toFixed(2),
+          after: result.balanceAfter.toFixed(2)
+        })
+      );
       await this.load();
     } catch (error) {
       applyServerErrors(this.adjustForm, error);

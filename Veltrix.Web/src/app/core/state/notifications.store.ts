@@ -5,6 +5,7 @@ import { firstValueFrom } from 'rxjs';
 import { NotificationsApi } from '../api/notifications.api';
 import { AuthStore } from '../auth/auth.store';
 import { NotificationDto, UserRole } from '../models/api.models';
+import { I18n } from '../i18n/i18n';
 import { ToastStore } from '../ui/toast.store';
 import { LimitsStore } from './limits.store';
 import { WalletStore } from './wallet.store';
@@ -47,6 +48,7 @@ export const NotificationsStore = signalStore(
       wallet = inject(WalletStore),
       limits = inject(LimitsStore),
       toasts = inject(ToastStore),
+      i18n = inject(I18n),
       router = inject(Router)
     ) => {
       /** What a notification changes in the running app, besides the bell. */
@@ -54,7 +56,7 @@ export const NotificationsStore = signalStore(
         switch (notification.type) {
           case 'AccountBlocked':
             // The server already revoked every session; leave cleanly instead of failing on the next request
-            toasts.error(notification.message);
+            toasts.error(i18n.server(notification.message));
             await auth.logout();
             return;
 
@@ -77,8 +79,15 @@ export const NotificationsStore = signalStore(
           case 'BalanceAdjusted':
             await wallet.load().catch(() => undefined);
             break;
+
+          case 'AchievementUnlocked':
+          case 'LevelUp':
+            // The title alone ("Achievement unlocked") does not say which one; the message names it and the reward.
+            // The VLX reward is already in the balance: the engine pushes balances after settling the round.
+            toasts.success(i18n.server(notification.message));
+            return;
         }
-        toasts.info(notification.title);
+        toasts.info(i18n.server(notification.title));
       };
 
       return {

@@ -10,4 +10,6 @@ public static class NotificationTypes
     public const string AccountUnblocked = "AccountUnblocked";
     public const string PasswordChanged = "PasswordChanged";
     public const string SelfExcluded = "SelfExcluded";
+    public const string AchievementUnlocked = "AchievementUnlocked";
+    public const string LevelUp = "LevelUp";
 }

@@ -18,6 +18,9 @@ public sealed class DatabaseOptions
 
     /// <summary>Create the test accounts for every role (development/demo only).</summary>
     public bool SeedTestUsers { get; set; }
+
+    /// <summary>Create 15 demo players with 30 days of rounds and bets, once (development/demo only, see DemoDataSeeder).</summary>
+    public bool SeedDemoData { get; set; }
 }
 
 /// <summary>
@@ -64,6 +67,9 @@ public sealed class DatabaseInitializer
 
         if (_options.SeedTestUsers)
             await SeedTestUsersAsync(ct);
+
+        if (_options.SeedDemoData)
+            await new DemoDataSeeder(_db, _passwordHasher, _time, _logger).SeedAsync(ct);
     }
 
     private async Task SeedTestUsersAsync(CancellationToken ct)

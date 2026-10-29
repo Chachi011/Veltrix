@@ -1,11 +1,11 @@
 <header class="glass sticky top-0 z-30 border-b border-border">
   <div class="mx-auto flex h-16 max-w-[1440px] items-center gap-2 px-4 md:gap-3 md:px-6">
     <!-- Phones have no sidebar: show the logo here -->
-    <a routerLink="/crash" class="flex items-center md:hidden" aria-label="VELTRIX home">
+    <a routerLink="/" class="flex items-center md:hidden" [attr.aria-label]="'VELTRIX home' | t">
       <span class="grid size-8 place-items-center rounded-control bg-primary text-sm font-bold text-on-primary">V</span>
     </a>
     <!-- Visual only: each page has its own <h1> (vx-page-header), so screen readers do not hear the title twice -->
-    <span class="hidden truncate text-[15px] font-semibold md:block" aria-hidden="true">{{ pageTitle() }}</span>
+    <span class="hidden truncate text-[15px] font-semibold md:block" aria-hidden="true">{{ pageTitle() | t }}</span>
 
     <div class="ml-auto flex items-center gap-1.5 md:gap-2">
       @if (auth.isLoggedIn()) {
@@ -13,7 +13,7 @@
         <a
           routerLink="/wallet"
           class="flex h-9 items-center gap-2 rounded-full border border-border bg-surface-2 pr-3.5 pl-2.5 text-text transition-colors duration-200 hover:border-muted/40"
-          title="Virtual balance (no monetary value)"
+          [title]="'Virtual balance (no monetary value)' | t"
         >
           <lucide-icon [img]="icons.vlx" [size]="16" class="text-accent" aria-hidden="true" />
           <vx-animated-number class="text-sm font-semibold" [value]="wallet.balance()" />
@@ -22,36 +22,38 @@
 
         <!-- Daily bonus -->
         @if (canClaimBonus()) {
-          <!-- max-sm:hidden, not "hidden sm:inline-flex": vxButton sets its own display (inline-flex), which would beat a plain "hidden" -->
-          <button vxButton type="button" variant="primary" size="sm" class="max-sm:hidden" [loading]="wallet.claiming()" (click)="claimBonus()">
+          <!-- Text button only from 1024px (the page title needs the room, especially in Georgian); an icon below.
+               max-lg:hidden, not "hidden lg:inline-flex": vxButton sets its own display (inline-flex), which would beat a plain "hidden" -->
+          <button vxButton type="button" variant="primary" size="sm" class="max-lg:hidden" [loading]="wallet.claiming()" (click)="claimBonus()">
             <lucide-icon [img]="icons.gift" [size]="15" aria-hidden="true" />
-            Claim bonus
+            {{ 'Claim bonus' | t }}
           </button>
-          <button vxButton type="button" variant="primary" size="icon" class="sm:hidden" aria-label="Claim daily bonus" (click)="claimBonus()">
+          <button vxButton type="button" variant="primary" size="icon" class="lg:hidden" [attr.aria-label]="'Claim daily bonus' | t" (click)="claimBonus()">
             <lucide-icon [img]="icons.gift" [size]="18" aria-hidden="true" />
           </button>
         } @else if (bonusCountdown(); as countdown) {
           <span
             class="hidden h-9 items-center gap-2 rounded-full border border-border px-3 text-xs text-muted lg:inline-flex"
-            title="Next daily bonus"
+            [title]="'Next daily bonus' | t"
           >
             <lucide-icon [img]="icons.gift" [size]="15" aria-hidden="true" />
             <span class="num">{{ countdown }}</span>
           </span>
         }
 
-        <!-- Notifications: unread badge; new ones arrive live over SignalR -->
+        <!-- Notifications: unread badge; new ones arrive live over SignalR. The dropdown loads on first use. -->
         <button
           vxButton
           type="button"
           variant="ghost"
           size="icon"
           class="relative"
-          cdkOverlayOrigin
-          #bellOrigin="cdkOverlayOrigin"
-          [attr.aria-label]="notifications.unreadCount() > 0 ? 'Notifications, ' + notifications.unreadCount() + ' unread' : 'Notifications'"
-          [attr.aria-expanded]="notificationsOpen()"
-          (click)="notificationsOpen.set(!notificationsOpen())"
+          aria-haspopup="dialog"
+          [attr.aria-label]="
+            notifications.unreadCount() > 0 ? ('Notifications, {count} unread' | t: { count: notifications.unreadCount() }) : ('Notifications' | t)
+          "
+          [attr.aria-expanded]="openPopup() === 'notifications'"
+          (click)="toggle('notifications', $event)"
         >
           <lucide-icon [img]="icons.bell" [size]="18" aria-hidden="true" />
           @if (notifications.unreadCount() > 0) {
@@ -63,72 +65,39 @@
             </span>
           }
         </button>
-        <ng-template
-          cdkConnectedOverlay
-          [cdkConnectedOverlayOrigin]="bellOrigin"
-          [cdkConnectedOverlayOpen]="notificationsOpen()"
-          [cdkConnectedOverlayPositions]="notificationPositions"
-          (overlayOutsideClick)="notificationsOpen.set(false)"
-          (overlayKeydown)="onOverlayKey($event)"
-          (detach)="notificationsOpen.set(false)"
-        >
-          <div class="w-[360px] max-w-[calc(100vw-32px)] animate-pop-in overflow-hidden rounded-card border border-border bg-surface shadow-pop" role="dialog" aria-label="Notifications">
-            <vx-notifications-panel (closed)="notificationsOpen.set(false)" />
-          </div>
-        </ng-template>
 
-        <!-- Account menu -->
+        <!-- Account menu (top-bar-popups.ts) -->
         @if (auth.user(); as user) {
           <button
             type="button"
             class="flex items-center gap-1.5 rounded-full p-0.5 pr-1.5 transition-colors duration-200 hover:bg-surface-2"
-            [cdkMenuTriggerFor]="accountMenu"
-            aria-label="Account menu"
+            [attr.aria-label]="'Account menu' | t"
+            aria-haspopup="menu"
+            [attr.aria-expanded]="openPopup() === 'account'"
+            (click)="toggle('account', $event)"
           >
             <vx-avatar [src]="user.avatarUrl" [name]="user.nickname" size="sm" />
             <lucide-icon [img]="icons.chevronDown" [size]="14" class="hidden text-muted md:inline-flex" aria-hidden="true" />
           </button>
-
-          <ng-template #accountMenu>
-            <div cdkMenu class="w-60 animate-pop-in rounded-card border border-border bg-surface p-1.5 shadow-pop">
-              <div class="flex items-center gap-3 px-3 py-2.5">
-                <vx-avatar [src]="user.avatarUrl" [name]="user.nickname" size="md" />
-                <div class="min-w-0">
-                  <p class="truncate text-sm font-semibold">{{ user.nickname }}</p>
-                  <p class="truncate text-xs text-muted">{{ user.email }}</p>
-                </div>
-              </div>
-              <div class="my-1 h-px bg-border" role="separator"></div>
-              <a cdkMenuItem routerLink="/profile" [class]="menuItem">
-                <lucide-icon [img]="icons.user" [size]="16" class="text-muted" aria-hidden="true" /> Profile
-              </a>
-              <a cdkMenuItem routerLink="/wallet" [class]="menuItem">
-                <lucide-icon [img]="icons.wallet" [size]="16" class="text-muted" aria-hidden="true" /> Wallet
-              </a>
-              <a cdkMenuItem routerLink="/history" [class]="menuItem">
-                <lucide-icon [img]="icons.history" [size]="16" class="text-muted" aria-hidden="true" /> History
-              </a>
-              <!-- Role-dependent pages (on phones this menu is the only way to reach them) -->
-              @for (item of menuExtras(); track item.path) {
-                <a cdkMenuItem [routerLink]="item.path" [class]="menuItem">
-                  <lucide-icon [img]="item.icon" [size]="16" class="text-muted" aria-hidden="true" /> {{ item.label }}
-                </a>
-              }
-              <button cdkMenuItem type="button" [class]="menuItem" (cdkMenuItemTriggered)="theme.toggle()">
-                <lucide-icon [img]="theme.theme() === 'dark' ? icons.sun : icons.moon" [size]="16" class="text-muted" aria-hidden="true" />
-                {{ theme.theme() === 'dark' ? 'Light theme' : 'Dark theme' }}
-              </button>
-              <div class="my-1 h-px bg-border" role="separator"></div>
-              <button cdkMenuItem type="button" [class]="menuItem + ' text-danger!'" (cdkMenuItemTriggered)="logout()">
-                <lucide-icon [img]="icons.logout" [size]="16" aria-hidden="true" /> Log out
-              </button>
-            </div>
-          </ng-template>
         }
       } @else {
+        <!-- Guests have no Settings page: the language switch is here (logged in: Settings and the account menu) -->
+        <button
+          vxButton
+          type="button"
+          variant="ghost"
+          size="sm"
+          class="px-2!"
+          [attr.aria-label]="i18n.language() === 'ka' ? ('Switch to English' | t) : ('Switch to Georgian' | t)"
+          [title]="i18n.language() === 'ka' ? ('Switch to English' | t) : ('Switch to Georgian' | t)"
+          (click)="preferences.toggleLanguage()"
+        >
+          <lucide-icon [img]="icons.languages" [size]="16" aria-hidden="true" />
+          <span class="text-xs font-semibold" aria-hidden="true">{{ i18n.language() === 'ka' ? 'EN' : 'KA' }}</span>
+        </button>
         <vx-theme-toggle />
-        <a vxButton routerLink="/login" variant="ghost" size="sm">Log in</a>
-        <a vxButton routerLink="/register" variant="primary" size="sm">Register</a>
+        <a vxButton routerLink="/login" variant="ghost" size="sm">{{ 'Log in' | t }}</a>
+        <a vxButton routerLink="/register" variant="primary" size="sm">{{ 'Register' | t }}</a>
       }
     </div>
   </div>

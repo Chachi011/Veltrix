@@ -1,4 +1,4 @@
-<vx-page-header title="Users" description="Search, filter and manage accounts. Every change is written to the audit log." />
+<vx-page-header [title]="'Users' | t" [description]="'Search, filter and manage accounts. Every change is written to the audit log.' | t" />
 <vx-admin-nav />
 
 <vx-card padding="none">
@@ -9,42 +9,42 @@
       <input
         class="vx-input"
         type="search"
-        placeholder="Search by nickname or email"
-        aria-label="Search users"
+        [placeholder]="'Search by nickname or email' | t"
+        [attr.aria-label]="'Search users' | t"
         [ngModel]="searchText()"
         (ngModelChange)="searchText.set($event)"
       />
     </div>
     <div class="grid grid-cols-2 gap-3 sm:flex">
-      <select class="vx-input sm:w-40" aria-label="Filter by role" [ngModel]="role()" (ngModelChange)="setRole($event)">
-        <option [ngValue]="null">All roles</option>
+      <select class="vx-input sm:w-40" [attr.aria-label]="'Filter by role' | t" [ngModel]="role()" (ngModelChange)="setRole($event)">
+        <option [ngValue]="null">{{ 'All roles' | t }}</option>
         @for (r of roles; track r) {
-          <option [ngValue]="r">{{ r }}</option>
+          <option [ngValue]="r">{{ roleLabels[r] | t }}</option>
         }
       </select>
-      <select class="vx-input sm:w-36" aria-label="Filter by status" [ngModel]="blocked()" (ngModelChange)="setBlocked($event)">
-        <option [ngValue]="null">All statuses</option>
-        <option [ngValue]="false">Active</option>
-        <option [ngValue]="true">Blocked</option>
+      <select class="vx-input sm:w-36" [attr.aria-label]="'Filter by status' | t" [ngModel]="blocked()" (ngModelChange)="setBlocked($event)">
+        <option [ngValue]="null">{{ 'All statuses' | t }}</option>
+        <option [ngValue]="false">{{ 'Active' | t }}</option>
+        <option [ngValue]="true">{{ 'Blocked' | t }}</option>
       </select>
     </div>
   </div>
 
   @if (users(); as result) {
     @if (result.items.length === 0) {
-      <vx-empty-state [icon]="icons.users" title="No users found" message="Try another search or clear the filters." />
+      <vx-empty-state [icon]="icons.users" [title]="'No users found' | t" [message]="'Try another search or clear the filters.' | t" />
     } @else {
       <div class="vx-table-wrap" [class.opacity-60]="loading()">
         <table class="vx-table">
           <thead>
             <tr>
-              <th>User</th>
-              <th class="hidden sm:table-cell">Role</th>
-              <th class="hidden sm:table-cell">Status</th>
-              <th class="text-right">Balance</th>
-              <th class="hidden text-right md:table-cell">Bets</th>
-              <th class="hidden lg:table-cell">Joined</th>
-              <th class="hidden xl:table-cell">Last login</th>
+              <th>{{ 'User' | t }}</th>
+              <th class="hidden sm:table-cell">{{ 'Role' | t }}</th>
+              <th class="hidden sm:table-cell">{{ 'Status' | t }}</th>
+              <th class="text-right">{{ 'Balance' | t }}</th>
+              <th class="hidden text-right md:table-cell">{{ 'Bets' | t }}</th>
+              <th class="hidden lg:table-cell">{{ 'Joined' | t }}</th>
+              <th class="hidden xl:table-cell">{{ 'Last login' | t }}</th>
             </tr>
           </thead>
           <tbody>
@@ -52,37 +52,45 @@
               <tr class="cursor-pointer" (click)="open(user)">
                 <td>
                   <!-- A real button, so the row also works with the keyboard -->
-                  <button type="button" class="flex max-w-[260px] min-w-0 items-center gap-3 text-left" (click)="$event.stopPropagation(); open(user)">
+                  <button
+                    type="button"
+                    class="flex max-w-[260px] min-w-0 items-center gap-3 text-left"
+                    (click)="$event.stopPropagation(); open(user)"
+                  >
                     <vx-avatar [src]="user.avatarUrl" [name]="user.nickname" size="sm" />
                     <span class="min-w-0">
-                      <span class="block truncate font-medium" [class.text-primary-text]="user.id === auth.user()?.id">{{ user.nickname }}</span>
+                      <span class="block truncate font-medium" [class.text-primary-text]="user.id === auth.user()?.id">{{
+                        user.nickname
+                      }}</span>
                       <span class="block truncate text-xs text-muted">{{ user.email }}</span>
                       <!-- Phones: the role column is hidden, so the role sits under the email -->
                       @if (user.role !== 'Player' || user.isBlocked) {
                         <span class="mt-1 flex gap-1 sm:hidden">
                           @if (user.role !== 'Player') {
-                            <vx-badge [tone]="roleTones[user.role]">{{ user.role }}</vx-badge>
+                            <vx-badge [tone]="roleTones[user.role]">{{ roleLabels[user.role] | t }}</vx-badge>
                           }
                           @if (user.isBlocked) {
-                            <vx-badge tone="danger">Blocked</vx-badge>
+                            <vx-badge tone="danger">{{ 'Blocked' | t }}</vx-badge>
                           }
                         </span>
                       }
                     </span>
                   </button>
                 </td>
-                <td class="hidden sm:table-cell"><vx-badge [tone]="roleTones[user.role]">{{ user.role }}</vx-badge></td>
+                <td class="hidden sm:table-cell">
+                  <vx-badge [tone]="roleTones[user.role]">{{ roleLabels[user.role] | t }}</vx-badge>
+                </td>
                 <td class="hidden sm:table-cell">
                   @if (user.isBlocked) {
-                    <vx-badge tone="danger" dot>Blocked</vx-badge>
+                    <vx-badge tone="danger" dot>{{ 'Blocked' | t }}</vx-badge>
                   } @else {
-                    <vx-badge tone="success" dot>Active</vx-badge>
+                    <vx-badge tone="success" dot>{{ 'Active' | t }}</vx-badge>
                   }
                 </td>
                 <td class="num text-right">{{ user.balance | vlx: false }}</td>
                 <td class="num hidden text-right md:table-cell">{{ user.totalBets }}</td>
-                <td class="hidden text-muted lg:table-cell">{{ user.createdAt | date: 'MMM d, y' }}</td>
-                <td class="hidden text-muted xl:table-cell">{{ user.lastLoginAt ? (user.lastLoginAt | date: 'MMM d, HH:mm') : '—' }}</td>
+                <td class="hidden text-muted lg:table-cell">{{ user.createdAt | vxDate: 'MMM d, y' }}</td>
+                <td class="hidden text-muted xl:table-cell">{{ user.lastLoginAt ? (user.lastLoginAt | vxDate: 'MMM d, HH:mm') : '—' }}</td>
               </tr>
             }
           </tbody>

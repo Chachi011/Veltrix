@@ -1,8 +1,10 @@
 import {
+  type LucideIconData,
   Activity,
   ArrowRight,
   Ban,
   Bell,
+  BookOpen,
   Calendar,
   Camera,
   ChartColumn,
@@ -20,6 +22,7 @@ import {
   CircleX,
   Clock,
   Copy,
+  Crosshair,
   Crown,
   ExternalLink,
   Eye,
@@ -29,10 +32,12 @@ import {
   Gift,
   HandHeart,
   History as HistoryIcon,
+  House,
   Hourglass,
   Inbox,
   Info,
   KeyRound,
+  Languages,
   LayoutDashboard,
   LoaderCircle,
   Lock,
@@ -55,6 +60,7 @@ import {
   ShieldAlert,
   ShieldCheck,
   SquarePen,
+  Star,
   Sun,
   Timer,
   TrendingDown,
@@ -78,6 +84,7 @@ import {
 export const Icons = {
   arrowRight: ArrowRight,
   bell: Bell,
+  book: BookOpen,
   calendar: Calendar,
   camera: Camera,
   check: Check,
@@ -95,6 +102,7 @@ export const Icons = {
   /** The VLX virtual-points symbol (a gem, not a coin: VLX is not money) */
   vlx: Gem,
   history: HistoryIcon,
+  home: House,
   inbox: Inbox,
   info: Info,
   key: KeyRound,
@@ -147,7 +155,28 @@ export const Icons = {
   shieldAlert: ShieldAlert,
   edit: SquarePen,
   userCog: UserCog,
-  pause: CirclePause
+  pause: CirclePause,
+
+  // Phase 5
+  languages: Languages,
+  star: Star,
+  target: Crosshair
 } as const;
 
 export type IconName = keyof typeof Icons;
+
+/**
+ * The server stores an icon NAME per achievement (database seed); the client chooses the picture.
+ * "coins" shows the VLX gem on purpose: VLX is not money, so the UI never draws coins.
+ */
+const ACHIEVEMENT_ICONS: Record<string, LucideIconData> = {
+  rocket: Icons.rocket,
+  coins: Icons.vlx,
+  bolt: Icons.zap,
+  trophy: Icons.trophy,
+  star: Icons.star,
+  target: Icons.target,
+  timer: Icons.timer
+};
+
+export const achievementIcon = (name: string): LucideIconData => ACHIEVEMENT_ICONS[name] ?? Icons.medal;

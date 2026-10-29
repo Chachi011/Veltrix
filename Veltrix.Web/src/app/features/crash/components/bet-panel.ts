@@ -1,8 +1,8 @@
-import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
+import { LocalDatePipe, TranslatePipe, TranslateSplitPipe } from '../../../core/i18n/i18n-pipes';
 import { GameDto, RoundState } from '../../../core/models/api.models';
 import { Button, Field, Icons } from '../../../shared/ui';
 import { MultiplierPipe, VlxPipe } from '../../../shared/pipes';
@@ -60,7 +60,7 @@ export function betAction({ loggedIn, isPlayer, state, myBet, paused = false }: 
  */
 @Component({
   selector: 'vx-bet-panel',
-  imports: [DatePipe, ReactiveFormsModule, RouterLink, LucideAngularModule, Button, Field, VlxPipe, MultiplierPipe],
+  imports: [ReactiveFormsModule, RouterLink, LucideAngularModule, Button, Field, VlxPipe, MultiplierPipe, TranslatePipe, TranslateSplitPipe, LocalDatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './bet-panel.html'
 })

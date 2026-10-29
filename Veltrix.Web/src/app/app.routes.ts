@@ -4,7 +4,18 @@ import { authGuard, guestGuard, roleGuard } from './core/auth/auth.guards';
 
 // Every page is lazy-loaded: its code is downloaded only when the user opens it.
 export const routes: Routes = [
-  { path: '', pathMatch: 'full', redirectTo: 'crash' },
+  {
+    // Home (spec 4.7): games, the live round and a short leaderboard; public
+    path: '',
+    pathMatch: 'full',
+    title: 'Home · VELTRIX',
+    loadComponent: () => import('./features/home/home-page').then((m) => m.HomePage)
+  },
+  {
+    path: 'games',
+    title: 'Games · VELTRIX',
+    loadComponent: () => import('./features/games/games-page').then((m) => m.GamesPage)
+  },
   {
     path: 'login',
     title: 'Log in · VELTRIX',
@@ -28,6 +39,29 @@ export const routes: Routes = [
     path: 'crash',
     title: 'Crash · VELTRIX',
     loadComponent: () => import('./features/crash/crash-page').then((m) => m.CrashPage)
+  },
+  {
+    // Any other Crash game from the catalog
+    path: 'crash/:slug',
+    title: 'Crash · VELTRIX',
+    loadComponent: () => import('./features/crash/crash-page').then((m) => m.CrashPage)
+  },
+  {
+    // Public player profile (spec 4.6)
+    path: 'players/:nickname',
+    title: 'Player · VELTRIX',
+    loadComponent: () => import('./features/players/player-page').then((m) => m.PlayerPage)
+  },
+  {
+    path: 'rules',
+    title: 'Rules · VELTRIX',
+    loadComponent: () => import('./features/rules/rules-page').then((m) => m.RulesPage)
+  },
+  {
+    path: 'settings',
+    title: 'Settings · VELTRIX',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/settings/settings-page').then((m) => m.SettingsPage)
   },
   {
     path: 'wallet',

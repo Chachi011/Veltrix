@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, untracked } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { AuthStore } from './core/auth/auth.store';
+import { TranslatePipe } from './core/i18n/i18n-pipes';
 import { CrashHub, UserHubHandlers } from './core/realtime/crash-hub';
 import { LimitsStore } from './core/state/limits.store';
 import { NotificationsStore } from './core/state/notifications.store';
+import { PreferencesStore } from './core/state/preferences.store';
 import { WalletStore } from './core/state/wallet.store';
 import { LayoutService } from './core/ui/layout.service';
 import { LoadingStore } from './core/ui/loading.store';
@@ -16,7 +18,7 @@ import { ToastContainer } from './shared/ui/toast-container';
 /** The shell: sidebar (desktop) or bottom nav (phone), glass top bar, the current page, toasts. */
 @Component({
   selector: 'vx-root',
-  imports: [RouterOutlet, Sidebar, TopBar, BottomNav, ToastContainer],
+  imports: [RouterOutlet, Sidebar, TopBar, BottomNav, ToastContainer, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
@@ -26,7 +28,7 @@ import { ToastContainer } from './shared/ui/toast-container';
     ></div>
 
     <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[60] focus:rounded-control focus:bg-surface focus:px-4 focus:py-2">
-      Skip to content
+      {{ 'Skip to content' | t }}
     </a>
 
     <vx-sidebar />
@@ -47,6 +49,8 @@ export class App {
   private readonly wallet = inject(WalletStore);
   private readonly notifications = inject(NotificationsStore);
   private readonly limits = inject(LimitsStore);
+  /** Created here so theme, sound and reduced motion are applied from the very first page. */
+  private readonly preferences = inject(PreferencesStore);
   private readonly hub = inject(CrashHub);
   private readonly layout = inject(LayoutService);
   protected readonly loading = inject(LoadingStore);
@@ -76,6 +80,8 @@ export class App {
         if (userId !== null) {
           this.wallet.load().catch(() => undefined);
           this.notifications.load().catch(() => undefined);
+          // The account's settings (theme, sound, animations) follow the player to this device
+          this.preferences.load().catch(() => undefined);
           void this.hub.startUserSession(this.userEvents);
         } else {
           this.wallet.reset();

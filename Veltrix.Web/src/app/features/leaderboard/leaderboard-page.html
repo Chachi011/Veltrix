@@ -1,15 +1,15 @@
-<vx-page-header title="Leaderboard" description="The best players by virtual VLX results. Refreshed every few seconds.">
+<vx-page-header [title]="'Leaderboard' | t" [description]="'The best players by virtual VLX results. Refreshed every few seconds.' | t">
   @if (myRank(); as rank) {
     <vx-badge page-actions tone="primary">
       <lucide-icon [img]="icons.trophy" [size]="13" aria-hidden="true" />
-      You are #{{ rank }}
+      {{ 'You are #{rank}' | t: { rank: rank } }}
     </vx-badge>
   }
 </vx-page-header>
 
 <div class="mb-6 flex flex-wrap items-center gap-3">
-  <vx-tabs [items]="periods" [(value)]="period" label="Period" />
-  <vx-tabs [items]="types" [(value)]="type" label="Ranking" />
+  <vx-tabs [items]="periods | tLabels" [(value)]="period" [label]="'Period' | t" />
+  <vx-tabs [items]="types | tLabels" [(value)]="type" [label]="'Ranking' | t" />
 </div>
 
 @if (board() === null) {
@@ -27,16 +27,20 @@
   </div>
 } @else if (entries().length === 0) {
   <vx-card>
-    <vx-empty-state [icon]="icons.trophy" title="No results yet" message="Nobody has finished a bet in this period. Be the first on the board.">
+    <vx-empty-state
+      [icon]="icons.trophy"
+      [title]="'No results yet' | t"
+      [message]="'Nobody has finished a bet in this period. Be the first on the board.' | t"
+    >
       <a vxButton routerLink="/crash" variant="primary" size="sm">
-        <lucide-icon [img]="icons.rocket" [size]="15" aria-hidden="true" />Play now
+        <lucide-icon [img]="icons.rocket" [size]="15" aria-hidden="true" />{{ 'Play now' | t }}
       </a>
     </vx-empty-state>
   </vx-card>
 } @else {
   <div class="transition-opacity duration-200" [class.opacity-60]="loading()">
     <!-- Podium: top 3 (winner in the middle on wide screens, first on phones) -->
-    <ol class="grid items-end gap-4 md:grid-cols-3 md:gap-6" aria-label="Top 3">
+    <ol class="grid items-end gap-4 md:grid-cols-3 md:gap-6" [attr.aria-label]="'Top 3' | t">
       @for (entry of podium(); track entry.rank) {
         <li [class]="entry.rank === 1 ? 'order-first md:order-none' : ''">
           <vx-card [class]="isMe(entry) ? 'ring-2 ring-primary/40' : ''">
@@ -46,11 +50,23 @@
                 #{{ entry.rank }}
               </span>
               <vx-avatar [src]="entry.avatarUrl" [name]="entry.nickname" [size]="entry.rank === 1 ? 'xl' : 'lg'" />
-              <p class="mt-3 max-w-full truncate font-semibold" [class.text-primary-text]="isMe(entry)">
+              <a
+                class="mt-3 max-w-full truncate font-semibold hover:underline"
+                [class.text-primary-text]="isMe(entry)"
+                [class.text-text]="!isMe(entry)"
+                [routerLink]="['/players', entry.nickname]"
+              >
                 {{ entry.nickname }}
+              </a>
+              <p class="text-xs text-muted">
+                {{ 'Level {level}' | t: { level: entry.level } }} ·
+                {{ entry.betsCount === 1 ? ('{count} bet' | t: { count: 1 }) : ('{count} bets' | t: { count: entry.betsCount }) }}
               </p>
-              <p class="text-xs text-muted">Level {{ entry.level }} · {{ entry.betsCount }} {{ entry.betsCount === 1 ? 'bet' : 'bets' }}</p>
-              <p class="num mt-3 text-2xl font-semibold" [class.text-success]="!isMultiplier() && entry.value > 0" [class.text-danger]="!isMultiplier() && entry.value < 0">
+              <p
+                class="num mt-3 text-2xl font-semibold"
+                [class.text-success]="!isMultiplier() && entry.value > 0"
+                [class.text-danger]="!isMultiplier() && entry.value < 0"
+              >
                 @if (isMultiplier()) {
                   {{ entry.value | mult }}
                 } @else {
@@ -68,14 +84,14 @@
       <vx-card class="mt-4 md:mt-6" padding="none">
         <div class="vx-table-wrap">
           <table class="vx-table">
-            <caption class="sr-only">Leaderboard places 4 and below</caption>
+            <caption class="sr-only">{{ 'Leaderboard places 4 and below' | t }}</caption>
             <thead>
               <tr>
                 <th class="w-14">#</th>
-                <th>Player</th>
-                <th class="hidden sm:table-cell">Level</th>
-                <th class="hidden text-right sm:table-cell">Bets</th>
-                <th class="text-right">{{ isMultiplier() ? 'Multiplier' : 'Profit' }}</th>
+                <th>{{ 'Player' | t }}</th>
+                <th class="hidden sm:table-cell">{{ 'Level' | t }}</th>
+                <th class="hidden text-right sm:table-cell">{{ 'Bets' | t }}</th>
+                <th class="text-right">{{ isMultiplier() ? ('Multiplier' | t) : ('Profit' | t) }}</th>
               </tr>
             </thead>
             <tbody>
@@ -85,9 +101,15 @@
                   <td>
                     <span class="flex min-w-0 items-center gap-2.5">
                       <vx-avatar [src]="entry.avatarUrl" [name]="entry.nickname" size="xs" />
-                      <span class="truncate font-medium" [class.text-primary-text]="isMe(entry)">{{ entry.nickname }}</span>
+                      <a
+                        class="truncate font-medium hover:underline"
+                        [class.text-primary-text]="isMe(entry)"
+                        [class.text-text]="!isMe(entry)"
+                        [routerLink]="['/players', entry.nickname]"
+                        >{{ entry.nickname }}</a
+                      >
                       @if (isMe(entry)) {
-                        <vx-badge tone="primary">You</vx-badge>
+                        <vx-badge tone="primary">{{ 'You' | t }}</vx-badge>
                       }
                     </span>
                   </td>
@@ -113,5 +135,5 @@
 }
 
 <p class="mt-6 text-xs text-muted">
-  Only settled bets count. Profit = payouts minus stakes. Virtual points only; blocked accounts are hidden.
+  {{ 'Only settled bets count. Profit = payouts minus stakes. Virtual points only; blocked accounts are hidden.' | t }}
 </p>

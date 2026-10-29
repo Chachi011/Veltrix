@@ -13,10 +13,10 @@ Implementation: tokens and base styles in [`Veltrix.Web/src/styles.css`](../Velt
 | Concern | Choice |
 |---|---|
 | Styling | **Tailwind CSS v4**, configured in CSS (`@theme` in `styles.css`), loaded through PostCSS (`.postcssrc.json`) |
-| Overlays | **Angular CDK**: Dialog (modals and drawers), Menu (account menu), Overlay (notifications panel) |
+| Overlays | **Angular CDK**: Dialog (modals and drawers), Menu (account menu), Overlay (notifications panel). The top-bar dropdowns live in `layout/top-bar-popups.ts`, loaded on the first click (prefetched when the browser is idle), so the CDK Overlay and Menu code (~75 kB) is not part of the first download |
 | Charts | **Chart.js 4** wrapped in `vx-chart` (token colors, design-system fonts). Loaded with a dynamic `import()` on first use, so pages without charts never download it |
 | Icons | **lucide-angular**. Only the icons listed in `shared/ui/icons.ts` are bundled |
-| Fonts | **Inter** (UI) and **JetBrains Mono** (all numbers), the Google Fonts families served from npm (`@fontsource-variable/*`) so they also work offline |
+| Fonts | **Inter** (UI) and **JetBrains Mono** (all numbers), the Google Fonts families served from npm (`@fontsource-variable/*`) so they also work offline. **Noto Sans Georgian** for Georgian letters (Inter has none); its `unicode-range` means only pages that show Georgian download it |
 | Not allowed | Bootstrap, the default Angular Material look, any other component library |
 
 The global stylesheet is plain CSS (`styles.css`), because Tailwind v4 does not support Sass. Component styles may use SCSS but must not use Tailwind directives.
@@ -92,6 +92,8 @@ Rule: write **complete class strings** (e.g. a `Record<Variant, string>`), never
 | Hints, table headers | 11–12px; table headers uppercase, `tracking-wide`, muted |
 | **All numbers** (balance, multiplier, amounts, countdowns, hashes) | `num` utility: JetBrains Mono, `tabular-nums`, so digits don't shift while they change |
 | Live multiplier | 64–96px mono semibold |
+| Georgian text | Same sizes and weights; the browser takes the Georgian letters from Noto Sans Georgian (next in the `--font-sans` stack) |
+| Big number + unit | The unit is smaller and muted ("5 s" / "5 წმ" countdowns), so a Georgian unit does not dominate the number |
 
 Never: gradients on text, all-caps body text, more than two font families.
 
@@ -106,10 +108,11 @@ Never: gradients on text, all-caps body text, more than two font families.
 | Breakpoint | **768px** (`md`) switches between phone and desktop layouts |
 | Sidebar (≥768px) | fixed left, 240px expanded / 72px collapsed (icons only, with `title` tooltips), `bg-surface`, right border; state remembered in `localStorage` (`vx.sidebarCollapsed`); bottom: disclaimer + collapse button. Items depend on the role; staff tools (Operator, Admin) sit under a small uppercase **"Staff"** heading (a divider when collapsed) |
 | Top bar | sticky, 64px, **glass**, bottom border. Left: page title (desktop, visual only: `aria-hidden`, the page's own `<h1>` is the real heading) or logo (phone). Right: balance chip (animated, gem icon) → daily bonus (button when claimable, countdown chip otherwise) → notifications bell (primary badge with the unread count, "9+" above 9) → avatar menu. Guests: theme toggle, Log in, Register |
-| Account menu | Profile, Wallet, History, then the role's extra pages (Responsible play, Operator, Admin, Provably fair), theme, Log out. On phones it is the only way to reach the pages that are not in the bottom nav |
+| Sidebar items | Home, Play, Games, Leaderboard, History\*, Wallet\*, Responsible play (players), Provably fair, Rules, then "Staff" (Operator, Admin). \* logged in. Home is active only on `/` exactly (`routerLinkActiveOptions: { exact: true }`); the logo links to Home |
+| Account menu | Profile, Wallet, History, then the role's extra pages (Responsible play, Games, Provably fair, Rules, Settings, Operator, Admin), theme, Log out. On phones it is the only way to reach the pages that are not in the bottom nav |
 | Notifications panel | CDK overlay under the bell, 360px: header with the unread count and "Mark all read"; newest first; unread rows tinted `bg-primary/5` with a dot; an icon per type in a tinted circle; a click marks it read and follows the type's link. Escape and an outside click close it |
 | Page header | every page starts with `<vx-page-header title description>`: the `<h1>` is visible on phones and visually hidden from 768px (the top bar shows the title), the description is always visible; actions go in `[page-actions]` |
-| Bottom nav (<768px) | fixed, glass, 64px + safe-area inset, max 5 items (icon + 11px label); active = `text-primary-text`. Logged in: Play, Top (leaderboard), History, Wallet, Profile. Guests: Play, Top, Fair, Log in |
+| Bottom nav (<768px) | fixed, glass, 64px + safe-area inset, max 5 items (icon + 11px label); active = `text-primary-text`. Logged in: Home, Play, Top (leaderboard), Wallet, Profile. Guests: Home, Play, Top, Rules, Log in |
 | Page bottom padding on phones | enough for the bottom nav (`pb-28`) |
 | Bet panel on phones | becomes a **bottom sheet** (Crash page, step 3) |
 
@@ -123,6 +126,7 @@ Responsive rules learned in Phase 4:
 - **Truncate table text on an inner block** (`<td><div class="max-w-[240px] truncate">…</div></td>`). Browsers ignore `max-width` on a table cell, so long text widens the whole table.
 - **Narrow tables move secondary columns into the first cell** (e.g. the audit log shows "by admin" and the action badge under the date on phones) instead of scrolling sideways.
 - **Code in the initial bundle (layout, core) imports single files from `shared/ui`, never the barrel**: Angular components are not tree-shaken out of a barrel, so one barrel import would pull every component into the first download.
+- **Eager code never imports a CDK overlay module** (`@angular/cdk/overlay`, `menu`, `dialog`): open them from a lazily imported file, as the top bar (`top-bar-popups.ts`) and the session reminder do. The buttons that open them carry `aria-haspopup` and `aria-expanded`; Escape closes and returns the focus to the button.
 
 ---
 
@@ -153,7 +157,9 @@ Import from the barrel: `import { Button, Card } from '../../shared/ui';`
 | Multiplier pill | `<vx-multiplier-pill [value] [cancelled]>` | **Red < 2x, neutral 2x–10x, accent ≥ 10x**, "—" for cancelled |
 | Progress ring | `<vx-progress-ring [value]="0..1" size stroke color>` + centered content | Betting countdown |
 | Progress bar | `<vx-progress-bar [value]="0..1" tone label>` | 8px track (`surface-2`), filled in a token tone, `role="progressbar"`. Daily limit usage: primary < 70%, warning ≥ 70%, danger at 100% |
+| Level progress | `<vx-level-progress [profile]>` | Level + title, XP in mono, accent progress bar to the next level, "N XP to level L · title" or "Top level reached" (§9b) |
 | Chart | `<vx-chart type="bar\|line\|doughnut" [labels] [series] ariaLabel [format] [formatRight] [height] [legend] stacked>` | Chart.js with token colors read from CSS (follows the theme, also inside a themed subtree), Inter labels, JetBrains Mono numbers, faint grid (muted 14%), card-style tooltip, legend bottom-left with dots. Series: `{ label, data, tone, kind?: 'bar'\|'line', axis?: 'left'\|'right', fill?, tones? }` (mixed bar + line, a second axis, a tone per bar or slice). Lines use monotone interpolation (smooth but never beyond the real values). 500ms animation, none under reduced motion. `ariaLabel` is required (`role="img"`) |
+| Markdown | `<vx-markdown [source]>` | Content pages (rules): paragraphs, numbered / bulleted lists (`marker:text-primary-text`), **bold** (`text-text`), *italic*; body text muted. Parsed into data and drawn by the template, **never `innerHTML`**, so text from the database cannot inject markup. The inline template is one line (line breaks would become spaces before punctuation) |
 | Drawer | `ModalService.openDrawer(Component, { data, ariaLabel, width })`; content in `<vx-drawer title description>` with `[drawer-footer]` | Panel from the right, full height, 480px (full width on phones), solid `bg-surface` + left border + `shadow-pop`, slides in (`animate-drawer-in`, 250ms). Same CDK focus trap, Escape and backdrop as a modal. For detail views with actions (admin user) |
 | Theme toggle | `<vx-theme-toggle>` | Sun / moon icon button |
 | Modal | `ModalService.open(Component, { data, ariaLabel, width })`, `ModalService.confirm({ title, message, confirmText, tone })`; dialogs wrap content in `<vx-modal title description>` with `[modal-footer]` | CDK Dialog: focus trap, Escape, restores focus. Glass panel, blurred backdrop |
@@ -186,6 +192,8 @@ Rules:
 | Crash | multiplier turns `--danger` + `animate-shake` (450ms, once) |
 | Loading | skeleton shimmer, no spinners (the button's own loading spinner is the exception) |
 | **prefers-reduced-motion** | all animations and transitions become instant; the animated number jumps; no shimmer and no shake |
+| **Settings → Animations off** | exactly the same as the OS setting: `PreferencesStore` sets `data-motion="reduce"` on `<html>`, `styles.css` repeats the reduced-motion rules for it, and JavaScript animations ask `reducedMotion()` (`shared/motion.ts`), which checks both |
+| Sound | Off by the player's choice (Settings → Game sounds, on by default). Three short Web Audio sounds, only for the player's OWN actions: bet accepted (soft double click), cash-out (rising chime, once even if the live event and the HTTP answer both arrive), round lost with my bet in it (low thud). Never for other players, never in a loop |
 
 ---
 
@@ -197,6 +205,20 @@ Rules:
 - "Skip to content" link as the first focusable element.
 - Menus and dialogs use the CDK (keyboard navigation, focus trap, Escape).
 - Errors: `role="alert"`; live values that change constantly (the multiplier) are **not** announced on every tick.
+
+---
+
+## 8b. Language (Georgian and English)
+
+| Rule | Value |
+|---|---|
+| Default | **Georgian**; English is the second language. `<html lang>` follows the choice |
+| Switch | Guests: a ghost button in the top bar (languages icon + "EN" / "KA"). Logged in: Settings → Language (tabs, each language named in its own language: ქართული / English) and an item in the account menu. Switching is instant (no reload) and is saved on the account |
+| Where the text lives | The code is written in English and shows text through the `t` pipe; **all Georgian text is in one file, `src/i18n/ka.json`** (UI texts, API messages, Rules pages). A missing translation shows the English text |
+| Terms kept as they are | **Crash, Cash out, VLX** (and "Provably fair", "seed" on the fairness page) |
+| Numbers | Amounts and multipliers keep one international format in both languages (`1,234.56 VLX`, `2.35x`, mono); dates use the language's month names |
+| Longer text | Georgian is about 30% longer: rows of buttons and filters use `flex-wrap`, labels never get fixed widths, the top-bar bonus button is icon-only below 1024px, sidebar labels are kept short ("უსაფრთხო თამაში") |
+| Word order | A sentence with a highlighted value is translated whole (`tSplit`), because Georgian puts suffixes after the number ("Cash out 2.00x-ზე") |
 
 ---
 
@@ -240,6 +262,12 @@ Rules:
 | Crash page | A self-excluded player's big button becomes "Betting paused until …" (secondary, links to Responsible play) |
 | Session reminder | Modal "Time for a break?" (hourglass, warning tint): minutes played, bets, staked, and the reminder that Crash has no winning strategy. Buttons: "Review my limits" (ghost), "Keep playing" (primary) |
 | Operator | Tabs "Live round" / "Games". Live: round card (state badge, big mono multiplier or countdown, hash badge, danger "Cancel round" → dialog with a required reason), 4 stat cards, live bets, last rounds as multiplier pills. Games: table with an inline status select (non-Active asks for confirmation), edit / new game dialogs |
+| Home | Hero card (eyebrow "VELTRIX · CRASH", one headline, two lines of text, Play now / Create an account / How it works, three fact tiles), then the live round card (same real-time store as the Crash page: state badge, big mono multiplier or countdown, bets / staked / online, last-20 strip, "Open the game") beside "Top today" (5 rows: rank, avatar, nickname link, multiplier pill), then up to 3 game cards |
+| Games catalog | Search (300ms debounce) + type + status selects, kept in the URL; responsive grid of game cards (icon tile, name, type, status badge, 2-line description, bet range, betting time, Play = primary, or a secondary "Watch" for a game in maintenance). Staff also see Disabled games |
+| Player profile | Public data only: avatar xl, nickname (+ "You" badge and "Edit my profile" for oneself), level and member since; a Level card (`vx-level-progress`) beside an Achievements card (badges as accent pills: icon + title, unlock date in the tooltip); 4 stat cards, best cash-outs table with multiplier pills. Unknown nickname = empty state (the request is silent, no error toast) |
+| Level and achievements (Phase 5) | Accent is the progress color (XP is a reward, not a balance). `vx-level-progress`: "Level 3 · Explorer", XP on the right in mono, accent bar from the current level's XP to the next, "110 XP to level 4 · Pilot" (or "Top level reached"). Profile → "Level and achievements" (players only): the level card, then a grid of achievement tiles (1 / 2 / 3 columns): unlocked = accent border and tint, icon in an accent circle, "Unlocked {date}" in success; locked = neutral border, muted icon, progress bar + "37 / 100" in mono, or "Unlocks when your next bet is settled" when the goal is already met (accounts older than achievements). Rewards "+20 XP · +10 VLX" in mono accent. The icon NAME comes from the database, the picture from `achievementIcon()`; "coins" draws the VLX gem (VLX is not money). Bell: AchievementUnlocked (medal) and LevelUp (trophy) in accent, linking to the profile; their toast is the message ("First bet: +10 XP, +10 VLX."), not the generic title |
+| Rules | The two content pages from the database in cards (`vx-markdown`), a side column linking Provably fair and Responsible play, and the virtual-points note |
+| Settings | Two cards: Appearance (theme System / Dark / Light as `vx-tabs`, Animations switch) and Sound (Game sounds switch + three preview buttons). Every change applies at once and is saved on the account; a status line says "Saving…" |
 | Admin | Section nav (Dashboard, Users, Audit log, Settings) under the page header. Dashboard: 8 stat cards + charts. Users: search (300ms debounce) + role / status selects, row opens the user drawer (role, block, balance adjustment with Add/Remove tabs and a confirm). Audit log: filters in the URL, a readable change summary ("Role: Player → Operator"), rows expand to the before / after JSON |
 
 ---
@@ -278,3 +306,8 @@ After every page, check at **1440px, 768px and 375px**, in **both themes**:
 | 2026-10-27 | Chart lines use monotone interpolation (a smooth curve invented peaks above the real values) |
 | 2026-10-27 | Card header wraps its actions under the title on phones |
 | 2026-10-27 | Rules: `max-sm:hidden` for components with their own display; truncate inside table cells on an inner block; eager code imports single `shared/ui` files, not the barrel |
+| 2026-10-27 | Spec coverage pass: Home, Games catalog, Player profile, Rules and Settings pages (§9b); `vx-markdown`; Home / Games / Rules in the navigation, Settings in the account menu, logo → Home |
+| 2026-10-27 | Settings: theme System / Dark / Light (System follows the device live), "Animations off" = reduced motion (`data-motion`), game sounds for the player's own actions only; all saved on the account |
+| 2026-10-28 | Top-bar dropdowns (account menu, notifications) load on demand: the initial download went from 499 kB to 405 kB with the same look and keyboard behavior |
+| 2026-10-28 | Georgian and English (§8b): Georgian default, Noto Sans Georgian for Georgian letters, language button for guests, Settings → Language, all Georgian in `ka.json`; the bonus text button only from 1024px; big countdowns show a small unit |
+| 2026-10-29 | Achievements and XP levels (§9b): `vx-level-progress`, achievement tiles on the profile, badges on the public profile, accent = progress; the bell's "Mark all read" never shrinks (Georgian label shortened to "ყველა წავიკითხე") |

@@ -99,8 +99,8 @@
   --color-warning: var(--warning);
   --color-on-warning: var(--on-warning);
 
-  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, 'Segoe UI', sans-serif;
-  --font-mono: 'JetBrains Mono Variable', ui-monospace, 'Cascadia Code', Consolas, monospace;
+  --font-sans: 'Inter Variable', 'Noto Sans Georgian Variable', ui-sans-serif, system-ui, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, 'Cascadia Code', Consolas, 'Noto Sans Georgian Variable', monospace;
 
   --radius-card: 12px;
   --radius-control: 10px;
@@ -448,4 +448,14 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* The same for players who turn animations off in Settings (PreferencesStore sets the attribute on <html>) */
+[data-motion='reduce'] *,
+[data-motion='reduce'] *::before,
+[data-motion='reduce'] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
 }

@@ -1,4 +1,3 @@
-import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
@@ -6,6 +5,8 @@ import { firstValueFrom } from 'rxjs';
 import { ProfileApi } from '../../core/api/profile.api';
 import { AuthStore } from '../../core/auth/auth.store';
 import { applyServerErrors } from '../../core/http/problem';
+import { I18n, mark } from '../../core/i18n/i18n';
+import { LocalDatePipe, ServerTextPipe, TranslatePipe } from '../../core/i18n/i18n-pipes';
 import { ProfileDto, PublicProfileDto } from '../../core/models/api.models';
 import { WalletStore } from '../../core/state/wallet.store';
 import { ToastStore } from '../../core/ui/toast.store';
@@ -17,12 +18,15 @@ import {
   Card,
   Field,
   Icons,
+  LevelProgress,
   PageHeader,
   PasswordInput,
   Skeleton,
   StatCard
 } from '../../shared/ui';
+import { ROLE_LABELS } from '../../shared/labels';
 import { NICKNAME_PATTERN, fieldsMatch, strongPassword } from '../../shared/validators';
+import { MyAchievements } from './my-achievements';
 import { MyStats } from './my-stats';
 
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
@@ -31,7 +35,9 @@ const AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 @Component({
   selector: 'vx-profile-page',
   imports: [
-    DatePipe,
+    LocalDatePipe,
+    ServerTextPipe,
+    TranslatePipe,
     ReactiveFormsModule,
     LucideAngularModule,
     AnimatedNumber,
@@ -40,10 +46,12 @@ const AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
     Button,
     Card,
     Field,
+    LevelProgress,
     PageHeader,
     PasswordInput,
     Skeleton,
     StatCard,
+    MyAchievements,
     MyStats
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -54,9 +62,11 @@ export class ProfilePage {
   private readonly auth = inject(AuthStore);
   private readonly wallet = inject(WalletStore);
   private readonly toasts = inject(ToastStore);
+  private readonly i18n = inject(I18n);
   private readonly fb = inject(NonNullableFormBuilder);
 
   protected readonly icons = Icons;
+  protected readonly roleLabels = ROLE_LABELS;
   protected readonly profile = signal<ProfileDto | null>(null);
   protected readonly stats = signal<PublicProfileDto | null>(null);
   protected readonly preview = signal<string | null>(null);
@@ -114,11 +124,11 @@ export class ProfilePage {
     }
     // Quick checks in the browser; the server checks again (including the real file content)
     if (!AVATAR_TYPES.includes(file.type)) {
-      this.avatarError.set('Only JPG, PNG or WEBP images.');
+      this.avatarError.set(mark('Only JPG, PNG or WEBP images.'));
       return;
     }
     if (file.size > MAX_AVATAR_BYTES) {
-      this.avatarError.set('The image must be 2 MB or smaller.');
+      this.avatarError.set(mark('The image must be 2 MB or smaller.'));
       return;
     }
 
@@ -141,7 +151,7 @@ export class ProfilePage {
       this.applyProfile(profile);
       this.clearPreview();
       this.selectedFile = null;
-      this.toasts.success('Avatar updated.');
+      this.toasts.success(this.i18n.t('Avatar updated.'));
     } catch {
       // Shown by the error interceptor
     } finally {
@@ -158,7 +168,7 @@ export class ProfilePage {
     try {
       const profile = await firstValueFrom(this.api.update(this.nicknameForm.getRawValue().nickname));
       this.applyProfile(profile);
-      this.toasts.success('Nickname saved.');
+      this.toasts.success(this.i18n.t('Nickname saved.'));
     } catch (error) {
       applyServerErrors(this.nicknameForm, error);
     } finally {
@@ -178,7 +188,7 @@ export class ProfilePage {
       await firstValueFrom(this.api.changePassword({ currentPassword, newPassword }));
       this.passwordForm.reset();
       // The server revoked all refresh tokens: this session ends too, so log in again
-      this.toasts.success('Password changed. Please log in with your new password.');
+      this.toasts.success(this.i18n.t('Password changed. Please log in with your new password.'));
       await this.auth.logout();
     } catch (error) {
       applyServerErrors(this.passwordForm, error);

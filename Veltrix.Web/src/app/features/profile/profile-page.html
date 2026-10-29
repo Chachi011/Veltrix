@@ -1,4 +1,4 @@
-<vx-page-header title="Profile" description="Your account, avatar, results and security." />
+<vx-page-header [title]="'Profile' | t" [description]="'Your account, avatar, results and security.' | t" />
 
 @if (profile(); as p) {
   <!-- Identity -->
@@ -12,8 +12,8 @@
           variant="secondary"
           size="icon-sm"
           class="absolute! -right-1 -bottom-1 rounded-full! shadow-soft"
-          aria-label="Change avatar"
-          title="Change avatar"
+          [attr.aria-label]="'Change avatar' | t"
+          [title]="'Change avatar' | t"
           (click)="chooseFile()"
         >
           <lucide-icon [img]="icons.camera" [size]="15" aria-hidden="true" />
@@ -25,28 +25,28 @@
         <h2 class="truncate text-xl font-semibold">{{ p.nickname }}</h2>
         <p class="truncate text-sm text-muted">{{ p.email }}</p>
         <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted">
-          <vx-badge tone="primary">{{ p.role }}</vx-badge>
-          <span>Member since {{ p.createdAt | date: 'mediumDate' }}</span>
+          <vx-badge tone="primary">{{ roleLabels[p.role] | t }}</vx-badge>
+          <span>{{ 'Member since {date}' | t: { date: (p.createdAt | vxDate: 'mediumDate') } }}</span>
         </div>
 
         @if (preview()) {
           <div class="mt-3 flex flex-wrap gap-2">
             <button vxButton type="button" variant="primary" size="sm" [loading]="uploading()" (click)="uploadAvatar()">
-              <lucide-icon [img]="icons.upload" [size]="14" aria-hidden="true" />Save avatar
+              <lucide-icon [img]="icons.upload" [size]="14" aria-hidden="true" />{{ 'Save avatar' | t }}
             </button>
-            <button vxButton type="button" variant="ghost" size="sm" (click)="cancelAvatar()">Cancel</button>
+            <button vxButton type="button" variant="ghost" size="sm" (click)="cancelAvatar()">{{ 'Cancel' | t }}</button>
           </div>
         } @else if (avatarError(); as message) {
           <p class="mt-3 flex items-center gap-1.5 text-xs text-danger" role="alert">
-            <lucide-icon [img]="icons.alert" [size]="13" aria-hidden="true" />{{ message }}
+            <lucide-icon [img]="icons.alert" [size]="13" aria-hidden="true" />{{ message | t }}
           </p>
         } @else {
-          <p class="mt-3 text-xs text-muted">Avatar: JPG, PNG or WEBP, up to 2 MB.</p>
+          <p class="mt-3 text-xs text-muted">{{ 'Avatar: JPG, PNG or WEBP, up to 2 MB.' | t }}</p>
         }
       </div>
 
       <div class="border-t border-border pt-4 sm:border-0 sm:pt-0 sm:text-right">
-        <p class="vx-label">Balance</p>
+        <p class="vx-label">{{ 'Balance' | t }}</p>
         <p class="mt-1">
           <vx-animated-number class="text-2xl font-semibold" [value]="p.balance" />
           <span class="ml-1 text-sm text-muted">VLX</span>
@@ -57,48 +57,66 @@
 
   <!-- Results (same data other players see on the public profile) -->
   <div class="mt-4 grid grid-cols-2 gap-4 md:mt-6 md:gap-6 lg:grid-cols-4">
-    <vx-stat-card label="Level" [value]="stats()?.level ?? null" [icon]="icons.trophy" [hint]="stats()?.levelTitle" />
-    <vx-stat-card label="Bets placed" [value]="stats()?.totalBets ?? null" [icon]="icons.history" [hint]="stats() ? stats()!.cashOutCount + ' cashed out' : undefined" />
-    <vx-stat-card label="Best multiplier" [value]="stats()?.biggestMultiplier ?? null" [decimals]="2" unit="x" [icon]="icons.zap" />
-    <vx-stat-card label="Biggest win" [value]="stats()?.biggestWin ?? null" [decimals]="2" unit="VLX" [icon]="icons.vlx" />
+    <vx-stat-card [label]="'Level' | t" [value]="stats()?.level ?? null" [icon]="icons.trophy" [hint]="stats()?.levelTitle | serverText" />
+    <vx-stat-card
+      [label]="'Bets placed' | t"
+      [value]="stats()?.totalBets ?? null"
+      [icon]="icons.history"
+      [hint]="stats() ? ('{count} cashed out' | t: { count: stats()!.cashOutCount }) : undefined"
+    />
+    <vx-stat-card [label]="'Best multiplier' | t" [value]="stats()?.biggestMultiplier ?? null" [decimals]="2" unit="x" [icon]="icons.zap" />
+    <vx-stat-card [label]="'Biggest win' | t" [value]="stats()?.biggestWin ?? null" [decimals]="2" unit="VLX" [icon]="icons.vlx" />
   </div>
 
-  <!-- Personal statistics with charts (players; staff do not bet) -->
+  <!-- Level, achievements and personal statistics (players; staff do not bet) -->
   @if (p.role === 'Player') {
-    <h2 class="mt-8 mb-4 text-[15px] font-semibold md:mt-10">Statistics</h2>
+    <h2 class="mt-8 mb-4 text-[15px] font-semibold md:mt-10">{{ 'Level and achievements' | t }}</h2>
+    @if (stats(); as s) {
+      <vx-card class="mb-4 md:mb-6"><vx-level-progress [profile]="s" /></vx-card>
+    }
+    <vx-my-achievements />
+
+    <h2 class="mt-8 mb-4 text-[15px] font-semibold md:mt-10">{{ 'Statistics' | t }}</h2>
     <vx-my-stats />
   }
 
-  <h2 class="mt-8 mb-4 text-[15px] font-semibold md:mt-10">Account</h2>
+  <h2 class="mt-8 mb-4 text-[15px] font-semibold md:mt-10">{{ 'Account' | t }}</h2>
   <div class="grid gap-4 md:gap-6 lg:grid-cols-2">
-    <vx-card title="Nickname" subtitle="Shown to other players in live bets and leaderboards.">
+    <vx-card [title]="'Nickname' | t" [subtitle]="'Shown to other players in live bets and leaderboards.' | t">
       <form [formGroup]="nicknameForm" (ngSubmit)="saveNickname()" novalidate class="flex flex-col gap-4">
-        <vx-field label="Nickname" for="nickname" [control]="nicknameForm.controls.nickname" patternMessage="3-20 letters, digits or underscore.">
+        <vx-field
+          [label]="'Nickname' | t"
+          for="nickname"
+          [control]="nicknameForm.controls.nickname"
+          [patternMessage]="'3-20 letters, digits or underscore.' | t"
+        >
           <div class="vx-input-wrap">
             <lucide-icon [img]="icons.user" [size]="16" class="vx-input-icon" aria-hidden="true" />
             <input id="nickname" class="vx-input" formControlName="nickname" autocomplete="username" />
           </div>
         </vx-field>
         <div>
-          <button vxButton type="submit" variant="primary" [loading]="savingNickname()" [disabled]="nicknameForm.pristine">Save nickname</button>
+          <button vxButton type="submit" variant="primary" [loading]="savingNickname()" [disabled]="nicknameForm.pristine">
+            {{ 'Save nickname' | t }}
+          </button>
         </div>
       </form>
     </vx-card>
 
-    <vx-card title="Password" subtitle="Changing it logs you out on every device.">
+    <vx-card [title]="'Password' | t" [subtitle]="'Changing it logs you out on every device.' | t">
       <form [formGroup]="passwordForm" (ngSubmit)="changePassword()" novalidate class="flex flex-col gap-4">
-        <vx-field label="Current password" for="current" [control]="passwordForm.controls.currentPassword">
+        <vx-field [label]="'Current password' | t" for="current" [control]="passwordForm.controls.currentPassword">
           <vx-password-input>
             <input id="current" class="vx-input" type="password" formControlName="currentPassword" autocomplete="current-password" />
           </vx-password-input>
         </vx-field>
         <div class="grid gap-4 sm:grid-cols-2">
-          <vx-field label="New password" for="new" [control]="passwordForm.controls.newPassword">
+          <vx-field [label]="'New password' | t" for="new" [control]="passwordForm.controls.newPassword">
             <vx-password-input>
               <input id="new" class="vx-input" type="password" formControlName="newPassword" autocomplete="new-password" />
             </vx-password-input>
           </vx-field>
-          <vx-field label="Confirm" for="confirm" [control]="passwordForm.controls.confirmPassword">
+          <vx-field [label]="'Confirm' | t" for="confirm" [control]="passwordForm.controls.confirmPassword">
             <vx-password-input>
               <input id="confirm" class="vx-input" type="password" formControlName="confirmPassword" autocomplete="new-password" />
             </vx-password-input>
@@ -106,7 +124,7 @@
         </div>
         <div>
           <button vxButton type="submit" variant="primary" [loading]="savingPassword()">
-            <lucide-icon [img]="icons.lock" [size]="15" aria-hidden="true" />Change password
+            <lucide-icon [img]="icons.lock" [size]="15" aria-hidden="true" />{{ 'Change password' | t }}
           </button>
         </div>
       </form>

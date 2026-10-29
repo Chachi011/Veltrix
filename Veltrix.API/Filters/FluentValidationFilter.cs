@@ -47,7 +47,13 @@ public sealed class FluentValidationFilter : IAsyncActionFilter
             var problem = factory.CreateValidationProblemDetails(
                 context.HttpContext, errors, StatusCodes.Status400BadRequest, "Validation failed");
 
-            context.Result = new BadRequestObjectResult(problem) { ContentTypes = { "application/problem+json" } };
+            // A JsonResult, not a BadRequestObjectResult: [Produces("application/json")] on the controllers rewrites the
+            // content type of every ObjectResult, and this error must be "application/problem+json" like all the others
+            context.Result = new JsonResult(problem)
+            {
+                StatusCode = StatusCodes.Status400BadRequest,
+                ContentType = "application/problem+json"
+            };
             return;
         }
 

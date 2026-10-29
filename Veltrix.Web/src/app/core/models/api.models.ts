@@ -104,6 +104,45 @@ export interface PublicProfileDto {
   biggestMultiplier: number;
   biggestWin: number;
   bestCashOuts: BestCashOutDto[];
+  /** Experience points (from settled bets and achievements). */
+  xp: number;
+  /** XP the current level starts at. */
+  levelXp: number;
+  /** The next level; null at the top level. */
+  nextLevel: number | null;
+  nextLevelTitle: string | null;
+  nextLevelXp: number | null;
+  /** Unlocked achievements, newest first. */
+  badges: BadgeDto[];
+}
+
+// ---------- Achievements (Phase 5) ----------
+
+export interface AchievementDto {
+  code: string;
+  /** English title and description from the database seed (shown with | serverText). */
+  title: string;
+  description: string;
+  /** Icon name chosen by the client: rocket, coins, bolt, trophy, star, target, timer. */
+  icon: string;
+  xpReward: number;
+  vlxReward: number;
+  /** How many players unlocked it. */
+  unlockedBy: number;
+}
+
+export interface MyAchievementDto extends AchievementDto {
+  unlockedAt: string | null;
+  /** e.g. 37 of 100 bets; null for one-moment achievements (auto cash-out). */
+  progress: number | null;
+  target: number | null;
+}
+
+export interface BadgeDto {
+  code: string;
+  title: string;
+  icon: string;
+  unlockedAt: string;
 }
 
 // ---------- Games & rounds ----------
@@ -392,7 +431,9 @@ export type NotificationType =
   | 'AccountBlocked'
   | 'AccountUnblocked'
   | 'PasswordChanged'
-  | 'SelfExcluded';
+  | 'SelfExcluded'
+  | 'AchievementUnlocked'
+  | 'LevelUp';
 
 export interface NotificationPageDto extends PagedResult<NotificationDto> {
   unreadCount: number;
@@ -538,4 +579,43 @@ export interface DailyStatisticDto {
   betsVolume: number;
   payoutVolume: number;
   averageCrashPoint: number;
+}
+
+// ---------- Settings, content, catalog (spec coverage pass) ----------
+
+/** System = follow the device setting. */
+export type ThemePreference = 'System' | 'Dark' | 'Light';
+
+/** UI language: Georgian (default) or English. */
+export type LanguageCode = 'ka' | 'en';
+
+export interface UserPreferencesDto {
+  theme: ThemePreference;
+  soundEnabled: boolean;
+  /** False = reduce motion. */
+  animationsEnabled: boolean;
+  language: LanguageCode;
+  updatedAt: string;
+}
+
+export interface UpdatePreferencesRequest {
+  theme: ThemePreference;
+  soundEnabled: boolean;
+  animationsEnabled: boolean;
+  language: LanguageCode;
+}
+
+export interface StaticPageDto {
+  slug: string;
+  language: string;
+  title: string;
+  /** Markdown subset: paragraphs, lists, **bold**, *italic*. */
+  content: string;
+  updatedAt: string;
+}
+
+export interface GameQuery {
+  search?: string | null;
+  type?: 'Crash' | null;
+  status?: GameStatus | null;
 }

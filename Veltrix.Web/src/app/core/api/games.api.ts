@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { SILENT_ERRORS, toParams } from '../http/http-context';
 import {
   GameDto,
+  GameQuery,
   GameStatus,
   PagedResult,
   RoundBetDto,
@@ -38,11 +39,11 @@ export class GamesApi {
     return this.http.get<RoundBetDto[]>(`/api/rounds/${roundId}/bets`);
   }
 
-  // ---------- Operator ----------
+  // ---------- Catalog (everyone) and operator (staff) ----------
 
-  /** Staff also see Disabled games. */
-  list(): Observable<GameDto[]> {
-    return this.http.get<GameDto[]>('/api/games');
+  /** The catalog: search by name, filter by type and status. Staff also see Disabled games. */
+  list(query: GameQuery = {}): Observable<GameDto[]> {
+    return this.http.get<GameDto[]>('/api/games', { params: toParams(query) });
   }
 
   create(request: SaveGameRequest): Observable<GameDto> {

@@ -1,11 +1,11 @@
-<vx-page-header title="Wallet" description="Your virtual VLX balance and every change to it." />
+<vx-page-header [title]="'Wallet' | t" [description]="'Your virtual VLX balance and every change to it.' | t" />
 
 <div class="grid gap-4 md:gap-6 lg:grid-cols-3">
   <!-- Balance -->
   <vx-card class="lg:col-span-2">
     <div class="flex h-full flex-col justify-between gap-6">
       <div>
-        <p class="vx-label">Virtual balance</p>
+        <p class="vx-label">{{ 'Virtual balance' | t }}</p>
         @if (store.balance() !== null) {
           <p class="mt-2 flex flex-wrap items-baseline gap-x-2">
             <vx-animated-number class="text-4xl font-semibold tracking-tight md:text-5xl" [value]="store.balance()" />
@@ -17,13 +17,16 @@
       </div>
       <p class="flex items-start gap-2 text-[13px] text-muted">
         <lucide-icon [img]="icons.shield" [size]="16" class="mt-0.5 shrink-0 text-success" aria-hidden="true" />
-        VLX points are virtual. They cannot be bought, sold, withdrawn or exchanged.
+        {{ 'VLX points are virtual. They cannot be bought, sold, withdrawn or exchanged.' | t }}
       </p>
     </div>
   </vx-card>
 
   <!-- Daily bonus -->
-  <vx-card title="Daily bonus" [subtitle]="store.wallet() ? 'Claim ' + (store.wallet()!.dailyBonusAmount | vlx) + ' every 24 hours.' : 'Once every 24 hours.'">
+  <vx-card
+    [title]="'Daily bonus' | t"
+    [subtitle]="store.wallet() ? ('Claim {amount} every 24 hours.' | t: { amount: (store.wallet()!.dailyBonusAmount | vlx) }) : ('Once every 24 hours.' | t)"
+  >
     @if (store.wallet(); as wallet) {
       @if (canClaim()) {
         <div class="flex flex-col items-center gap-4 py-2 text-center">
@@ -31,7 +34,7 @@
             <lucide-icon [img]="icons.gift" [size]="28" aria-hidden="true" />
           </span>
           <button vxButton type="button" variant="primary" block [loading]="store.claiming()" (click)="store.claimDailyBonus()">
-            Claim {{ wallet.dailyBonusAmount | vlx }}
+            {{ 'Claim {amount}' | t: { amount: (wallet.dailyBonusAmount | vlx) } }}
           </button>
         </div>
       } @else {
@@ -40,7 +43,7 @@
             <lucide-icon [img]="icons.gift" [size]="22" class="text-muted" aria-hidden="true" />
           </vx-progress-ring>
           <div>
-            <p class="text-[13px] text-muted">Next bonus in</p>
+            <p class="text-[13px] text-muted">{{ 'Next bonus in' | t }}</p>
             <p class="num text-2xl font-semibold">{{ bonusCountdown() }}</p>
           </div>
         </div>
@@ -58,44 +61,49 @@
 </div>
 
 <!-- Transactions -->
-<vx-card class="mt-4 md:mt-6" title="Transactions" subtitle="Every balance change, with the balance before and after." padding="none">
+<vx-card
+  class="mt-4 md:mt-6"
+  [title]="'Transactions' | t"
+  [subtitle]="'Every balance change, with the balance before and after.' | t"
+  padding="none"
+>
   <select
     card-actions
     class="vx-input h-9! w-auto! min-w-[150px]"
-    aria-label="Filter by type"
+    [attr.aria-label]="'Filter by type' | t"
     [ngModel]="store.query().type ?? null"
     (ngModelChange)="filterByType($event)"
   >
-    <option [ngValue]="null">All types</option>
+    <option [ngValue]="null">{{ 'All types' | t }}</option>
     @for (type of types; track type) {
-      <option [ngValue]="type">{{ typeLabel(type) }}</option>
+      <option [ngValue]="type">{{ typeLabels[type] | t }}</option>
     }
   </select>
 
   @if (store.transactions(); as page) {
     @if (page.items.length === 0) {
-      <vx-empty-state [icon]="icons.wallet" title="No transactions" message="Bets, wins, refunds and bonuses will appear here." />
+      <vx-empty-state [icon]="icons.wallet" [title]="'No transactions' | t" [message]="'Bets, wins, refunds and bonuses will appear here.' | t" />
     } @else {
       <div class="vx-table-wrap mt-2">
         <table class="vx-table" [class.opacity-60]="store.loadingTransactions()">
           <thead>
             <tr>
-              <th>Date</th>
-              <th>Type</th>
-              <th class="hidden sm:table-cell">Details</th>
-              <th class="text-right">Amount</th>
-              <th class="hidden text-right md:table-cell">Before</th>
-              <th class="text-right">After</th>
+              <th>{{ 'Date' | t }}</th>
+              <th>{{ 'Type' | t }}</th>
+              <th class="hidden sm:table-cell">{{ 'Details' | t }}</th>
+              <th class="text-right">{{ 'Amount' | t }}</th>
+              <th class="hidden text-right md:table-cell">{{ 'Before' | t }}</th>
+              <th class="text-right">{{ 'After' | t }}</th>
             </tr>
           </thead>
           <tbody>
             @for (tx of page.items; track tx.id) {
               <tr>
-                <td class="text-muted">{{ tx.createdAt | date: 'MMM d, HH:mm' }}</td>
-                <td><vx-badge [tone]="typeTone(tx.type)">{{ typeLabel(tx.type) }}</vx-badge></td>
+                <td class="text-muted">{{ tx.createdAt | vxDate: 'MMM d, HH:mm' }}</td>
+                <td><vx-badge [tone]="typeTone(tx.type)">{{ typeLabels[tx.type] | t }}</vx-badge></td>
                 <td class="hidden text-muted sm:table-cell">
                   <!-- On an inner block: browsers ignore max-width on table cells (long admin reasons would widen the table) -->
-                  <div class="max-w-[280px] truncate" [title]="tx.reason ?? ''">{{ tx.reason }}</div>
+                  <div class="max-w-[280px] truncate" [title]="tx.reason | knownText">{{ tx.reason | knownText }}</div>
                 </td>
                 <td class="num text-right font-semibold" [class.text-success]="tx.amount > 0" [class.text-danger]="tx.amount < 0">
                   {{ tx.amount > 0 ? '+' : '' }}{{ tx.amount | vlx: false }}

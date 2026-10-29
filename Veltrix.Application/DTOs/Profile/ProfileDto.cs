@@ -1,3 +1,5 @@
+using Veltrix.Application.DTOs.Achievements;
+using Veltrix.Domain.Entities;
 using Veltrix.Domain.Enums;
 
 namespace Veltrix.Application.DTOs.Profile;
@@ -37,11 +39,53 @@ public sealed class PublicProfileDto
     public DateTime MemberSince { get; set; }
     public int Level { get; set; }
     public string LevelTitle { get; set; } = string.Empty;
+
+    /// <summary>Experience points (spec 4.6): from settled bets and achievements.</summary>
+    public int Xp { get; set; }
+
+    /// <summary>XP needed for the current level (the progress bar starts here).</summary>
+    public int LevelXp { get; set; }
+
+    /// <summary>The next level and the XP it needs; null at the top level.</summary>
+    public int? NextLevel { get; set; }
+    public string? NextLevelTitle { get; set; }
+    public int? NextLevelXp { get; set; }
+
     public int TotalBets { get; set; }
     public int CashOutCount { get; set; }
     public decimal BiggestMultiplier { get; set; }
     public decimal BiggestWin { get; set; }
     public IReadOnlyList<BestCashOutDto> BestCashOuts { get; set; } = Array.Empty<BestCashOutDto>();
+
+    /// <summary>Unlocked achievements, newest first.</summary>
+    public IReadOnlyList<BadgeDto> Badges { get; set; } = Array.Empty<BadgeDto>();
+}
+
+/// <summary>UI settings stored per account, so they follow the user to any device.</summary>
+public sealed class UserPreferencesDto
+{
+    /// <summary>System (follow the device), Dark or Light.</summary>
+    public ThemePreference Theme { get; set; }
+
+    public bool SoundEnabled { get; set; }
+
+    /// <summary>False = reduce motion (no counting numbers, no chart animations, no shake).</summary>
+    public bool AnimationsEnabled { get; set; }
+
+    /// <summary>UI language: "ka" (Georgian, the default) or "en".</summary>
+    public string Language { get; set; } = UserPreference.DefaultLanguage;
+
+    public DateTime UpdatedAt { get; set; }
+}
+
+public sealed class UpdatePreferencesRequest
+{
+    public ThemePreference Theme { get; set; }
+    public bool SoundEnabled { get; set; } = true;
+    public bool AnimationsEnabled { get; set; } = true;
+
+    /// <summary>"ka" or "en".</summary>
+    public string Language { get; set; } = UserPreference.DefaultLanguage;
 }
 
 public sealed class BestCashOutDto

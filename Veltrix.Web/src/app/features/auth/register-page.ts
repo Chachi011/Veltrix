@@ -4,6 +4,8 @@ import { Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { AuthStore } from '../../core/auth/auth.store';
 import { applyServerErrors } from '../../core/http/problem';
+import { I18n } from '../../core/i18n/i18n';
+import { TranslatePipe } from '../../core/i18n/i18n-pipes';
 import { ToastStore } from '../../core/ui/toast.store';
 import { Button, Field, Icons, PasswordInput } from '../../shared/ui';
 import { NICKNAME_PATTERN, fieldsMatch, minAge, strongPassword } from '../../shared/validators';
@@ -11,12 +13,12 @@ import { AuthCard } from './auth-card';
 
 @Component({
   selector: 'vx-register-page',
-  imports: [ReactiveFormsModule, RouterLink, LucideAngularModule, AuthCard, Button, Field, PasswordInput],
+  imports: [ReactiveFormsModule, RouterLink, LucideAngularModule, AuthCard, Button, Field, PasswordInput, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <vx-auth-card title="Create your account" subtitle="Start with 1,000 virtual VLX points. No real money, ever." [icon]="icons.user">
+    <vx-auth-card [title]="'Create your account' | t" [subtitle]="'Start with 1,000 virtual VLX points. No real money, ever.' | t" [icon]="icons.user">
       <form [formGroup]="form" (ngSubmit)="submit()" novalidate class="flex flex-col gap-4">
-        <vx-field label="Email" for="email" [control]="form.controls.email">
+        <vx-field [label]="'Email' | t" for="email" [control]="form.controls.email">
           <div class="vx-input-wrap">
             <lucide-icon [img]="icons.mail" [size]="16" class="vx-input-icon" aria-hidden="true" />
             <input id="email" class="vx-input" type="email" formControlName="email" autocomplete="email" placeholder="you@example.com" />
@@ -24,11 +26,11 @@ import { AuthCard } from './auth-card';
         </vx-field>
 
         <vx-field
-          label="Nickname"
+          [label]="'Nickname' | t"
           for="nickname"
           [control]="form.controls.nickname"
-          hint="3-20 letters, digits or underscore. Shown to other players."
-          patternMessage="3-20 letters, digits or underscore."
+          [hint]="'3-20 letters, digits or underscore. Shown to other players.' | t"
+          [patternMessage]="'3-20 letters, digits or underscore.' | t"
         >
           <div class="vx-input-wrap">
             <lucide-icon [img]="icons.user" [size]="16" class="vx-input-icon" aria-hidden="true" />
@@ -36,26 +38,26 @@ import { AuthCard } from './auth-card';
           </div>
         </vx-field>
 
-        <vx-field label="Password" for="password" [control]="form.controls.password" hint="8+ characters with upper- and lowercase letters and a digit.">
+        <vx-field [label]="'Password' | t" for="password" [control]="form.controls.password" [hint]="'8+ characters with upper- and lowercase letters and a digit.' | t">
           <vx-password-input>
             <input id="password" class="vx-input" type="password" formControlName="password" autocomplete="new-password" />
           </vx-password-input>
         </vx-field>
 
-        <vx-field label="Confirm password" for="confirm" [control]="form.controls.confirmPassword">
+        <vx-field [label]="'Confirm password' | t" for="confirm" [control]="form.controls.confirmPassword">
           <vx-password-input>
             <input id="confirm" class="vx-input" type="password" formControlName="confirmPassword" autocomplete="new-password" />
           </vx-password-input>
         </vx-field>
 
-        <vx-field label="Date of birth" for="dob" [control]="form.controls.dateOfBirth">
+        <vx-field [label]="'Date of birth' | t" for="dob" [control]="form.controls.dateOfBirth">
           <input id="dob" class="vx-input" type="date" formControlName="dateOfBirth" [max]="maxBirthDate" />
         </vx-field>
 
         <div class="flex flex-col gap-1.5">
           <label class="vx-checkbox">
             <input type="checkbox" formControlName="isAdultConfirmed" />
-            <span>I confirm that I am 18 years or older and understand that VLX points are virtual.</span>
+            <span>{{ 'I confirm that I am 18 years or older and understand that VLX points are virtual.' | t }}</span>
           </label>
           @if (adultError(); as message) {
             <p class="flex items-center gap-1.5 text-xs text-danger" role="alert">
@@ -64,10 +66,10 @@ import { AuthCard } from './auth-card';
           }
         </div>
 
-        <button vxButton type="submit" variant="primary" size="lg" block [loading]="submitting()">Create account</button>
+        <button vxButton type="submit" variant="primary" size="lg" block [loading]="submitting()">{{ 'Create account' | t }}</button>
       </form>
 
-      <p auth-footer>Already registered? <a routerLink="/login" class="font-medium">Log in</a></p>
+      <p auth-footer>{{ 'Already registered?' | t }} <a routerLink="/login" class="font-medium">{{ 'Log in' | t }}</a></p>
     </vx-auth-card>
   `
 })
@@ -75,6 +77,7 @@ export class RegisterPage {
   private readonly auth = inject(AuthStore);
   private readonly router = inject(Router);
   private readonly toasts = inject(ToastStore);
+  private readonly i18n = inject(I18n);
 
   protected readonly icons = Icons;
   protected readonly submitting = signal(false);
@@ -101,7 +104,9 @@ export class RegisterPage {
   protected adultError(): string | null {
     const control = this.form.controls.isAdultConfirmed;
     return control.touched && control.invalid
-      ? (control.errors?.['server'] ?? 'You must confirm that you are 18 or older.')
+      ? control.errors?.['server']
+        ? this.i18n.server(control.errors['server'])
+        : this.i18n.t('You must confirm that you are 18 or older.')
       : null;
   }
 
@@ -116,7 +121,7 @@ export class RegisterPage {
     this.submitting.set(true);
     try {
       await this.auth.register(request);
-      this.toasts.success('Account created. You received 1,000 VLX!');
+      this.toasts.success(this.i18n.t('Account created. You received 1,000 VLX!'));
       await this.router.navigateByUrl('/crash');
     } catch (error) {
       applyServerErrors(this.form, error);

@@ -9,13 +9,15 @@ import {
   signal,
   untracked
 } from '@angular/core';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { AuthStore } from '../../core/auth/auth.store';
+import { TranslatePipe } from '../../core/i18n/i18n-pipes';
 import { CrashHub } from '../../core/realtime/crash-hub';
 import { LimitsStore } from '../../core/state/limits.store';
 import { WalletStore } from '../../core/state/wallet.store';
 import { MultiplierPipe } from '../../shared/pipes';
-import { Badge, Button, Card, HashBadge, Icons, PageHeader, ProgressRing, Skeleton } from '../../shared/ui';
+import { Badge, Button, Card, EmptyState, HashBadge, Icons, PageHeader, ProgressRing, Skeleton } from '../../shared/ui';
 import { BetPanel, BetRequest } from './components/bet-panel';
 import { CrashChart } from './components/crash-chart';
 import { HistoryStrip } from './components/history-strip';
@@ -25,6 +27,7 @@ import { CrashStore } from './crash.store';
 @Component({
   selector: 'vx-crash-page',
   imports: [
+    RouterLink,
     LucideAngularModule,
     CrashChart,
     BetPanel,
@@ -34,10 +37,12 @@ import { CrashStore } from './crash.store';
     Badge,
     Button,
     Card,
+    EmptyState,
     HashBadge,
     PageHeader,
     ProgressRing,
-    Skeleton
+    Skeleton,
+    TranslatePipe
   ],
   // A fresh store for every visit; it is destroyed (and SignalR disconnected) when the user leaves the page
   providers: [CrashStore],
@@ -51,6 +56,9 @@ export class CrashPage {
   protected readonly limits = inject(LimitsStore);
   protected readonly hub = inject(CrashHub);
   protected readonly icons = Icons;
+  /** /crash plays the main game; /crash/:slug any other Crash game from the catalog. */
+  protected readonly slug = inject(ActivatedRoute).snapshot.paramMap.get('slug') ?? 'crash';
+  protected readonly notFound = signal(false);
 
   /**
    * Animation clock, updated on every screen refresh (requestAnimationFrame).
@@ -91,7 +99,7 @@ export class CrashPage {
       destroyRef.onDestroy(() => cancelAnimationFrame(frameId));
     });
 
-    void this.store.init('crash');
+    this.store.init(this.slug).catch(() => this.notFound.set(true)); // e.g. a mistyped or removed game
     destroyRef.onDestroy(() => void this.store.destroy());
 
     // Log in / log out while on this page: reconnect, so the server knows who this connection belongs to

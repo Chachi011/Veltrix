@@ -8,6 +8,7 @@ import {
   signal
 } from '@angular/core';
 import { LucideAngularModule } from 'lucide-angular';
+import { TranslatePipe } from '../../core/i18n/i18n-pipes';
 import { Icons } from './icons';
 
 /**
@@ -18,7 +19,7 @@ import { Icons } from './icons';
  */
 @Component({
   selector: 'vx-password-input',
-  imports: [LucideAngularModule],
+  imports: [LucideAngularModule, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'relative block' },
   template: `
@@ -26,7 +27,7 @@ import { Icons } from './icons';
     <button
       type="button"
       class="absolute top-1/2 right-1 grid size-8 -translate-y-1/2 place-items-center rounded-lg text-muted transition-colors duration-200 hover:bg-surface hover:text-text"
-      [attr.aria-label]="visible() ? 'Hide password' : 'Show password'"
+      [attr.aria-label]="visible() ? ('Hide password' | t) : ('Show password' | t)"
       [attr.aria-pressed]="visible()"
       (click)="toggle()"
     >

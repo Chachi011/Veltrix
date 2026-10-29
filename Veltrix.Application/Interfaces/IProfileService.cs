@@ -12,4 +12,7 @@ public interface IProfileService
     Task<ProfileDto> UploadAvatarAsync(byte[] content, CancellationToken ct = default);
 
     Task<PublicProfileDto> GetPublicProfileAsync(string nickname, CancellationToken ct = default);
+
+    Task<UserPreferencesDto> GetMyPreferencesAsync(CancellationToken ct = default);
+    Task<UserPreferencesDto> UpdateMyPreferencesAsync(UpdatePreferencesRequest request, CancellationToken ct = default);
 }

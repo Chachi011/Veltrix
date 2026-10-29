@@ -76,3 +76,7 @@ finally
 {
     Log.CloseAndFlush();
 }
+
+// Makes the generated Program class public, so the integration tests (WebApplicationFactory<Program>)
+// can start this exact app in memory
+public partial class Program { }

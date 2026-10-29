@@ -1,14 +1,15 @@
-import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, effect, inject, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { firstValueFrom } from 'rxjs';
 import { AdminApi } from '../../core/api/admin.api';
+import { I18n } from '../../core/i18n/i18n';
+import { LocalDatePipe, TranslatePipe } from '../../core/i18n/i18n-pipes';
 import { AuditLogDto, AuditLogQuery, PagedResult } from '../../core/models/api.models';
 import { Badge, BadgeTone, Button, Card, EmptyState, Icons, PageHeader, Pagination, Skeleton } from '../../shared/ui';
 import { AdminNav } from './admin-nav';
-import { describeChange, prettyJson } from './audit-format';
+import { AUDIT_ENTITY_LABELS, actionLabel, describeChange, prettyJson } from './audit-format';
 
 const PAGE_SIZE = 20;
 const ENTITY_TYPES = ['User', 'Game', 'GameRound', 'SystemSetting'];
@@ -22,31 +23,38 @@ function actionTone(action: string): BadgeTone {
   return 'neutral';
 }
 
-/** "UserRoleChanged" → "User role changed". */
-function actionLabel(action: string): string {
-  const words = action.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase();
-  return words.charAt(0).toUpperCase() + words.slice(1);
-}
-
 /**
  * The audit log: who changed what and when, newest first. Read-only, the server never edits or deletes rows.
  * Filters live in the URL, so the user drawer can link to "everything done to user 5".
  */
 @Component({
   selector: 'vx-admin-audit-page',
-  imports: [DatePipe, FormsModule, LucideAngularModule, AdminNav, Badge, Button, Card, EmptyState, PageHeader, Pagination, Skeleton],
+  imports: [
+    LocalDatePipe,
+    TranslatePipe,
+    FormsModule,
+    LucideAngularModule,
+    AdminNav,
+    Badge,
+    Button,
+    Card,
+    EmptyState,
+    PageHeader,
+    Pagination,
+    Skeleton
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './admin-audit-page.html'
 })
 export class AdminAuditPage {
   private readonly api = inject(AdminApi);
   private readonly router = inject(Router);
+  private readonly i18n = inject(I18n);
 
   protected readonly icons = Icons;
   protected readonly entityTypes = ENTITY_TYPES;
+  protected readonly entityLabels = AUDIT_ENTITY_LABELS;
   protected readonly actionTone = actionTone;
-  protected readonly actionLabel = actionLabel;
-  protected readonly describe = describeChange;
   protected readonly pretty = prettyJson;
   protected readonly skeletonRows = [1, 2, 3, 4, 5, 6];
 
@@ -81,6 +89,28 @@ export class AdminAuditPage {
         });
         void this.load(query);
       });
+    });
+  }
+
+  /** Readable, translated texts (read the language signal, so a switch re-renders them). */
+  protected actionName(action: string): string {
+    return actionLabel(action, (text) => this.i18n.t(text));
+  }
+
+  protected entityName(type: string | null): string {
+    return type ? this.i18n.t(AUDIT_ENTITY_LABELS[type] ?? type) : '';
+  }
+
+  /** The server names automatic actions "System". */
+  protected actorName(log: AuditLogDto): string {
+    return log.actorUserId === null ? this.i18n.server(log.actorNickname) : log.actorNickname;
+  }
+
+  protected describe(oldJson: string | null, newJson: string | null): string {
+    return describeChange(oldJson, newJson, {
+      translate: (text) => this.i18n.t(text),
+      translateText: (text) => this.i18n.known(text),
+      locale: this.i18n.locale()
     });
   }
 

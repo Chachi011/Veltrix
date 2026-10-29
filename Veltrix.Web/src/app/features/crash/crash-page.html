@@ -1,20 +1,39 @@
-<vx-page-header title="Crash" description="Cash out before the round crashes. Virtual VLX points only." />
+<vx-page-header [title]="store.game()?.name ?? 'Crash'" [description]="'Cash out before the round crashes. Virtual VLX points only.' | t" />
 
+@if (notFound()) {
+  <vx-card>
+    <vx-empty-state [icon]="icons.gamepad" [title]="'Game not found' | t" [message]="'This game does not exist or is not available.' | t">
+      <a vxButton routerLink="/games" variant="primary" size="sm">{{ 'Browse games' | t }}</a>
+    </vx-empty-state>
+  </vx-card>
+} @else {
 <!-- Extra bottom space on phones, so the bet sheet never covers the live bets -->
 <div class="flex flex-col gap-4 pb-48 md:gap-6 md:pb-0">
   <vx-history-strip [items]="store.history()" [loading]="!store.loaded()" />
 
+  @if (store.game(); as game) {
+    @if (game.status !== 'Active') {
+      <div class="flex items-center gap-3 rounded-card border border-warning/25 bg-warning/12 px-4 py-3 text-sm" role="status">
+        <lucide-icon [img]="icons.pause" [size]="18" class="shrink-0 text-warning" aria-hidden="true" />
+        <span>
+          <strong class="font-semibold">{{ game.status === 'Maintenance' ? ('Under maintenance.' | t) : ('This game is disabled.' | t) }}</strong>
+          {{ 'New bets are not accepted right now; you can still watch.' | t }}
+        </span>
+      </div>
+    }
+  }
+
   @if (store.loaded() && hub.status() === 'disconnected') {
     <div class="flex flex-wrap items-center gap-3 rounded-card border border-danger/25 bg-danger/10 px-4 py-3 text-sm text-danger" role="alert">
       <lucide-icon [img]="icons.offline" [size]="18" aria-hidden="true" />
-      <span class="flex-1 font-medium">Live connection lost. The game is not updating.</span>
+      <span class="flex-1 font-medium">{{ 'Live connection lost. The game is not updating.' | t }}</span>
       <button vxButton type="button" size="sm" variant="secondary" (click)="reconnect()">
-        <lucide-icon [img]="icons.retry" [size]="14" aria-hidden="true" />Reconnect
+        <lucide-icon [img]="icons.retry" [size]="14" aria-hidden="true" />{{ 'Reconnect' | t }}
       </button>
     </div>
   } @else if (hub.status() === 'reconnecting') {
     <div class="flex items-center gap-3 rounded-card border border-warning/25 bg-warning/10 px-4 py-3 text-sm font-medium text-warning" role="status">
-      <lucide-icon [img]="icons.loader" [size]="16" class="animate-spin" aria-hidden="true" />Reconnecting…
+      <lucide-icon [img]="icons.loader" [size]="16" class="animate-spin" aria-hidden="true" />{{ 'Reconnecting…' | t }}
     </div>
   }
 
@@ -23,14 +42,14 @@
     <vx-card padding="none" class="overflow-hidden">
       <header class="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 pt-4 md:px-5">
         @if (store.round(); as round) {
-          <span class="num text-sm font-semibold">Round #{{ round.roundNumber }}</span>
+          <span class="num text-sm font-semibold">{{ 'Round #{number}' | t: { number: round.roundNumber } }}</span>
           <vx-hash-badge [hash]="round.serverSeedHash" [roundId]="round.id" />
         } @else {
           <vx-skeleton width="220px" height="32px" shape="circle" />
         }
         <span
           class="ml-auto inline-flex items-center gap-1.5 text-xs text-muted"
-          [title]="hub.status() === 'connected' ? 'Live' : 'Not connected'"
+          [title]="hub.status() === 'connected' ? ('Live' | t) : ('Not connected' | t)"
         >
           <span class="relative flex size-2">
             @if (hub.status() === 'connected') {
@@ -38,7 +57,7 @@
             }
             <span class="relative inline-flex size-2 rounded-full" [class]="hub.status() === 'connected' ? 'bg-success' : 'bg-muted'"></span>
           </span>
-          <span class="num">{{ store.online() }}</span> online
+          {{ '{count} online' | t: { count: store.online() } }}
         </span>
       </header>
 
@@ -54,13 +73,13 @@
               </span>
             }
             @case ('Crashed') {
-              <span class="text-xs font-semibold tracking-[0.2em] text-danger uppercase">Crashed</span>
+              <span class="text-xs font-semibold tracking-[0.2em] text-danger uppercase">{{ 'Crashed' | t }}</span>
               <span class="num animate-shake text-[64px] leading-none font-semibold tracking-tight text-danger md:text-[96px]">
                 {{ multiplier() | mult }}
               </span>
             }
             @case ('Finished') {
-              <span class="text-xs font-semibold tracking-[0.2em] text-danger uppercase">Crashed</span>
+              <span class="text-xs font-semibold tracking-[0.2em] text-danger uppercase">{{ 'Crashed' | t }}</span>
               <span class="num text-[64px] leading-none font-semibold tracking-tight text-danger md:text-[96px]">
                 {{ multiplier() | mult }}
               </span>
@@ -68,20 +87,20 @@
             @case ('BettingOpen') {
               <vx-progress-ring [value]="bettingProgress()" [size]="112" [stroke]="6">
                 <span class="num block text-3xl leading-none font-semibold">{{ secondsLeft().toFixed(1) }}</span>
-                <span class="text-[10px] tracking-wider text-muted uppercase">seconds</span>
+                <span class="text-[10px] tracking-wider text-muted uppercase">{{ 'seconds' | t }}</span>
               </vx-progress-ring>
-              <span class="text-sm font-semibold">Place your bets</span>
+              <span class="text-sm font-semibold">{{ 'Place your bets' | t }}</span>
             }
             @case ('BettingClosed') {
-              <span class="text-sm font-semibold tracking-[0.2em] text-muted uppercase">Get ready…</span>
+              <span class="text-sm font-semibold tracking-[0.2em] text-muted uppercase">{{ 'Get ready…' | t }}</span>
             }
             @case ('Cancelled') {
-              <vx-badge tone="warning" dot>Round cancelled</vx-badge>
-              <span class="text-sm text-muted">All active bets were refunded.</span>
+              <vx-badge tone="warning" dot>{{ 'Round cancelled' | t }}</vx-badge>
+              <span class="text-sm text-muted">{{ 'All active bets were refunded.' | t }}</span>
             }
             @default {
               @if (store.loaded()) {
-                <span class="text-sm font-medium text-muted">Next round starting…</span>
+                <span class="text-sm font-medium text-muted">{{ 'Next round starting…' | t }}</span>
               } @else {
                 <vx-skeleton width="180px" height="72px" shape="rect" />
               }
@@ -117,3 +136,4 @@
     </div>
   </div>
 </div>
+}

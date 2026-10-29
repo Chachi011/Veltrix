@@ -253,9 +253,15 @@ public sealed class CrashGameEngine : BackgroundService, IRoundEngineControl
                     await AutoCashOutAsync(game.Slug, round.Id, pending, stoppingToken);
             }
 
-            round = await WithSettlementAsync(s => s.CrashAsync(round.Id, stoppingToken));
+            var crash = await WithSettlementAsync(s => s.CrashAsync(round.Id, stoppingToken));
+            round = crash.Round;
             await _notifier.RoundCrashedAsync(game.Slug, new RoundCrashedEvent(round.Id, round.CrashPoint, round.ServerSeed));
             await _notifier.RoundStateChangedAsync(game.Slug, round.ToStateEvent(Now));
+
+            // Achievement rewards and level-ups, saved with the crash: new balances and bell notifications
+            await NotifyBalancesAsync(crash.Balances);
+            foreach (var notification in crash.Notifications)
+                await _notifier.PushAsync(notification);
 
             round = await WithSettlementAsync(s => s.FinishAsync(round.Id, stoppingToken));
             await _notifier.RoundStateChangedAsync(game.Slug, round.ToStateEvent(Now));

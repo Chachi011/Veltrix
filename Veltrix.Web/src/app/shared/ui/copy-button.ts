@@ -1,12 +1,13 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, inject, input, signal } from '@angular/core';
 import { LucideAngularModule } from 'lucide-angular';
+import { TranslatePipe } from '../../core/i18n/i18n-pipes';
 import { Button } from './button';
 import { Icons } from './icons';
 
 /** Copies text to the clipboard and shows a check mark for a moment. */
 @Component({
   selector: 'vx-copy-button',
-  imports: [LucideAngularModule, Button],
+  imports: [LucideAngularModule, Button, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <button
@@ -15,18 +16,19 @@ import { Icons } from './icons';
       variant="ghost"
       size="icon-sm"
       class="size-7!"
-      [attr.aria-label]="copied() ? 'Copied' : label()"
-      [title]="copied() ? 'Copied!' : label()"
+      [attr.aria-label]="copied() ? ('Copied' | t) : (label() ?? ('Copy' | t))"
+      [title]="copied() ? ('Copied!' | t) : (label() ?? ('Copy' | t))"
       (click)="copy()"
     >
       <lucide-icon [img]="copied() ? icons.check : icons.copy" [size]="14" [class.text-success]="copied()" aria-hidden="true" />
     </button>
-    <span class="sr-only" aria-live="polite">{{ copied() ? 'Copied to clipboard' : '' }}</span>
+    <span class="sr-only" aria-live="polite">{{ copied() ? ('Copied to clipboard' | t) : '' }}</span>
   `
 })
 export class CopyButton {
   readonly text = input.required<string>();
-  readonly label = input('Copy');
+  /** Already translated; "Copy" by default. */
+  readonly label = input<string>();
 
   protected readonly icons = Icons;
   protected readonly copied = signal(false);
