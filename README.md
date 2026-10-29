@@ -4,6 +4,28 @@ A real-time multiplayer web platform whose main module is a **Crash game**: a mu
 
 > **Educational / demo project.** Only virtual **VLX points** exist. There are no deposits, purchases, withdrawals or real money. Points come only from the starting balance, the daily bonus and achievements.
 
+**Submitted version:** the Git tag [`v1.0-diploma`](#versions). Exam material: [docs/PRESENTATION.md](docs/PRESENTATION.md) (10-minute demo script and likely questions), [docs/SPEC-COVERAGE.md](docs/SPEC-COVERAGE.md) (every item of the specification and where it is in the code).
+
+## Screenshots
+
+Georgian is the default language; the staff screens are shown in English. All images are in [docs/screenshots](docs/screenshots).
+
+| Crash, dark theme | Crash, light theme |
+|---|---|
+| ![Crash page during a round](docs/screenshots/02-crash.webp) | ![Crash page in the light theme](docs/screenshots/03-crash-light.webp) |
+
+| Home | Leaderboard |
+|---|---|
+| ![Home page with the live round and the top players of the day](docs/screenshots/01-home.webp) | ![Leaderboard with the podium](docs/screenshots/06-leaderboard.webp) |
+
+| Provably fair | Admin dashboard |
+|---|---|
+| ![Round verification](docs/screenshots/07-fairness.webp) | ![Admin dashboard with charts](docs/screenshots/08-admin-dashboard-en.webp) |
+
+| Operator: live round | Phone | Profile: level, achievements, statistics |
+|---|---|---|
+| ![Operator panel](docs/screenshots/09-operator-en.webp) | ![Crash page on a phone](docs/screenshots/04-crash-phone.webp) | ![Profile page](docs/screenshots/05-profile.webp) |
+
 ## Tech stack
 
 | Layer | Technologies |
@@ -13,6 +35,30 @@ A real-time multiplayer web platform whose main module is a **Crash game**: a mu
 | Tests | xUnit + Moq + WebApplicationFactory integration tests (backend), Jasmine/Karma (frontend) |
 
 ## Architecture
+
+```mermaid
+flowchart LR
+    subgraph B["Browser · Angular 20"]
+        P["Pages, SignalStores,<br/>Canvas curve"]
+    end
+    subgraph S["ASP.NET Core 8 API"]
+        R["REST controllers<br/>JWT · validation · ProblemDetails"]
+        H["SignalR hub<br/>/hubs/crash"]
+        E["CrashGameEngine<br/>BackgroundService"]
+        SV["Services + RoundSettlementService<br/>Infrastructure"]
+        D["Domain rules<br/>Wallet · Bet · GameRound · ProvablyFair"]
+    end
+    DB[("SQL Server<br/>30 tables")]
+    P -- "HTTP /api: bet, cash out, profile, admin" --> R
+    R --> SV
+    E -- "runs every round" --> SV
+    SV --> D
+    SV -- "EF Core 8, one transaction per change" --> DB
+    E --> H
+    H -- "round state, ticks every 100 ms,<br/>bets, balance, notifications" --> P
+```
+
+The browser only sends requests ("place a bet", "cash out"); the engine on the server decides every result and pushes it to all players.
 
 ```
 Veltrix.API            → controllers, middleware, filters, auth/Swagger/CORS setup   (depends on Application + Infrastructure)
@@ -31,7 +77,7 @@ Inside `Veltrix.Web/src/app`:
 core/      models (DTO types), api/ (HTTP services), auth/ (AuthStore, interceptor, guards),
            http/ (error + loading interceptors), realtime/ (CrashHub: one shared SignalR connection),
            state/ (WalletStore, NotificationsStore, LimitsStore), ui/ (toasts, theme, layout)
-features/  auth, crash (CrashStore, Canvas chart, bet panel, live bets, history strip), wallet, history, profile (+ statistics),
+features/  auth, crash (CrashStore, Canvas chart, bet panel, live bets, history strip), wallet, history, profile (+ level, achievements, statistics), players,
            fairness, leaderboard, limits (responsible play, session reminder), operator, admin
 layout/    sidebar, top bar, bottom nav, notifications panel
 shared/    ui/ (design system components), pipes, validators, formatters
@@ -45,20 +91,46 @@ The UI follows [docs/DESIGN.md](docs/DESIGN.md): tokens, fonts, layout, componen
 
 [docs/SPEC-COVERAGE.md](docs/SPEC-COVERAGE.md) checks every item of the specification (sections 1–8: features 4.1–4.11, API endpoints, data models, quality and delivery) against the code: done / partial / missing, with the file that implements it. Optional (\*) items are listed separately.
 
-## Prerequisites
+## Setup on a clean PC (Windows)
 
-- .NET SDK 8+ and the **ASP.NET Core 8 runtime** (`winget install Microsoft.DotNet.AspNetCore.8`)
-- SQL Server (local default instance, Windows authentication)
-- EF Core tools: `dotnet tool install --global dotnet-ef`
-- Node.js 20.19+ / 22.12+ / 24 and Angular CLI 20 (`npm install -g @angular/cli@20`)
+**1. Install**
 
-## Setup and run (backend)
+- .NET SDK 8 or newer, plus the **ASP.NET Core 8 runtime** (`winget install Microsoft.DotNet.SDK.8` / `winget install Microsoft.DotNet.AspNetCore.8`)
+- SQL Server 2019 or newer (Express or Developer edition), default instance, Windows authentication; `sqlcmd` comes with it
+- Node.js 22 LTS (20.19+, 22.12+ and 24 also work)
+- Git. Optional: EF Core tools (`dotnet tool install --global dotnet-ef`) and the Angular CLI (`npm install -g @angular/cli@20`)
+
+**2. Get the code**
 
 ```bash
-# 1. JWT signing key: a secret, so it lives in user-secrets and never in Git (32+ chars)
-dotnet user-secrets set "Jwt:Key" "<any-random-string-of-at-least-32-characters>" --project Veltrix.API
+git clone <repository-url> Veltrix
+cd Veltrix
+git checkout v1.0-diploma        # the submitted version (optional)
+```
 
-# 2. Run. In Development the API applies migrations and seeds test users automatically.
+**3. JWT signing key.** It is a secret, so it lives in user-secrets and never in Git (any random text of 32+ characters):
+
+```bash
+dotnet user-secrets set "Jwt:Key" "<any-random-string-of-at-least-32-characters>" --project Veltrix.API
+```
+
+**4. Database: choose one**
+
+- **A. Automatic (recommended).** Nothing to do: in Development the API creates the `Veltrix` database with the migrations, adds the test accounts and, once, the demo players.
+- **B. One SQL script.** [`database/veltrix.sql`](database/veltrix.sql) builds the same database without EF tools: every migration (30 tables, constraints, reference data) plus the four test accounts. It checks before every step, so running it twice is safe.
+
+  ```bash
+  sqlcmd -S localhost -E -Q "CREATE DATABASE Veltrix"
+  sqlcmd -S localhost -E -d Veltrix -i database/veltrix.sql
+  ```
+
+  In SSMS: create the database, open the file, select the database, Execute. The demo players are not in the script: they are played by the real game code on the first Development start.
+
+Another SQL Server: change `ConnectionStrings:DefaultConnection` in `Veltrix.API/appsettings.json`.
+
+**5. Run the API**
+
+```bash
 dotnet run --project Veltrix.API --launch-profile http
 ```
 
@@ -72,9 +144,7 @@ To apply migrations manually instead:
 dotnet ef database update --project Veltrix.Infrastructure --startup-project Veltrix.API
 ```
 
-## Setup and run (frontend)
-
-With the API running:
+**6. Run the client** (in a second terminal, with the API running)
 
 ```bash
 cd Veltrix.Web
@@ -88,12 +158,13 @@ Open http://localhost:4200. To demo multiplayer, use two browser windows (or one
 
 ## Test accounts (Development seed)
 
-| Role | Email | Password |
-|---|---|---|
-| Admin | admin@veltrix.dev | Admin123! |
-| Operator | operator@veltrix.dev | Operator123! |
-| Player | player1@veltrix.dev | Player123! |
-| Player | player2@veltrix.dev | Player123! |
+| Role | Email | Password | What to try |
+|---|---|---|---|
+| Admin | admin@veltrix.dev | Admin123! | Admin dashboard, users (role, block, balance adjustment), audit log, settings; everything the operator can do |
+| Operator | operator@veltrix.dev | Operator123! | Operator panel: live round monitor, cancel a round (automatic refunds), games and their status |
+| Player | player1@veltrix.dev | Player123! | Bet, cash out, auto cash-out, wallet and daily bonus, history, profile with level and achievements, limits, settings |
+| Player | player2@veltrix.dev | Player123! | The second player for a multiplayer demo |
+| Guest | — | — | Home, games, the live round (watch only), leaderboard, rules, provably fair, public player profiles |
 
 Each account starts with 1000 VLX. The `crash` game and the system settings come from the migration itself (`HasData`).
 
@@ -123,7 +194,13 @@ There are 30 tables, created by the migrations `InitialCreate` and `AddExtendedM
 | Game engine | `AutoBetConfigs, GameRoundEvents, RoundCancellations` |
 | Admin and content | `BalanceAdjustments, ChatMessages, ChatMutes, DailyStatistics, StaticPages` |
 
-Seeded reference data: the `crash` game, system settings, 10 levels, 5 achievements, and 2 content pages.
+Seeded reference data: the `crash` game, system settings, 10 levels, 7 achievements, and 2 content pages. There are 6 migrations; [`database/veltrix.sql`](database/veltrix.sql) is all of them plus the test accounts in one script (setup step 4B). A test (`DatabaseScriptTests`) fails if a migration is added without regenerating it:
+
+```bash
+dotnet ef migrations script --idempotent --project Veltrix.Infrastructure --startup-project Veltrix.API -o <file>
+```
+
+(then keep the header and the test-accounts part at the end of `database/veltrix.sql`).
 
 Integrity is enforced in the database itself, not only in C#:
 
@@ -179,10 +256,11 @@ Pages (Angular):
 |---|---|---|
 | `/` (Home) | everyone | the live round, available games, top players of the day |
 | `/games` | everyone | games catalog: search, type and status filters; `/crash/:slug` opens any Crash game |
-| `/players/:nickname` | everyone | public profile: level, totals, best cash-outs |
+| `/players/:nickname` | everyone | public profile: level with progress to the next one, achievement badges, totals, best cash-outs |
 | `/rules` | everyone | game rules and "why there is no winning strategy" (from the `StaticPages` table, `GET /api/pages/{slug}`) |
 | `/settings` | logged in | theme (System / Dark / Light), game sounds, animations; saved on the account (`GET/PUT /api/profile/preferences`) |
 | `/leaderboard` | everyone | 24 hours / 7 days / all time × best multiplier / profit; podium + table, my rank highlighted |
+| `/profile` → Level and achievements | players | XP and progress to the next level; every achievement with its reward, unlocked ones with the date, the others with their progress (e.g. 37 / 100 bets) |
 | `/profile` → Statistics | players | win rate, average cash-out, net result, charts (results per day, win rate, cash-out ranges) |
 | `/limits` (Responsible play) | players | daily limit with today's usage, session reminder, self-exclusion with a confirm dialog |
 | bell (top bar) | logged in | unread badge, latest notifications, mark read; new ones arrive live |
@@ -192,6 +270,19 @@ Pages (Angular):
 The browser keeps **one** SignalR connection per tab: the logged-in user receives balance and notifications on every page, and the Crash page (or the operator monitor) joins its game group on the same connection, so the online counter counts each tab once. Chart.js and the SignalR client are loaded on demand, so the first download stays under 500 kB.
 
 The **session reminder** (every 60 minutes by default) runs in the browser: it is advice. The hard rules (daily limit, self-exclusion) are enforced by the server on every bet.
+
+## Achievements and levels (Phase 5)
+
+| Endpoint | Who |
+|---|---|
+| `GET /api/achievements`: every achievement with its XP / VLX reward and how many players unlocked it | everyone |
+| `GET /api/achievements/my`: unlocked ones with the date, the others with the progress so far | logged in |
+| `GET /api/players/{nickname}`: now also XP, the next level and the badges | everyone |
+
+- **XP:** every settled bet gives XP (1 for a lost bet, 3 for a cash-out) and every achievement its own XP. The level is the highest one of the 10 seeded levels whose XP is reached; a level-up sends a notification.
+- **7 achievements** (seeded): First bet, First cash-out, To the moon (10.00x), Regular (100 bets), Big win (1000 VLX in one bet), Sharp eye (50 cash-outs), Set and forget (a win with auto cash-out).
+- **Awarded by the server, in the same transaction that settles the round:** the `UserAchievement` row, the XP, the VLX reward as a normal wallet credit with a ledger row (idempotency key `achievement:{user}:{code}`) and a notification. A reward can therefore never be paid twice, and the rules are plain domain code (`Domain/Progress`), unit-tested without a database.
+- An account that had already met a goal before achievements existed gets it, with its reward, when its next bet is settled.
 
 ## Real-time (SignalR) — `/hubs/crash`
 
@@ -224,18 +315,18 @@ The interface is in **Georgian by default** and in English. Guests switch with t
 dotnet test
 ```
 
-There are 246 xUnit tests in three groups:
+There are 285 xUnit tests in three groups:
 
-- **Integration tests** (`Veltrix.Tests/Integration`, 28 tests): `WebApplicationFactory` starts the real API in memory (same `Program.cs`, middleware, JWT, validation, rate limits, EF Core) against a **throwaway SQL Server database** `Veltrix_Tests_<random>`, created by the migrations and dropped at the end, and calls it over HTTP. The crash engine's background loop is off, so each test moves its own round through the states with `RoundSettlementService` (the engine's own code) and a clock it can stop. Covered: register / login / validation errors per field / duplicate email; 401 without or with a forged token; refresh-token rotation, logout, the 30-second reuse window and the theft alarm (an old token replayed later logs out every session); the auth rate limit (11th login from one IP → 429, refresh not limited); a bet takes the stake and writes a ledger row; bets refused after betting closes, below the minimum, with 3 decimals, twice in one slot, or above the balance; cash-out pays the stake × the **server's** multiplier at the moment of the request; too late after the crash point; the crash settles the bet as lost and reveals the crash point; an operator's cancel refunds active bets while cash-outs keep their payout; only players can bet; a blocked player is refused even with a token issued before the block; a self-excluded player cannot bet; every `api/admin` endpoint answers 401 / 403 / 403 / 200 to guest / player / operator / admin; only staff can cancel a round; an admin cannot change their own role, block themselves or adjust their own balance; a balance adjustment writes a ledger row and an audit entry; a promoted player gets the new role at the next login; a new account starts in Georgian and can save English (other languages refused); the demo data follows the game rules (ledger chain, no negative balance, cash-outs below the crash point, verifiable crash points, statistics, created only once). They need a SQL Server: `localhost` with Windows login by default, or set `VELTRIX_TEST_SQL` to another connection string (without a database name).
+- **Integration tests** (`Veltrix.Tests/Integration`, 34 tests): `WebApplicationFactory` starts the real API in memory (same `Program.cs`, middleware, JWT, validation, rate limits, EF Core) against a **throwaway SQL Server database** `Veltrix_Tests_<random>`, created by the migrations and dropped at the end, and calls it over HTTP. The crash engine's background loop is off, so each test moves its own round through the states with `RoundSettlementService` (the engine's own code) and a clock it can stop. Covered: register / login / validation errors per field / duplicate email; 401 without or with a forged token; refresh-token rotation, logout, the 30-second reuse window and the theft alarm (an old token replayed later logs out every session); the auth rate limit (11th login from one IP → 429, refresh not limited); a bet takes the stake and writes a ledger row; bets refused after betting closes, below the minimum, with 3 decimals, twice in one slot, or above the balance; cash-out pays the stake × the **server's** multiplier at the moment of the request; too late after the crash point; the crash settles the bet as lost and reveals the crash point; an operator's cancel refunds active bets while cash-outs keep their payout; only players can bet; a blocked player is refused even with a token issued before the block; a self-excluded player cannot bet; every `api/admin` endpoint answers 401 / 403 / 403 / 200 to guest / player / operator / admin; only staff can cancel a round; an admin cannot change their own role, block themselves or adjust their own balance; a balance adjustment writes a ledger row and an audit entry; a promoted player gets the new role at the next login; a new account starts in Georgian and can save English (other languages refused); the first settled bet unlocks "First bet" once, with its XP, a VLX ledger row and a notification, and an auto cash-out win unlocks three achievements at once; the demo data follows the game rules (ledger chain, no negative balance, cash-outs below the crash point, verifiable crash points, statistics, created only once). They need a SQL Server: `localhost` with Windows login by default, or set `VELTRIX_TEST_SQL` to another connection string (without a database name).
 - **Service tests with Moq** (`Veltrix.Tests/Services`) run the real services against EF Core's in-memory database, with Moq fakes for "who is calling" and the SignalR notifier, and check both the saved data and the live events sent (wallet, limits, admin actions, preferences, content pages, the daily-bonus job).
-- **Domain and API tests** check that every user-facing API message has a Georgian version in `ka.json` (`GeorgianTranslationTests`), and cover crash-point generation and distribution, provably fair verification, multiplier curve, round state transitions (illegal ones rejected), wallet rules (no negative balance, refunds, daily bonus), bet and cash-out rules, refresh-token reuse rules, daily bet limit (24-hour wait before an increase), self-exclusion, admin balance adjustment, role and block rules, crash-point ranges against the theoretical distribution, guards that no role-protected endpoint is accidentally `[AllowAnonymous]` and that every `api/admin` controller requires the Admin role, and which auth endpoints are rate-limited.
+- **Domain and API tests** check that every user-facing API message has a Georgian version in `ka.json` (`GeorgianTranslationTests`) and that `database/veltrix.sql` contains every migration (`DatabaseScriptTests`), and cover XP, levels and achievement rules (`ProgressionTests`), crash-point generation and distribution, provably fair verification, multiplier curve, round state transitions (illegal ones rejected), wallet rules (no negative balance, refunds, daily bonus), bet and cash-out rules, refresh-token reuse rules, daily bet limit (24-hour wait before an increase), self-exclusion, admin balance adjustment, role and block rules, crash-point ranges against the theoretical distribution, guards that no role-protected endpoint is accidentally `[AllowAnonymous]` and that every `api/admin` controller requires the Admin role, and which auth endpoints are rate-limited.
 
 ```bash
 cd Veltrix.Web
 npx ng test --watch=false --browsers=ChromeHeadless
 ```
 
-There are 124 Jasmine tests:
+There are 125 Jasmine tests:
 
 - Languages (`I18n`, pipes, `ka.json`): English as written, Georgian after switching, English fallback for a missing text, API messages with changing values (patterns), live re-render without a reload, Georgian word order with `tSplit`, and for every entry of ka.json the same `{placeholders}`, the terms Crash / Cash out / VLX kept, only `<code>` HTML
 
@@ -251,7 +342,7 @@ There are 124 Jasmine tests:
 - Markdown (rules pages): lists, bold / italic, HTML stays text, no extra spaces
 - `CrashStore`: SignalR events → state (new round, crash, auto cash-out, cancel/refund), countdown on the server clock, extrapolation limit, game sounds (once per result)
 - `CrashHub`: one shared SignalR connection for the user and the game page, the online count handed to a page that joins later, leave / logout, a new connection for a new identity, personal vs game events
-- `NotificationsStore`: load, live notifications (deduplicated), optimistic mark read / mark all read, a role change refreshes the token and leaves a forbidden page, a block signs the user out
+- `NotificationsStore`: load, live notifications (deduplicated), optimistic mark read / mark all read, a role change refreshes the token and leaves a forbidden page, a block signs the user out, an achievement toast names the achievement and its reward
 - `roleGuard`: the right roles get in, others go back to the game, guests go to the login page
 - Bet panel: the one big button (`betAction`), including "betting paused" for a self-excluded player
 - Session reminder (`play-session`): continuous play, breaks, reminders every N minutes
@@ -263,4 +354,18 @@ There are 124 Jasmine tests:
 
 - The password reset code is "emailed" to the API console and log file (`Veltrix.API/Logs/`) in development.
 - Logs: console + daily rolling file via Serilog.
-- Git flow: `master` ← `develop` ← `feature/*`.
+- Git flow: `main` ← `develop` ← `feature/*`.
+
+## Versions
+
+| Tag | What |
+|---|---|
+| `v1.0-diploma` | The version submitted for the diploma. It is frozen: never moved or re-tagged; later work happens on new branches |
+
+To look at or run exactly the submitted version:
+
+```bash
+git checkout v1.0-diploma                         # read-only look ("detached HEAD")
+git switch -c my-fix v1.0-diploma                 # or start a new branch from it
+git diff v1.0-diploma                             # what changed since the submission
+```

@@ -6,6 +6,67 @@
     "version": "v1"
   },
   "paths": {
+    "/api/achievements": {
+      "get": {
+        "tags": [
+          "Achievements"
+        ],
+        "summary": "All achievements with their XP / VLX reward and how many players unlocked each. Open to guests.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AchievementDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/achievements/my": {
+      "get": {
+        "tags": [
+          "Achievements"
+        ],
+        "summary": "My achievements: unlocked ones with the date, the others with the progress so far (e.g. 37 / 100 bets).",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MyAchievementDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
     "/api/admin/audit-logs": {
       "get": {
         "tags": [
@@ -2820,6 +2881,40 @@
   },
   "components": {
     "schemas": {
+      "AchievementDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "icon": {
+            "type": "string",
+            "nullable": true
+          },
+          "xpReward": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "vlxReward": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unlockedBy": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
       "AdminOverviewDto": {
         "type": "object",
         "properties": {
@@ -3163,6 +3258,28 @@
           },
           "user": {
             "$ref": "#/components/schemas/UserDto"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BadgeDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "icon": {
+            "type": "string",
+            "nullable": true
+          },
+          "unlockedAt": {
+            "type": "string",
+            "format": "date-time"
           }
         },
         "additionalProperties": false
@@ -3724,6 +3841,55 @@
         },
         "additionalProperties": false
       },
+      "MyAchievementDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "icon": {
+            "type": "string",
+            "nullable": true
+          },
+          "xpReward": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "vlxReward": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unlockedBy": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unlockedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "progress": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "target": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "MyStatsDto": {
         "type": "object",
         "properties": {
@@ -4014,6 +4180,28 @@
             "type": "string",
             "nullable": true
           },
+          "xp": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "levelXp": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "nextLevel": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "nextLevelTitle": {
+            "type": "string",
+            "nullable": true
+          },
+          "nextLevelXp": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
           "totalBets": {
             "type": "integer",
             "format": "int32"
@@ -4034,6 +4222,13 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/BestCashOutDto"
+            },
+            "nullable": true
+          },
+          "badges": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BadgeDto"
             },
             "nullable": true
           }
@@ -4415,6 +4610,10 @@
           },
           "animationsEnabled": {
             "type": "boolean"
+          },
+          "language": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -4479,6 +4678,10 @@
           },
           "animationsEnabled": {
             "type": "boolean"
+          },
+          "language": {
+            "type": "string",
+            "nullable": true
           },
           "updatedAt": {
             "type": "string",
