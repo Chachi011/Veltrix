@@ -1,14 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using Veltrix.Application.DTOs.Games;
 
-namespace Veltrix.Application.Interfaces
+namespace Veltrix.Application.Interfaces;
+
+public interface IGameService
 {
-    public interface IGameService
-    {
-        Task<IEnumerable<GameDto>> GetAllAsync();
-        Task<GameDto?> GetByIdAsync(Guid id);
-        Task<GameDto> CreateAsync(CreateGameDto dto);
-    }
+    Task<IReadOnlyList<GameDto>> GetAllAsync(GameQuery query, CancellationToken ct = default);
+    Task<GameDto> GetBySlugAsync(string slug, CancellationToken ct = default);
+    Task<GameDto> CreateAsync(SaveGameRequest request, CancellationToken ct = default);
+    Task<GameDto> UpdateAsync(int id, SaveGameRequest request, CancellationToken ct = default);
+    Task<GameDto> UpdateStatusAsync(int id, UpdateGameStatusRequest request, CancellationToken ct = default);
 }
