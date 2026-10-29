@@ -2,20 +2,20 @@
 
 Audit of the project against the specification **VELTRIX-პროექტის-აღწერა.pdf** (14 pages, Oct 23, 2026), a copy of which is kept in this repository as [`docs/SPEC.pdf`](SPEC.pdf), section by section.
 
-- Audited on **2026-10-27** as **Phase 5 · Step 1**, branch `feature/phase5` (Phases 1–4 done and merged into `develop`). Updated at the end of every Phase 5 step; last update: **Step 3 (optional features)**, see [§ Phase 5 Step 3](#phase-5-step-3-optional-features).
+- Audited on **2026-10-27** as **Phase 5 · Step 1**, branch `feature/phase5` (Phases 1–4 done and merged into `develop`). Updated at the end of every Phase 5 step; last update: **Step 4 (delivery), 2026-10-29: the submitted version, Git tag `v1.0-diploma`**, see [§ Phase 5 Step 4](#phase-5-step-4-delivery).
 - **Status:** ✅ done · 🟡 partial · ❌ missing.
 - Items marked **(\*)** in the spec are optional ("after the main part"); they are listed separately in [§ Optional (\*) items](#optional--items).
 - **Added in this pass** = the gap was found by this audit and closed in Step 1 (see [§ Gaps closed in this pass](#gaps-closed-in-this-pass)).
-- Next steps that will change this file: Step 3 (the optional items in the author's order), Step 4 (README screenshots, `/database` script, presentation).
+- Phase 5 is closed by the author's decision. Of the optional Step 3 features, (1) Georgian + English and (2) achievements + XP levels are in `v1.0-diploma`; (3)–(8) are not (see [§ Phase 5 Step 3](#phase-5-step-3-optional-features)). Later work happens on new branches; the tag never moves.
 
 ## Summary
 
 | | ✅ Done | 🟡 Partial | ❌ Missing |
 |---|---|---|---|
-| Required (non-\*) items | 147 | 5 | 0 |
-| Optional (\*) items | 3 | 2 | 13 |
+| Required (non-\*) items | 151 | 1 | 0 |
+| Optional (\*) items | 6 | 1 | 11 |
 
-The 5 partial required items are all decisions or Phase 5 delivery work, not missing features: README screenshots, the standalone seed SQL script and the presentation (Phase 5 by plan), the `master` branch name (the spec says `main`) and plain CSS via Tailwind v4 instead of SCSS. Details in [§ Still open](#still-open-non-).
+The one partial required item is a deliberate decision, not a missing feature: plain CSS via Tailwind CSS v4 instead of SCSS (DESIGN.md). Details in [§ Still open](#still-open-non-).
 
 ---
 
@@ -70,7 +70,7 @@ The 5 partial required items are all decisions or Phase 5 delivery work, not mis
 
 | Item | Status | Where |
 |---|---|---|
-| Git + GitHub, branches per feature | ✅ | `master` ← `develop` ← `feature/*`, remote `origin` |
+| Git + GitHub, branches per feature | ✅ | `main` ← `develop` ← `feature/*`, remote `origin` |
 | Postman for API checking | ✅ | `docs/api/openapi.json` imports straight into Postman (README → API in Postman) — **added in this pass** |
 | Docker Compose (\*) | ❌ | see optional items |
 | GitHub Actions (\*) | ❌ | see optional items |
@@ -86,7 +86,7 @@ The 5 partial required items are all decisions or Phase 5 delivery work, not mis
 | Guest: leaderboard | ✅ | `/leaderboard`, `GET /api/leaderboard` `[AllowAnonymous]` |
 | Guest: rules | ✅ | `/rules` → `features/rules/rules-page.ts`, `GET /api/pages/{slug}` — **added in this pass** |
 | Player: bets, cash-out, wallet, history, statistics, profile | ✅ | `BetsController` (Player only), `/wallet`, `/history`, `/profile` (statistics), `/limits` |
-| Player: chat (\*), achievements (\*) | ❌ | see optional items |
+| Player: chat (\*), achievements (\*) | ❌ / ✅ | see optional items (achievements: profile → Level and achievements) |
 | Operator: games and parameters, round monitoring and cancellation | ✅ | `/operator` (`features/operator`), `GamesController` / `RoundsController.Cancel` `[Authorize(Roles = Operator,Admin)]` |
 | Operator: chat moderation (\*) | ❌ | see optional items |
 | Admin: users and roles, system statistics, audit log, settings | ✅ | `/admin/*` (`features/admin`), `Admin*Controller` with `[Authorize(Roles = Admin)]` on the class |
@@ -162,7 +162,7 @@ The 5 partial required items are all decisions or Phase 5 delivery work, not mis
 | Leaderboard: day, week, all time | ✅ | `LeaderboardService` (day = last 24 h, week = last 7 days), `/leaderboard` |
 | Ranking: biggest multiplier, biggest virtual win | ✅ | `type=multiplier` (best cash-out) and `type=profit` (net virtual win = payouts − stakes) |
 | Public player profile (nickname, avatar, best results) | ✅ | `GET /api/players/{nickname}` + `/players/:nickname` (`features/players/player-page.ts`), nicknames link to it from the leaderboard, live bets and home — **page added in this pass** |
-| Achievements / badges (\*), levels and XP (\*) | ❌ / 🟡 | see optional items |
+| Achievements / badges (\*), levels and XP (\*) | ✅ | Awarded during round settlement (`RoundSettlementService`, rules in `Domain/Progress`), `GET /api/achievements`, `/my`; profile → Level and achievements, badges on `/players/:nickname`; see optional items |
 
 ### 4.7 Player interface
 
@@ -219,7 +219,7 @@ The 5 partial required items are all decisions or Phase 5 delivery work, not mis
 
 ## 5. API endpoints
 
-All documented in Swagger (`/swagger`); errors are ProblemDetails (`ExceptionHandlingMiddleware`). **51 operations** in total (the spec's evaluation table mentions 50).
+All documented in Swagger (`/swagger`) and in `docs/api/openapi.json` (Postman import); errors are ProblemDetails (`ExceptionHandlingMiddleware`). **53 operations** in total (the spec's evaluation table mentions 50).
 
 | Group | Endpoints | Status | Controller |
 |---|---|---|---|
@@ -235,7 +235,8 @@ All documented in Swagger (`/swagger`); errors are ProblemDetails (`ExceptionHan
 | LIMITS | `GET /api/limits`, `PUT /api/limits`, `POST /api/limits/self-exclusion` | ✅ | `LimitsController` |
 | NOTIFICATIONS | `GET /api/notifications`, `PUT /api/notifications/{id}/read`, `PUT /api/notifications/read-all` | ✅ | `NotificationsController` |
 | ADMIN | `GET /api/admin/users`, `GET /api/admin/users/{id}`, `PUT …/role`, `PUT …/block`, `POST …/balance-adjustment`, `GET /api/admin/audit-logs`, `GET/PUT /api/admin/settings` | ✅ | `AdminUsersController`, `AdminAuditLogsController`, `AdminSettingsController` |
-| ACHIEVEMENTS (\*) `GET /api/achievements`, `/my` · `GET /api/admin/reports/export` (\*) | | ❌ | see optional items |
+| ACHIEVEMENTS (\*) | `GET /api/achievements`, `GET /api/achievements/my` | ✅ | `AchievementsController` (catalog public, `/my` logged in) |
+| REPORTS (\*) | `GET /api/admin/reports/export` | ❌ | not in `v1.0-diploma`, see optional items |
 | Extra (not in the spec, needed by spec features) | `GET/PUT /api/profile/preferences` (settings), `GET /api/pages/{slug}` (rules), `GET /api/admin/audit-logs/actions` | ✅ | `ProfileController`, `PagesController`, `AdminAuditLogsController` |
 
 **SignalR hub `/hubs/crash`**
@@ -262,7 +263,8 @@ All documented in Swagger (`/swagger`); errors are ProblemDetails (`ExceptionHan
 | AuditLog (actorUserId, action, entityType, entityId, oldValue/newValue JSON, createdAt) | ✅ | `AuditLog.cs`; `entityId` is a string on purpose (setting keys like `Wallet.DailyBonusAmount` are not numbers) |
 | SystemSetting (key, value, updatedAt) | ✅ | `SystemSetting.cs` (seeded) |
 | Relations: User 1–1 Wallet, 1–N Bet, 1–1 PlayerLimit; Game 1–N GameRound 1–N Bet; Wallet 1–N WalletTransaction; Bet 1–N WalletTransaction | ✅ | `Persistence/Configurations/*` |
-| Achievement (\*), UserAchievement (\*), ChatMessage (\*) | ✅ tables only | Tables and seeds exist (`Achievement` with 5 seeded rows); features are optional, see below |
+| Achievement (\*), UserAchievement (\*) | ✅ | `Achievement` (7 seeded, with XP and VLX reward, CHECK ≥ 0), `UserAchievement` (key = user + achievement, so one unlock per player) |
+| ChatMessage (\*) | ✅ table only | the chat feature is optional and not in `v1.0-diploma` |
 
 Beyond the spec: 19 supporting tables (30 in total), listed in README → Database.
 
@@ -298,14 +300,14 @@ Beyond the spec: 19 supporting tables (30 in total), listed in README → Databa
 | xUnit: round state transitions (illegal ones refused) | ✅ | `GameRoundStateTests` |
 | xUnit: wallet (negative balance, double operation, refund) | ✅ | `WalletTests`, `BalanceAdjustmentTests`, `AdminUserServiceTests.AdjustBalance_TheSameRequestIdTwice_IsAppliedOnlyOnce` |
 | xUnit: bet and cash-out rules (refused in the wrong phase) | ✅ | `BetTests` |
-| Jasmine: Angular stores and services | ✅ | `AuthStore`, `CrashStore`, `NotificationsStore`, `WalletStore`, `LimitsStore`, `PreferencesStore`, `ToastStore`, `ThemeService`, `SoundService`, `LayoutService`, `CrashHub`, loading / error / auth interceptors, ProblemDetails helpers, form validators, guards (112 tests) |
-| Integration tests with WebApplicationFactory (\*) | ✅ | `Veltrix.Tests/Integration`: `AuthApiTests`, `BetApiTests`, `AdminApiTests`, `DemoDataSeederTests` (28 tests on a throwaway SQL Server database) — Step 2 |
+| Jasmine: Angular stores and services | ✅ | `AuthStore`, `CrashStore`, `NotificationsStore`, `WalletStore`, `LimitsStore`, `PreferencesStore`, `ToastStore`, `ThemeService`, `SoundService`, `LayoutService`, `CrashHub`, loading / error / auth interceptors, ProblemDetails helpers, form validators, guards, achievement toast (125 tests) |
+| Integration tests with WebApplicationFactory (\*) | ✅ | `Veltrix.Tests/Integration`: `AuthApiTests`, `BetApiTests`, `AdminApiTests`, `PreferencesApiTests`, `AchievementsApiTests`, `DemoDataSeederTests` (34 tests on a throwaway SQL Server database) — Steps 2 and 3 |
 
 ### Git
 
 | Item | Status | Where |
 |---|---|---|
-| `main` and `develop` branches, `feature/*` branches | 🟡 | `develop` and `feature/*` as specified; the main branch is called **`master`** (the author's convention in CLAUDE.md) |
+| `main` and `develop` branches, `feature/*` branches | ✅ | `main` ← `develop` ← `feature/*` (merged with `--no-ff`); `master` was renamed to `main` when the diploma version was locked; tag `v1.0-diploma` on `main` |
 | Clear, small, frequent commits | ✅ | `git log` |
 | `.gitignore`; secrets (connection string, JWT key) not in the repository | ✅ | JWT key in user-secrets; the connection string uses Windows authentication (no password) |
 
@@ -314,11 +316,11 @@ Beyond the spec: 19 supporting tables (30 in total), listed in README → Databa
 | Item | Status | Where |
 |---|---|---|
 | README: description, technologies, architecture | ✅ | `README.md` |
-| README: screenshots | 🟡 | Phase 5 (taken when the UI is final) |
+| README: screenshots | ✅ | 9 screens in `docs/screenshots` (Georgian default; staff screens in English), shown in the README |
 | Setup and run instructions (back-end, front-end, database) | ✅ | README → Setup and run |
-| DB scripts: migrations + seed script (test users with all three roles, a game) | 🟡 | Migrations ✅ (`dotnet ef migrations script` produces SQL); seed ✅ automatic in development (`HasData` + `DatabaseInitializer`); a standalone seed SQL script is Phase 5 |
+| DB scripts: migrations + seed script (test users with all three roles, a game) | ✅ | `database/veltrix.sql`: every migration (idempotent) + the reference data + the four test accounts (Admin, Operator, two Players). Checked on an empty database with auto-migrate and seeding off: all four log in, a bet settles, an achievement unlocks. `DatabaseScriptTests` fails if a migration is missing from it |
 | Swagger API documentation | ✅ | `/swagger`, `docs/api/openapi.json` |
-| Presentation: demo round in several browsers, provably fair check, admin panel | 🟡 | Phase 5 (the features it shows all exist) |
+| Presentation: demo round in several browsers, provably fair check, admin panel | ✅ | `docs/PRESENTATION.md`: checklist, a timed 10-minute script (two players + admin, provably fair check, operator cancel, block, responsible play) and the 10 most likely questions with short answers |
 
 ## 8. Evaluation criteria (spec §8)
 
@@ -329,11 +331,11 @@ Beyond the spec: 19 supporting tables (30 in total), listed in README → Databa
 | UI functionality | Canvas curve, validated forms, filters, Chart.js charts |
 | State management | NgRx SignalStores for auth, wallet, current round, notifications, limits, preferences; SignalR events flow into the stores |
 | Database design (SQL) | 11 core + 19 supporting tables, relations, unique indexes, CHECK constraints |
-| EF models and migrations | Code First, Fluent API configurations, 4 migrations, seed |
-| REST API | 51 operations, Swagger, ProblemDetails, pagination |
+| EF models and migrations | Code First, Fluent API configurations, 6 migrations, seed (`HasData` + runtime test accounts), one SQL script |
+| REST API | 53 operations, Swagger, ProblemDetails, pagination |
 | Authorization / authentication | JWT + rotating refresh tokens, 4 roles, guards, lockout |
-| Code quality and documentation | Layered architecture, 246 xUnit (incl. Moq service tests and 28 WebApplicationFactory integration tests) + 112 Jasmine tests, Serilog, README, DESIGN.md, this file |
-| Presentation | Phase 5 |
+| Code quality and documentation | Layered architecture, 285 xUnit (incl. Moq service tests and 34 WebApplicationFactory integration tests) + 125 Jasmine tests, 0 build warnings, Serilog, README, DESIGN.md, this file |
+| Presentation | `docs/PRESENTATION.md` |
 
 ---
 
@@ -343,22 +345,24 @@ Beyond the spec: 19 supporting tables (30 in total), listed in README → Databa
 |---|---|---|---|
 | Email verification | 4.1 | ❌ | `EmailVerificationCode` table exists |
 | Two-factor authentication | 4.1 | ❌ | `UserTwoFactor` table exists |
-| Two parallel bets per round | 4.2 | 🟡 | Backend ready (`Bet.MaxSlot = 2`, unique (round, user, slot)); the UI places slot 1 only |
-| Auto-bet with a number of rounds | 4.2 | ❌ | `AutoBetConfig` table exists |
+| Two parallel bets per round | 4.2 | 🟡 | Backend ready (`Bet.MaxSlot = 2`, unique (round, user, slot)); the UI places slot 1 only. Step 3 (4), not in `v1.0-diploma` |
+| Auto-bet with a number of rounds | 4.2 | ❌ | `AutoBetConfig` table exists. Step 3 (3), not in `v1.0-diploma` |
 | Balance refill when it reaches zero (once a day) | 4.4 | ❌ | |
-| Chat with moderation | 4.5, 4.9 | ❌ | `ChatMessage`, `ChatMute` tables exist |
-| Achievements / badges | 4.6 | ❌ | `Achievement` (5 seeded), `UserAchievement` tables; no unlock logic or endpoints |
-| Levels and XP | 4.6 | 🟡 | `Level` table (10 seeded) and `PlayerStats.Xp/LevelNumber`; XP is never awarded, so everyone is level 1 |
+| Chat with moderation | 4.5, 4.9 | ❌ | `ChatMessage`, `ChatMute` tables exist. Step 3 (5), not in `v1.0-diploma` |
+| Achievements / badges | 4.6 | ✅ | 7 achievements unlocked by the server during round settlement with an XP and VLX reward (ledger row) and a notification; profile tiles with progress, badges on the public profile — Step 3 (2) |
+| Levels and XP | 4.6 | ✅ | XP per settled bet (1 lost / 3 cashed out) + achievement XP; 10 levels; level-up notification; progress bar to the next level — Step 3 (2) |
 | Georgian and English | 4.7 | ✅ | Whole UI, API messages and Rules pages in Georgian (default) and English; `core/i18n`, `src/i18n/ka.json`, `UserPreference.Language` — Step 3 |
 | Page: why Crash has no winning strategy | 4.8 | ✅ | `/rules` renders the seeded `no-winning-strategy` page — **added in this pass** |
-| CSV export of reports | 4.10 | ❌ | |
+| CSV export of reports | 4.10 | ❌ | Step 3 (6), not in `v1.0-diploma` |
 | Email notifications | 4.11 | ❌ | Only the development email sender (logs reset codes) |
-| Achievements endpoints `GET /api/achievements`, `/my` | 5 | ❌ | |
+| Achievements endpoints `GET /api/achievements`, `/my` | 5 | ✅ | `AchievementsController` — Step 3 (2) |
 | `GET /api/admin/reports/export` | 5 | ❌ | |
 | SignalR `ChatMessage` / `SendChatMessage` | 5 | ❌ | |
 | Integration tests (WebApplicationFactory) | 7 | ✅ | `Veltrix.Tests/Integration` (28 tests): auth, bets, cash-out, refunds, admin role checks, demo data — Step 2 |
-| Docker Compose (SQL Server + API + Angular) | 2 | ❌ | |
-| GitHub Actions (build + tests on every push) | 2 | ❌ | |
+| Docker Compose (SQL Server + API + Angular) | 2 | ❌ | Step 3 (8), not in `v1.0-diploma` |
+| GitHub Actions (build + tests on every push) | 2 | ❌ | Step 3 (8), not in `v1.0-diploma` |
+
+The author's Step 3 list also had (7) PWA, which is not an item of the spec; it is not in `v1.0-diploma` either.
 
 ---
 
@@ -399,6 +403,23 @@ Beyond the spec: 19 supporting tables (30 in total), listed in README → Databa
 | | Georgian dates (month names), browser tab titles, Noto Sans Georgian font, layout fixes for longer text | `vxDate` pipe, `TranslatedTitleStrategy`, DESIGN.md §8b |
 | | Guards: `npm run i18n:check` (0 missing / 0 unused), Jasmine `i18n.spec.ts` (+12), xUnit `GeorgianTranslationTests` (every user-facing API message has Georgian), integration `PreferencesApiTests`; browser sweep 132 loads in each language at 1440 / 768 / 375, both themes | `scripts/i18n-check.mjs`, tests |
 | | **Bug found and fixed:** the content-page fallback used the UI default language, so when it became Georgian every Rules page answered 404; the fallback is now always English (`ContentPage_IsServedFromTheSeededTable_WithEnglishAsTheFallback` failed before the fix) | `StaticPageService` |
+| **(2) Achievements + XP levels** | XP for every settled bet (1 lost, 3 cashed out) and for every achievement; 10 levels with a level-up notification | `Domain/Progress/Progression.cs`, `PlayerStats` |
+| | 7 achievements (2 new: Sharp eye = 50 cash-outs, Set and forget = a win with auto cash-out), each with an XP and a VLX reward; unlocked in the SAME transaction that settles the round: `UserAchievement` row, XP, wallet credit with a ledger row (`achievement:{user}:{code}`), notification; the engine pushes the new balance and the notifications | `RoundSettlementService.AwardProgressAsync`, migration `AchievementRewardsAndXp` (VlxReward column + CHECK, XP backfill from past bets) |
+| | `GET /api/achievements` (public catalog), `GET /api/achievements/my` (unlocked + progress); public profile gets XP, next level and badges | `AchievementsController`, `AchievementService`, `ProfileService` |
+| | UI: level progress bar, achievement tiles on the profile (unlocked with date, locked with progress), badges on the public profile, bell styles and a toast that names the achievement; all texts in Georgian | `shared/ui/level-progress.ts`, `features/profile/my-achievements.ts`, `player-page.ts`, `notifications-panel.ts` |
+| | Tests: `ProgressionTests` (domain), `AchievementsApiTests` (4 integration tests), Jasmine achievement toast; checked live: a fresh player bet with auto cash-out 1.01x → 3 achievements, balance exactly 1000 − 10 + 10.10 + 40 rewards, ka and en at 1440 and 375 | |
+| | Found while checking: the Georgian "Mark all read" was cut off in the bell header with 4 unread notifications; the button no longer shrinks and the label is shorter ("ყველა წავიკითხე") | `notifications-panel.ts`, ka.json |
+| **(3)–(8) not done** | Auto-bet, two bets per round in the UI, chat with moderation, CSV export, PWA, Docker Compose + GitHub Actions (and 2FA / email verification) are **not** in `v1.0-diploma`: the author closed Phase 5 and asked to lock the version after (2). They are optional (\*) items; the database already has tables for several of them (`AutoBetConfig`, `ChatMessage`, `ChatMute`, `UserTwoFactor`, `EmailVerificationCode`) and the backend accepts bet slot 2 | — |
+
+## Phase 5 Step 4 (delivery)
+
+| What | Where |
+|---|---|
+| README: screenshots (9), architecture diagram (Mermaid), setup on a clean PC (install, clone, JWT key, database A automatic / B SQL script, run API and client), test accounts per role with "what to try", achievements, test counts, versions (how to return to `v1.0-diploma`) | `README.md`, `docs/screenshots/` |
+| Migrations + seed as ONE SQL script, verified on an empty database (twice in a row: idempotent) and by running the API on it with auto-migrate and seeding off | `database/veltrix.sql`, `DatabaseScriptTests` |
+| Presentation: 10-minute demo script with timings and what to say, the 10 most likely exam questions with short answers, a checklist and backup plan | `docs/PRESENTATION.md` |
+| Postman / OpenAPI file regenerated (53 operations, + the achievements endpoints) | `docs/api/openapi.json` |
+| Locked: `feature/phase5` → `develop` → `main` (`--no-ff`), annotated tag `v1.0-diploma` on `main`; final check on `develop`: `dotnet build` 0 warnings, `dotnet test` 285 passed, `ng build` 0 warnings (417 kB initial), Jasmine 125 passed, i18n check 0 missing / 0 unused | Git |
 
 ## Decisions to review
 
@@ -410,7 +431,7 @@ Choices made while working without the author. Each one follows the spec and DES
 | Integration tests use a real SQL Server database, not EF InMemory or SQLite | Bets use SQL Server features that the other providers do not have (REPEATABLE READ transactions, `ExecuteUpdate`, `rowversion` concurrency, CHECK constraints). The test database `Veltrix_Tests_<random>` is created by the migrations and dropped at the end; the tests refuse to run if they are connected to any other database | Set `VELTRIX_TEST_SQL` to point at another server |
 | In the integration tests the crash engine's background loop is off; tests move rounds with `RoundSettlementService` | The engine's timing is random (crash point from the seed); with the loop off a test decides exactly when betting closes and the round starts, and uses the same code the engine uses | — |
 | Validation errors now have the content type `application/problem+json` | Every other error already had it (RFC 7807, spec §7 "ProblemDetails"); the body is unchanged | Revert `FluentValidationFilter` |
-| Branch `master` instead of the spec's `main` | The author's convention (CLAUDE.md) | `git branch -m master main` |
+| `master` was renamed to `main` when the version was locked (before: kept as `master`) | The spec says `main`, and the lock instruction says "merge develop into main". The rename is local; the remote `origin` still has `master` until you push (`git push -u origin main`, then make `main` the default branch on GitHub) | `git branch -m main master` |
 | Tailwind CSS v4 (plain CSS) instead of SCSS | Tailwind v4 is configured in CSS and does not support Sass; DESIGN.md decision | — |
 | Leaderboard "profit" = net result (payouts − stakes) | The spec says "biggest virtual win"; a net result cannot be inflated by betting a lot and losing | `LeaderboardService` |
 | `AuditLog.entityId` is a string | Setting keys such as `Wallet.DailyBonusAmount` are not numbers | — |
@@ -425,13 +446,15 @@ Choices made while working without the author. Each one follows the spec and DES
 | Amounts and multipliers keep the international format (`1,234.56`, `2.35x`) in Georgian too; dates are Georgian | One number format across the game (players compare multipliers); Georgian betting sites show multipliers the same way | Use `formatNumber` with the `ka` locale |
 | Kept untranslated besides Crash / Cash out / VLX: "Provably fair" (nav and badge) and "seed" | Established technical terms of crash games; the home page explains them in Georgian ("დამტკიცებადი სამართლიანობა") | Edit ka.json |
 | "Responsible play" is "უსაფრთხო თამაში" (not "პასუხისმგებლიანი თამაში") | The longer phrase did not fit the sidebar; both are common | Edit ka.json |
+| XP: 1 for a lost bet, 3 for a cash-out, 0 for a refund; achievement rewards 10–100 XP and 10–100 VLX | Small numbers keep the 10 seeded levels reachable in a demo without making XP worth farming; a refund is not play | `Experience.ForBet`, `AchievementConfiguration` seed |
+| Achievements are awarded only during round settlement, never by a separate job; accounts that met a goal before achievements existed get it when their next bet is settled | One transaction with the round keeps the reward exactly-once (unique key + ledger idempotency key) and goes through the normal wallet code; a retroactive SQL grant would bypass the wallet rules. The profile says "Unlocks when your next bet is settled" for such goals | — |
+| The "coins" achievement icon is drawn as the VLX gem | DESIGN.md: VLX is not money, so the UI never shows coins | `achievementIcon()` |
+| The SQL script contains the BCrypt hashes of the public test passwords | The test accounts must log in from a database built only from the script; the passwords are already public in the README | Remove part 2 of `database/veltrix.sql` |
+| Step 3 features (3)–(8) were not built; the version was locked after (2) | The author wrote "Phase 5 is done. Lock the diploma version" | Build them on a new branch from `develop` (the tag stays) |
+| The freeze rule is written into CLAUDE.md in the tagged commit itself | So that anyone who checks out `v1.0-diploma` reads the rule too | — |
 
 ## Still open (non-\*)
 
 | Item | Why | When |
 |---|---|---|
-| README screenshots | Taken once the UI is final | Phase 5 |
-| Standalone seed SQL script | The database is seeded automatically in development; a script for a fresh server is planned | Phase 5 |
-| Presentation demo | The author's exam preparation | Phase 5 |
-| Branch name `master` instead of `main` | The author's convention (CLAUDE.md); a rename is one command if wanted | Author's decision |
 | SCSS | Tailwind CSS v4 is configured in CSS and does not support Sass; chosen deliberately for the design system | Decision (docs/DESIGN.md) |
