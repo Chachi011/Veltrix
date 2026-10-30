@@ -4,7 +4,7 @@ A real-time multiplayer web platform whose main module is a **Crash game**: a mu
 
 > **Educational / demo project.** Only virtual **VLX points** exist. There are no deposits, purchases, withdrawals or real money. Points come only from the starting balance, the daily bonus and achievements.
 
-**Submitted version:** the Git tag [`v1.0-diploma`](#versions). Exam material: [docs/PRESENTATION.md](docs/PRESENTATION.md) (10-minute demo script and likely questions), [docs/SPEC-COVERAGE.md](docs/SPEC-COVERAGE.md) (every item of the specification and where it is in the code).
+**Versions:** [`v1.1-diploma`](#versions) (latest: achievements and XP reworked for responsible play) and `v1.0-diploma` (the first submission, frozen). Exam material: [docs/PRESENTATION.md](docs/PRESENTATION.md) (10-minute demo script and likely questions), [docs/SPEC-COVERAGE.md](docs/SPEC-COVERAGE.md) (every item of the specification and where it is in the code).
 
 ## Screenshots
 
@@ -194,7 +194,7 @@ There are 30 tables, created by the migrations `InitialCreate` and `AddExtendedM
 | Game engine | `AutoBetConfigs, GameRoundEvents, RoundCancellations` |
 | Admin and content | `BalanceAdjustments, ChatMessages, ChatMutes, DailyStatistics, StaticPages` |
 
-Seeded reference data: the `crash` game, system settings, 10 levels, 7 achievements, and 2 content pages. There are 6 migrations; [`database/veltrix.sql`](database/veltrix.sql) is all of them plus the test accounts in one script (setup step 4B). A test (`DatabaseScriptTests`) fails if a migration is added without regenerating it:
+Seeded reference data: the `crash` game, system settings, 10 levels (0–200 XP), 10 achievements (6 active, 4 retired), and 2 content pages. There are 7 migrations; [`database/veltrix.sql`](database/veltrix.sql) is all of them plus the test accounts in one script (setup step 4B). A test (`DatabaseScriptTests`) fails if a migration is added without regenerating it:
 
 ```bash
 dotnet ef migrations script --idempotent --project Veltrix.Infrastructure --startup-project Veltrix.API -o <file>
@@ -260,7 +260,7 @@ Pages (Angular):
 | `/rules` | everyone | game rules and "why there is no winning strategy" (from the `StaticPages` table, `GET /api/pages/{slug}`) |
 | `/settings` | logged in | theme (System / Dark / Light), game sounds, animations; saved on the account (`GET/PUT /api/profile/preferences`) |
 | `/leaderboard` | everyone | 24 hours / 7 days / all time × best multiplier / profit; podium + table, my rank highlighted |
-| `/profile` → Level and achievements | players | XP and progress to the next level; every achievement with its reward, unlocked ones with the date, the others with their progress (e.g. 37 / 100 bets) |
+| `/profile` → Level and achievements | players | XP and progress to the next level; every task with its kind (safety, learning, playing) and reward, unlocked ones with the date; tasks that ask to play are hidden while the player cannot bet |
 | `/profile` → Statistics | players | win rate, average cash-out, net result, charts (results per day, win rate, cash-out ranges) |
 | `/limits` (Responsible play) | players | daily limit with today's usage, session reminder, self-exclusion with a confirm dialog |
 | bell (top bar) | logged in | unread badge, latest notifications, mark read; new ones arrive live |
@@ -271,18 +271,31 @@ The browser keeps **one** SignalR connection per tab: the logged-in user receive
 
 The **session reminder** (every 60 minutes by default) runs in the browser: it is advice. The hard rules (daily limit, self-exclusion) are enforced by the server on every bet.
 
-## Achievements and levels (Phase 5)
+## Achievements and levels (responsible play, v1.1)
 
 | Endpoint | Who |
 |---|---|
-| `GET /api/achievements`: every achievement with its XP / VLX reward and how many players unlocked it | everyone |
-| `GET /api/achievements/my`: unlocked ones with the date, the others with the progress so far | logged in |
-| `GET /api/players/{nickname}`: now also XP, the next level and the badges | everyone |
+| `GET /api/achievements`: the active tasks (safety and learning first) with their XP / VLX reward and how many players completed each | everyone |
+| `GET /api/achievements/my`: completed ones with the date; `playTasksHidden` = tasks that ask to play were left out | logged in |
+| `POST /api/pages/{slug}/read`: the Rules page read to its end ("Know the rules") | Player |
+| `GET /api/limits` → `canPlayNow`: false while self-excluded or when today's limit is used up | Player |
+| `GET /api/players/{nickname}`: also XP, the next level and the badges | everyone |
 
-- **XP:** every settled bet gives XP (1 for a lost bet, 3 for a cash-out) and every achievement its own XP. The level is the highest one of the 10 seeded levels whose XP is reached; a level-up sends a notification.
-- **7 achievements** (seeded): First bet, First cash-out, To the moon (10.00x), Regular (100 bets), Big win (1000 VLX in one bet), Sharp eye (50 cash-outs), Set and forget (a win with auto cash-out).
-- **Awarded by the server, in the same transaction that settles the round:** the `UserAchievement` row, the XP, the VLX reward as a normal wallet credit with a ledger row (idempotency key `achievement:{user}:{code}`) and a notification. A reward can therefore never be paid twice, and the rules are plain domain code (`Domain/Progress`), unit-tested without a database.
-- An account that had already met a goal before achievements existed gets it, with its reward, when its next bet is settled.
+**Rules (the author's):** no XP, task or achievement rewards betting volume, the amount staked, the number of bets or the time played; learning and safety are preferred; a player who cannot bet right now sees nothing that asks them to play.
+
+| Task | Kind | Completed when | XP / VLX |
+|---|---|---|---|
+| Set your limit | Safety | the player saves a daily bet limit | 60 / 20 |
+| Know the rules | Learn | the end of the Rules page stays on screen for 10 s | 40 / 20 |
+| Check a round | Learn | the player verifies a REAL finished round (its seed matches a published hash) on the Provably fair page | 50 / 20 |
+| Try Crash | Play | the first bet is settled | 10 / 10 |
+| First cash-out | Play | the first cash-out | 20 / 20 |
+| Plan ahead | Play | a bet with an auto cash-out target is settled, won or lost | 20 / 10 |
+
+- **XP comes only from these tasks**; a bet gives none. 10 levels from 0 to 200 XP: playing alone reaches level 4 at most, the top level needs every learning and safety task. A level-up sends a notification.
+- **Retired** (they rewarded volume or stake size): 100 bets, 50 cash-outs, a 1000 VLX win, a 10x cash-out. The rows stay inactive because old ledger rows name them; the migration `ResponsibleAchievements` recalculated every player's XP from the active tasks.
+- **Awarded by the server only:** Play tasks in the same transaction that settles the round, the others right after their action (`AchievementAwarder`). The `UserAchievement` row (one per player and task), the XP, the VLX reward as a normal wallet credit with a ledger row (idempotency key `achievement:{user}:{code}`) and a notification: a reward can never be paid twice. The rules are plain domain code (`Domain/Progress`), unit-tested without a database.
+- **A player who cannot bet** (self-excluded, or less than the smallest bet left of today's limit) sees no play tasks (with a note why), "Betting paused / Daily limit reached until …" instead of "Place bet", **Watch** instead of **Play** on game cards, no "Play now" / "Play a round" buttons, and "Close" instead of "Keep playing" in the session reminder. One rule decides it on the server (`PlayerLimit.CanStillBetToday`), for the API and the UI alike.
 
 ## Real-time (SignalR) — `/hubs/crash`
 
@@ -315,18 +328,18 @@ The interface is in **Georgian by default** and in English. Guests switch with t
 dotnet test
 ```
 
-There are 285 xUnit tests in three groups:
+There are 304 xUnit tests in three groups:
 
-- **Integration tests** (`Veltrix.Tests/Integration`, 34 tests): `WebApplicationFactory` starts the real API in memory (same `Program.cs`, middleware, JWT, validation, rate limits, EF Core) against a **throwaway SQL Server database** `Veltrix_Tests_<random>`, created by the migrations and dropped at the end, and calls it over HTTP. The crash engine's background loop is off, so each test moves its own round through the states with `RoundSettlementService` (the engine's own code) and a clock it can stop. Covered: register / login / validation errors per field / duplicate email; 401 without or with a forged token; refresh-token rotation, logout, the 30-second reuse window and the theft alarm (an old token replayed later logs out every session); the auth rate limit (11th login from one IP → 429, refresh not limited); a bet takes the stake and writes a ledger row; bets refused after betting closes, below the minimum, with 3 decimals, twice in one slot, or above the balance; cash-out pays the stake × the **server's** multiplier at the moment of the request; too late after the crash point; the crash settles the bet as lost and reveals the crash point; an operator's cancel refunds active bets while cash-outs keep their payout; only players can bet; a blocked player is refused even with a token issued before the block; a self-excluded player cannot bet; every `api/admin` endpoint answers 401 / 403 / 403 / 200 to guest / player / operator / admin; only staff can cancel a round; an admin cannot change their own role, block themselves or adjust their own balance; a balance adjustment writes a ledger row and an audit entry; a promoted player gets the new role at the next login; a new account starts in Georgian and can save English (other languages refused); the first settled bet unlocks "First bet" once, with its XP, a VLX ledger row and a notification, and an auto cash-out win unlocks three achievements at once; the demo data follows the game rules (ledger chain, no negative balance, cash-outs below the crash point, verifiable crash points, statistics, created only once). They need a SQL Server: `localhost` with Windows login by default, or set `VELTRIX_TEST_SQL` to another connection string (without a database name).
+- **Integration tests** (`Veltrix.Tests/Integration`, 39 tests): `WebApplicationFactory` starts the real API in memory (same `Program.cs`, middleware, JWT, validation, rate limits, EF Core) against a **throwaway SQL Server database** `Veltrix_Tests_<random>`, created by the migrations and dropped at the end, and calls it over HTTP. The crash engine's background loop is off, so each test moves its own round through the states with `RoundSettlementService` (the engine's own code) and a clock it can stop. Covered: register / login / validation errors per field / duplicate email; 401 without or with a forged token; refresh-token rotation, logout, the 30-second reuse window and the theft alarm (an old token replayed later logs out every session); the auth rate limit (11th login from one IP → 429, refresh not limited); a bet takes the stake and writes a ledger row; bets refused after betting closes, below the minimum, with 3 decimals, twice in one slot, or above the balance; cash-out pays the stake × the **server's** multiplier at the moment of the request; too late after the crash point; the crash settles the bet as lost and reveals the crash point; an operator's cancel refunds active bets while cash-outs keep their payout; only players can bet; a blocked player is refused even with a token issued before the block; a self-excluded player cannot bet; every `api/admin` endpoint answers 401 / 403 / 403 / 200 to guest / player / operator / admin; only staff can cancel a round; an admin cannot change their own role, block themselves or adjust their own balance; a balance adjustment writes a ledger row and an audit entry; a promoted player gets the new role at the next login; a new account starts in Georgian and can save English (other languages refused); the first settled bet unlocks "Try Crash" once, with its XP, a VLX ledger row and a notification, and more or bigger bets add no XP; an auto cash-out win completes the three play tasks at once, a lost bet with an auto target completes "Plan ahead"; verifying a real finished round completes "Check a round" (a made-up seed does not, staff collect nothing); reading the rules and saving a daily limit complete their tasks; a self-excluded player and one whose daily limit is used up get no play tasks and `canPlayNow` false; the demo data follows the game rules (ledger chain, no negative balance, cash-outs below the crash point, verifiable crash points, statistics, created only once). They need a SQL Server: `localhost` with Windows login by default, or set `VELTRIX_TEST_SQL` to another connection string (without a database name).
 - **Service tests with Moq** (`Veltrix.Tests/Services`) run the real services against EF Core's in-memory database, with Moq fakes for "who is calling" and the SignalR notifier, and check both the saved data and the live events sent (wallet, limits, admin actions, preferences, content pages, the daily-bonus job).
-- **Domain and API tests** check that every user-facing API message has a Georgian version in `ka.json` (`GeorgianTranslationTests`) and that `database/veltrix.sql` contains every migration (`DatabaseScriptTests`), and cover XP, levels and achievement rules (`ProgressionTests`), crash-point generation and distribution, provably fair verification, multiplier curve, round state transitions (illegal ones rejected), wallet rules (no negative balance, refunds, daily bonus), bet and cash-out rules, refresh-token reuse rules, daily bet limit (24-hour wait before an increase), self-exclusion, admin balance adjustment, role and block rules, crash-point ranges against the theoretical distribution, guards that no role-protected endpoint is accidentally `[AllowAnonymous]` and that every `api/admin` controller requires the Admin role, and which auth endpoints are rate-limited.
+- **Domain and API tests** check that every user-facing API message has a Georgian version in `ka.json` (`GeorgianTranslationTests`) and that `database/veltrix.sql` contains every migration (`DatabaseScriptTests`), and cover XP, levels and achievement rules (`ProgressionTests`), the responsible-play rules (`ResponsibleAchievementTests`: playing 100,000 times with huge stakes earns nothing more than playing once, every task is a single step, learning and safety outweigh play, no play tasks for a player who cannot bet), crash-point generation and distribution, provably fair verification, multiplier curve, round state transitions (illegal ones rejected), wallet rules (no negative balance, refunds, daily bonus), bet and cash-out rules, refresh-token reuse rules, daily bet limit (24-hour wait before an increase), self-exclusion, admin balance adjustment, role and block rules, crash-point ranges against the theoretical distribution, guards that no role-protected endpoint is accidentally `[AllowAnonymous]` and that every `api/admin` controller requires the Admin role, and which auth endpoints are rate-limited.
 
 ```bash
 cd Veltrix.Web
 npx ng test --watch=false --browsers=ChromeHeadless
 ```
 
-There are 125 Jasmine tests:
+There are 134 Jasmine tests:
 
 - Languages (`I18n`, pipes, `ka.json`): English as written, Georgian after switching, English fallback for a missing text, API messages with changing values (patterns), live re-render without a reload, Georgian word order with `tSplit`, and for every entry of ka.json the same `{placeholders}`, the terms Crash / Cash out / VLX kept, only `<code>` HTML
 
@@ -344,7 +357,8 @@ There are 125 Jasmine tests:
 - `CrashHub`: one shared SignalR connection for the user and the game page, the online count handed to a page that joins later, leave / logout, a new connection for a new identity, personal vs game events
 - `NotificationsStore`: load, live notifications (deduplicated), optimistic mark read / mark all read, a role change refreshes the token and leaves a forbidden page, a block signs the user out, an achievement toast names the achievement and its reward
 - `roleGuard`: the right roles get in, others go back to the game, guests go to the login page
-- Bet panel: the one big button (`betAction`), including "betting paused" for a self-excluded player
+- Bet panel: the one big button (`betAction`), including "betting paused" for a self-excluded player and "daily limit reached" at the limit (a bet already in the round can still be cashed out)
+- Responsible play: the achievements note when play tasks are hidden, kind badges, **Watch** instead of **Play** on a game card, the Rules page tells the server only after its end was on screen for 10 s (and only for players), `LimitsStore.canPlayNow`
 - Session reminder (`play-session`): continuous play, breaks, reminders every N minutes
 - Audit log text: "Role: Player → Operator", readable dates
 - Crash math: the browser reproduces 7 real server rounds (seed → SHA-256 hash → crash point), proving both implementations are identical
@@ -360,12 +374,13 @@ There are 125 Jasmine tests:
 
 | Tag | What |
 |---|---|
-| `v1.0-diploma` | The version submitted for the diploma. It is frozen: never moved or re-tagged; later work happens on new branches |
+| `v1.0-diploma` | The first version submitted for the diploma. It is frozen: never moved or re-tagged; later work happens on new branches |
+| `v1.1-diploma` | v1.0 + the responsible-play review: XP and achievements never reward betting volume, stakes, the number of bets or time; learning and safety tasks; nothing invites a self-excluded player or one at the daily limit to play |
 
-To look at or run exactly the submitted version:
+To look at or run exactly one version:
 
 ```bash
-git checkout v1.0-diploma                         # read-only look ("detached HEAD")
-git switch -c my-fix v1.0-diploma                 # or start a new branch from it
-git diff v1.0-diploma                             # what changed since the submission
+git checkout v1.1-diploma                         # read-only look ("detached HEAD"); same for v1.0-diploma
+git switch -c my-fix v1.1-diploma                 # or start a new branch from it
+git diff v1.0-diploma v1.1-diploma --stat         # what v1.1 changed
 ```
