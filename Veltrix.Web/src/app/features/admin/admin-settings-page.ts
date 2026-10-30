@@ -57,7 +57,8 @@ import { AdminNav } from './admin-nav';
             </div>
             <div class="flex flex-wrap items-center justify-between gap-3">
               <p class="text-xs text-muted">{{ 'Last changed {date}' | t: { date: (s.updatedAt | vxDate: 'MMM d, y, HH:mm') } }}</p>
-              <div class="flex gap-2">
+              <!-- Phones: stacked, full width, Save on top (the Georgian labels are too long for one row); wider: side by side -->
+              <div class="flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row">
                 <button vxButton type="button" variant="ghost" [disabled]="form.pristine" (click)="reset()">{{ 'Discard' | t }}</button>
                 <button vxButton type="submit" variant="primary" [loading]="saving()" [disabled]="form.pristine">{{ 'Save settings' | t }}</button>
               </div>
