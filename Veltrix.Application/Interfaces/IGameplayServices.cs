@@ -32,5 +32,10 @@ public interface IWalletService
 public interface IFairnessService
 {
     Task<FairnessRoundDto> GetRoundAsync(int roundId, CancellationToken ct = default);
-    VerifyFairnessResult Verify(VerifyFairnessRequest request);
+
+    /// <summary>
+    /// Recalculates hash and crash point from a seed (anyone, no account needed). A logged-in player who verifies a real
+    /// finished round completes the "Check a round" achievement.
+    /// </summary>
+    Task<VerifyFairnessResult> VerifyAsync(VerifyFairnessRequest request, CancellationToken ct = default);
 }

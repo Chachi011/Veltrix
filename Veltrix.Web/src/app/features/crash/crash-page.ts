@@ -116,8 +116,12 @@ export class CrashPage {
     });
   }
 
-  protected placeBet(request: BetRequest): void {
-    void this.store.placeBet(request.amount, request.autoCashOutAt);
+  protected async placeBet(request: BetRequest): Promise<void> {
+    await this.store.placeBet(request.amount, request.autoCashOutAt);
+    // With a daily limit, this bet may have used it up: reload, so the button says so instead of inviting another bet
+    if (this.limits.limits()?.dailyBetLimit != null) {
+      await this.limits.load().catch(() => undefined);
+    }
   }
 
   protected cashOut(): void {

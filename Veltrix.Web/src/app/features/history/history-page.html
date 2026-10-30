@@ -31,10 +31,16 @@
 
     @if (bets(); as page) {
       @if (page.items.length === 0) {
-        <vx-empty-state [icon]="icons.history" [title]="'No bets found' | t" [message]="'Change the filters, or play your first round.' | t">
-          <a vxButton routerLink="/crash" variant="primary" size="sm">
-            <lucide-icon [img]="icons.rocket" [size]="14" aria-hidden="true" />{{ 'Play' | t }}
-          </a>
+        <vx-empty-state
+          [icon]="icons.history"
+          [title]="'No bets found' | t"
+          [message]="limits.canPlayNow() ? ('Change the filters, or play your first round.' | t) : ('Change the filters.' | t)"
+        >
+          @if (limits.canPlayNow()) {
+            <a vxButton routerLink="/crash" variant="primary" size="sm">
+              <lucide-icon [img]="icons.rocket" [size]="14" aria-hidden="true" />{{ 'Play' | t }}
+            </a>
+          }
         </vx-empty-state>
       } @else {
         <div class="vx-table-wrap">

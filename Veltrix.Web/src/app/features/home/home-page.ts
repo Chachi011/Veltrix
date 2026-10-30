@@ -7,6 +7,7 @@ import { StatsApi } from '../../core/api/stats.api';
 import { AuthStore } from '../../core/auth/auth.store';
 import { TranslatePipe } from '../../core/i18n/i18n-pipes';
 import { GameDto, LeaderboardEntryDto } from '../../core/models/api.models';
+import { LimitsStore } from '../../core/state/limits.store';
 import { Avatar, Button, Card, EmptyState, Icons, MultiplierPill, PageHeader, Skeleton } from '../../shared/ui';
 import { GameCard } from '../games/game-card';
 import { LiveRoundCard } from './live-round-card';
@@ -38,6 +39,7 @@ export class HomePage {
   private readonly gamesApi = inject(GamesApi);
   private readonly statsApi = inject(StatsApi);
   protected readonly auth = inject(AuthStore);
+  protected readonly limits = inject(LimitsStore);
 
   protected readonly icons = Icons;
   protected readonly games = signal<GameDto[] | null>(null);

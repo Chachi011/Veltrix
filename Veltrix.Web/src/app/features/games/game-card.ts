@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { KnownTextPipe, TranslatePipe } from '../../core/i18n/i18n-pipes';
 import { GameDto } from '../../core/models/api.models';
+import { LimitsStore } from '../../core/state/limits.store';
 import { GAME_STATUS_LABELS } from '../../shared/labels';
 import { VlxPipe } from '../../shared/pipes';
 import { Badge, BadgeTone, Button, Icons } from '../../shared/ui';
@@ -41,7 +42,10 @@ const STATUS_TONES: Record<GameDto['status'], BadgeTone> = { Active: 'success', 
     </dl>
 
     <div class="mt-5">
-      @if (game().status === 'Active') {
+      <!-- Responsible play: a player who cannot bet right now is not invited to play, only to watch -->
+      @if (game().status === 'Active' && !limits.canPlayNow()) {
+        <a vxButton [routerLink]="link()" variant="secondary" block>{{ 'Watch' | t }}</a>
+      } @else if (game().status === 'Active') {
         <a vxButton [routerLink]="link()" variant="primary" block>
           <lucide-icon [img]="icons.rocket" [size]="16" aria-hidden="true" />{{ 'Play' | t }}
         </a>
@@ -56,6 +60,7 @@ const STATUS_TONES: Record<GameDto['status'], BadgeTone> = { Active: 'success', 
 export class GameCard {
   readonly game = input.required<GameDto>();
 
+  protected readonly limits = inject(LimitsStore);
   protected readonly icons = Icons;
   protected readonly statusLabels = GAME_STATUS_LABELS;
   protected readonly statusTone = computed(() => STATUS_TONES[this.game().status]);

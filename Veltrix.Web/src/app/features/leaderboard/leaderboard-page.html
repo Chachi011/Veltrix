@@ -30,11 +30,15 @@
     <vx-empty-state
       [icon]="icons.trophy"
       [title]="'No results yet' | t"
-      [message]="'Nobody has finished a bet in this period. Be the first on the board.' | t"
+      [message]="
+        limits.canPlayNow() ? ('Nobody has finished a bet in this period. Be the first on the board.' | t) : ('Nobody has finished a bet in this period.' | t)
+      "
     >
-      <a vxButton routerLink="/crash" variant="primary" size="sm">
-        <lucide-icon [img]="icons.rocket" [size]="15" aria-hidden="true" />{{ 'Play now' | t }}
-      </a>
+      @if (limits.canPlayNow()) {
+        <a vxButton routerLink="/crash" variant="primary" size="sm">
+          <lucide-icon [img]="icons.rocket" [size]="15" aria-hidden="true" />{{ 'Play now' | t }}
+        </a>
+      }
     </vx-empty-state>
   </vx-card>
 } @else {

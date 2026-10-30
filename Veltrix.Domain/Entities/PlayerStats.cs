@@ -25,7 +25,10 @@ public class PlayerStats
     public User? User { get; set; }
     public Level? Level { get; set; }
 
-    /// <summary>A bet of this player was settled (lost or cashed out): totals, records and XP.</summary>
+    /// <summary>
+    /// A bet of this player was settled (lost or cashed out): totals and records. No XP: betting more never gives
+    /// progress (responsible play); XP comes only from achievements.
+    /// </summary>
     public void AddSettledBet(Bet bet, DateTime now)
     {
         TotalBets++;
@@ -40,7 +43,6 @@ public class PlayerStats
             BiggestMultiplier = Math.Max(BiggestMultiplier, bet.CashOutMultiplier ?? 0);
         }
 
-        Xp += Experience.ForBet(bet);
         UpdatedAt = now;
     }
 

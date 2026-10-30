@@ -96,9 +96,15 @@
             {{ placing() ? ('Placing bet…' | t) : ('Place bet' | t) }}
           </button>
         }
+        <!-- The two responsible-play states are explanations, not actions: their text may wrap (Georgian dates are long) -->
         @case ('paused') {
-          <a vxButton routerLink="/limits" variant="secondary" size="xl" block>
+          <a vxButton routerLink="/limits" variant="secondary" size="xl" block class="h-auto! min-h-14 py-2 text-center whitespace-normal!">
             <lucide-icon [img]="icons.pause" [size]="18" aria-hidden="true" />{{ 'Betting paused until {date}' | t: { date: (pausedUntil() | vxDate: 'MMM d, HH:mm') } }}
+          </a>
+        }
+        @case ('limit') {
+          <a vxButton routerLink="/limits" variant="secondary" size="xl" block class="h-auto! min-h-14 py-2 text-center whitespace-normal!">
+            <lucide-icon [img]="icons.pause" [size]="18" aria-hidden="true" />{{ 'Daily limit reached until {date}' | t: { date: (limitResetsAt() | vxDate: 'MMM d, HH:mm') } }}
           </a>
         }
         @case ('closed') {

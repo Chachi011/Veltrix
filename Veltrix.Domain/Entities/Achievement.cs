@@ -1,3 +1,5 @@
+using Veltrix.Domain.Enums;
+
 namespace Veltrix.Domain.Entities;
 
 public class Achievement
@@ -14,6 +16,15 @@ public class Achievement
 
     /// <summary>Virtual points paid when unlocked (credited through the wallet ledger, like the daily bonus).</summary>
     public int VlxReward { get; set; }
+
+    /// <summary>Play, Learn or Safety: decides who sees it (see AchievementVisibility).</summary>
+    public AchievementKind Kind { get; set; } = AchievementKind.Play;
+
+    /// <summary>
+    /// False for retired achievements (they rewarded betting volume). They can no longer be unlocked and are not shown;
+    /// the row stays because old ledger rows and notifications name it.
+    /// </summary>
+    public bool IsActive { get; set; } = true;
 
     public ICollection<UserAchievement> UnlockedBy { get; set; } = new List<UserAchievement>();
 }

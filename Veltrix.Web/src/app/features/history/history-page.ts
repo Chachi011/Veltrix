@@ -8,6 +8,7 @@ import { GamesApi } from '../../core/api/games.api';
 import { mark } from '../../core/i18n/i18n';
 import { LocalDatePipe, TranslateLabelsPipe, TranslatePipe } from '../../core/i18n/i18n-pipes';
 import { BetDto, BetStatus, MyBetsQuery, PagedResult, RoundDto } from '../../core/models/api.models';
+import { LimitsStore } from '../../core/state/limits.store';
 import { BET_STATUS_LABELS } from '../../shared/labels';
 import { MultiplierPipe, VlxPipe } from '../../shared/pipes';
 import {
@@ -53,6 +54,7 @@ import {
 })
 export class HistoryPage {
   private readonly betsApi = inject(BetsApi);
+  protected readonly limits = inject(LimitsStore);
   private readonly gamesApi = inject(GamesApi);
 
   protected readonly icons = Icons;

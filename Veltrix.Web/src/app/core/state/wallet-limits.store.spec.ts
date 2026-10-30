@@ -30,6 +30,7 @@ const limits = (overrides: Partial<PlayerLimitsDto> = {}): PlayerLimitsDto => ({
   isSelfExcluded: false,
   selfExcludedUntil: null,
   limitIncreaseDelayHours: 24,
+  canPlayNow: true,
   ...overrides
 });
 
@@ -109,6 +110,23 @@ describe('LimitsStore', () => {
     api.get.and.returnValue(of(limits({ sessionReminderMin: 30 })));
     await store.load();
     expect(store.reminderMinutes()).toBe(30);
+  });
+
+  it('nothing invites to play once the server says the player cannot bet (responsible play)', async () => {
+    // Guests / not loaded yet: no limits, so nothing is hidden
+    expect(store.canPlayNow()).toBeTrue();
+    expect(store.dailyLimitResetsAt()).toBeNull();
+
+    api.get.and.returnValue(of(limits({ dailyBetLimit: 50, betToday: 50, remainingToday: 0, canPlayNow: false })));
+    await store.load();
+    expect(store.canPlayNow()).toBeFalse();
+    expect(store.dailyLimitResetsAt()).toBe('2026-10-28T00:00:00Z'); // the bet button says until when
+
+    // Self-excluded: the bet button shows the pause instead, not the daily limit
+    api.get.and.returnValue(of(limits({ isSelfExcluded: true, selfExcludedUntil: '2026-11-03T12:00:00Z', canPlayNow: false })));
+    await store.load();
+    expect(store.canPlayNow()).toBeFalse();
+    expect(store.dailyLimitResetsAt()).toBeNull();
   });
 
   it('a self-exclusion is reflected for the Crash page (betting paused)', async () => {

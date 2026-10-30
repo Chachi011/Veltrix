@@ -21,6 +21,7 @@ export type BetAction =
   | 'place' // betting is open and I have no bet yet
   | 'closed' // no bet, betting is not open
   | 'paused' // self-excluded (responsible play): no new bets until the pause ends
+  | 'limit' // today's daily limit is used up (responsible play): no new bets until the day resets
   | 'waiting' // bet placed, round not started yet
   | 'cashout' // round running, my bet is active
   | 'won'
@@ -34,13 +35,15 @@ export interface BetActionInput {
   myBet: MyBet | null;
   /** Self-excluded: a bet already in the round can still be cashed out, but no new bet. */
   paused?: boolean;
+  /** Daily limit used up: same as paused, until the day resets. */
+  limitReached?: boolean;
 }
 
 /** "Place bet" → "Waiting…" → "Cash out 13.50 VLX" → result. A pure function, so it is unit-tested. */
-export function betAction({ loggedIn, isPlayer, state, myBet, paused = false }: BetActionInput): BetAction {
+export function betAction({ loggedIn, isPlayer, state, myBet, paused = false, limitReached = false }: BetActionInput): BetAction {
   if (!loggedIn) return 'login';
   if (!isPlayer) return 'staff';
-  if (!myBet) return paused ? 'paused' : state === 'BettingOpen' ? 'place' : 'closed';
+  if (!myBet) return paused ? 'paused' : limitReached ? 'limit' : state === 'BettingOpen' ? 'place' : 'closed';
 
   switch (myBet.status) {
     case 'Active':
@@ -75,6 +78,8 @@ export class BetPanel {
   readonly isPlayer = input(false);
   /** Self-excluded until this time (null = not paused). */
   readonly pausedUntil = input<string | null>(null);
+  /** Daily limit used up until this time (null = can still bet today). */
+  readonly limitResetsAt = input<string | null>(null);
   readonly canBet = input(false);
   readonly canCashOut = input(false);
   readonly placing = input(false);
@@ -94,7 +99,8 @@ export class BetPanel {
       isPlayer: this.isPlayer(),
       state: this.state(),
       myBet: this.myBet(),
-      paused: this.pausedUntil() !== null
+      paused: this.pausedUntil() !== null,
+      limitReached: this.limitResetsAt() !== null
     })
   );
 
