@@ -18,18 +18,21 @@ public class AchievementsController : ControllerBase
         _achievements = achievements;
     }
 
-    /// <summary>All achievements with their XP / VLX reward and how many players unlocked each. Open to guests.</summary>
+    /// <summary>The active achievements (safety and learning first) with their XP / VLX reward and how many players unlocked each. Open to guests.</summary>
     [HttpGet]
     [AllowAnonymous]
     [ProducesResponseType<IReadOnlyList<AchievementDto>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<AchievementDto>>> GetAll(CancellationToken ct) =>
         Ok(await _achievements.GetAllAsync(ct));
 
-    /// <summary>My achievements: unlocked ones with the date, the others with the progress so far (e.g. 37 / 100 bets).</summary>
+    /// <summary>
+    /// My achievements: unlocked ones with the date, the others with their progress. While I cannot bet (self-excluded,
+    /// or today's limit is used up) the ones that ask me to play are left out and playTasksHidden is true.
+    /// </summary>
     [HttpGet("my")]
     [Authorize]
-    [ProducesResponseType<IReadOnlyList<MyAchievementDto>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<MyAchievementsDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<IReadOnlyList<MyAchievementDto>>> GetMine(CancellationToken ct) =>
+    public async Task<ActionResult<MyAchievementsDto>> GetMine(CancellationToken ct) =>
         Ok(await _achievements.GetMineAsync(ct));
 }

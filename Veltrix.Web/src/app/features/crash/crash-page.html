@@ -124,6 +124,7 @@
         [loggedIn]="auth.isLoggedIn()"
         [isPlayer]="auth.isPlayer()"
         [pausedUntil]="limits.isSelfExcluded() ? limits.selfExcludedUntil() : null"
+        [limitResetsAt]="limits.dailyLimitResetsAt()"
         [canBet]="store.canBet()"
         [canCashOut]="store.canCashOut()"
         [placing]="store.placing()"

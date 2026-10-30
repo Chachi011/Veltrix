@@ -4,7 +4,7 @@
  * Part 1 (generated): every EF Core migration, idempotent
  *   dotnet ef migrations script --idempotent --project Veltrix.Infrastructure --startup-project Veltrix.API
  *   30 tables, CHECK constraints, unique indexes, and the reference data from HasData:
- *   the "crash" game, system settings, 10 levels, 7 achievements, 2 content pages.
+ *   the "crash" game, system settings, 10 levels, 10 achievements (6 active, 4 retired), 2 content pages.
  * Part 2 (hand-written, at the end): the four test accounts, one per role, exactly as
  *   DatabaseInitializer / User.Create make them (wallet with the welcome ledger row, limits, preferences, stats).
  *
@@ -1454,6 +1454,259 @@ IF NOT EXISTS (
 BEGIN
     INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
     VALUES (N'20261028174117_AchievementRewardsAndXp', N'8.0.11');
+END;
+GO
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261029161324_ResponsibleAchievements'
+)
+BEGIN
+    ALTER TABLE [Achievements] ADD [IsActive] bit NOT NULL DEFAULT CAST(1 AS bit);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261029161324_ResponsibleAchievements'
+)
+BEGIN
+    ALTER TABLE [Achievements] ADD [Kind] nvarchar(20) NOT NULL DEFAULT N'Play';
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261029161324_ResponsibleAchievements'
+)
+BEGIN
+    EXEC(N'UPDATE [Achievements] SET [Description] = N''Play your first round of Crash.'', [IsActive] = CAST(1 AS bit), [Kind] = N''Play'', [Title] = N''Try Crash''
+    WHERE [Id] = 1;
+    SELECT @@ROWCOUNT');
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261029161324_ResponsibleAchievements'
+)
+BEGIN
+    EXEC(N'UPDATE [Achievements] SET [IsActive] = CAST(1 AS bit), [Kind] = N''Play''
+    WHERE [Id] = 2;
+    SELECT @@ROWCOUNT');
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261029161324_ResponsibleAchievements'
+)
+BEGIN
+    EXEC(N'UPDATE [Achievements] SET [IsActive] = CAST(0 AS bit), [Kind] = N''Play''
+    WHERE [Id] = 3;
+    SELECT @@ROWCOUNT');
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261029161324_ResponsibleAchievements'
+)
+BEGIN
+    EXEC(N'UPDATE [Achievements] SET [IsActive] = CAST(0 AS bit), [Kind] = N''Play''
+    WHERE [Id] = 4;
+    SELECT @@ROWCOUNT');
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261029161324_ResponsibleAchievements'
+)
+BEGIN
+    EXEC(N'UPDATE [Achievements] SET [IsActive] = CAST(0 AS bit), [Kind] = N''Play''
+    WHERE [Id] = 5;
+    SELECT @@ROWCOUNT');
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261029161324_ResponsibleAchievements'
+)
+BEGIN
+    EXEC(N'UPDATE [Achievements] SET [IsActive] = CAST(0 AS bit), [Kind] = N''Play''
+    WHERE [Id] = 6;
+    SELECT @@ROWCOUNT');
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261029161324_ResponsibleAchievements'
+)
+BEGIN
+    EXEC(N'UPDATE [Achievements] SET [Description] = N''Place a bet with an auto cash-out target.'', [IsActive] = CAST(1 AS bit), [Kind] = N''Play'', [Title] = N''Plan ahead''
+    WHERE [Id] = 7;
+    SELECT @@ROWCOUNT');
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261029161324_ResponsibleAchievements'
+)
+BEGIN
+    IF EXISTS (SELECT * FROM [sys].[identity_columns] WHERE [name] IN (N'Id', N'Code', N'Description', N'Icon', N'IsActive', N'Kind', N'Title', N'VlxReward', N'XpReward') AND [object_id] = OBJECT_ID(N'[Achievements]'))
+        SET IDENTITY_INSERT [Achievements] ON;
+    EXEC(N'INSERT INTO [Achievements] ([Id], [Code], [Description], [Icon], [IsActive], [Kind], [Title], [VlxReward], [XpReward])
+    VALUES (8, N''READ_RULES'', N''Read the game rules and why Crash has no winning strategy.'', N''book'', CAST(1 AS bit), N''Learn'', N''Know the rules'', 20, 40),
+    (9, N''VERIFY_ROUND'', N''Verify a finished round on the Provably fair page.'', N''shield'', CAST(1 AS bit), N''Learn'', N''Check a round'', 20, 50),
+    (10, N''SET_DAILY_LIMIT'', N''Set a daily bet limit on the Responsible play page.'', N''limit'', CAST(1 AS bit), N''Safety'', N''Set your limit'', 20, 60)');
+    IF EXISTS (SELECT * FROM [sys].[identity_columns] WHERE [name] IN (N'Id', N'Code', N'Description', N'Icon', N'IsActive', N'Kind', N'Title', N'VlxReward', N'XpReward') AND [object_id] = OBJECT_ID(N'[Achievements]'))
+        SET IDENTITY_INSERT [Achievements] OFF;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261029161324_ResponsibleAchievements'
+)
+BEGIN
+    EXEC(N'UPDATE [Levels] SET [XpRequired] = 10
+    WHERE [Number] = 2;
+    SELECT @@ROWCOUNT');
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261029161324_ResponsibleAchievements'
+)
+BEGIN
+    EXEC(N'UPDATE [Levels] SET [XpRequired] = 30
+    WHERE [Number] = 3;
+    SELECT @@ROWCOUNT');
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261029161324_ResponsibleAchievements'
+)
+BEGIN
+    EXEC(N'UPDATE [Levels] SET [XpRequired] = 50
+    WHERE [Number] = 4;
+    SELECT @@ROWCOUNT');
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261029161324_ResponsibleAchievements'
+)
+BEGIN
+    EXEC(N'UPDATE [Levels] SET [XpRequired] = 70
+    WHERE [Number] = 5;
+    SELECT @@ROWCOUNT');
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261029161324_ResponsibleAchievements'
+)
+BEGIN
+    EXEC(N'UPDATE [Levels] SET [XpRequired] = 90
+    WHERE [Number] = 6;
+    SELECT @@ROWCOUNT');
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261029161324_ResponsibleAchievements'
+)
+BEGIN
+    EXEC(N'UPDATE [Levels] SET [XpRequired] = 110
+    WHERE [Number] = 7;
+    SELECT @@ROWCOUNT');
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261029161324_ResponsibleAchievements'
+)
+BEGIN
+    EXEC(N'UPDATE [Levels] SET [XpRequired] = 140
+    WHERE [Number] = 8;
+    SELECT @@ROWCOUNT');
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261029161324_ResponsibleAchievements'
+)
+BEGIN
+    EXEC(N'UPDATE [Levels] SET [XpRequired] = 170
+    WHERE [Number] = 9;
+    SELECT @@ROWCOUNT');
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261029161324_ResponsibleAchievements'
+)
+BEGIN
+    EXEC(N'UPDATE [Levels] SET [XpRequired] = 200
+    WHERE [Number] = 10;
+    SELECT @@ROWCOUNT');
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261029161324_ResponsibleAchievements'
+)
+BEGIN
+    CREATE INDEX [IX_GameRounds_ServerSeedHash] ON [GameRounds] ([ServerSeedHash]);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261029161324_ResponsibleAchievements'
+)
+BEGIN
+    UPDATE s SET Xp = ISNULL(x.Xp, 0)
+    FROM PlayerStats s
+    OUTER APPLY (
+        SELECT SUM(a.XpReward) AS Xp
+        FROM UserAchievements ua
+        JOIN Achievements a ON a.Id = ua.AchievementId
+        WHERE ua.UserId = s.UserId AND a.IsActive = 1) x;
+
+    UPDATE s SET LevelNumber = (SELECT MAX(l.Number) FROM Levels l WHERE l.XpRequired <= s.Xp)
+    FROM PlayerStats s;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261029161324_ResponsibleAchievements'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261029161324_ResponsibleAchievements', N'8.0.11');
 END;
 GO
 

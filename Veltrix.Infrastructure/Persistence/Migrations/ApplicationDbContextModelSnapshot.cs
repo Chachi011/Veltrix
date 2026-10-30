@@ -45,6 +45,14 @@ namespace Veltrix.Infrastructure.Persistence.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -73,9 +81,11 @@ namespace Veltrix.Infrastructure.Persistence.Migrations
                         {
                             Id = 1,
                             Code = "FIRST_BET",
-                            Description = "Place your first bet.",
+                            Description = "Play your first round of Crash.",
                             Icon = "rocket",
-                            Title = "First bet",
+                            IsActive = true,
+                            Kind = "Play",
+                            Title = "Try Crash",
                             VlxReward = 10,
                             XpReward = 10
                         },
@@ -85,6 +95,8 @@ namespace Veltrix.Infrastructure.Persistence.Migrations
                             Code = "FIRST_CASHOUT",
                             Description = "Cash out before the crash for the first time.",
                             Icon = "coins",
+                            IsActive = true,
+                            Kind = "Play",
                             Title = "First cash-out",
                             VlxReward = 20,
                             XpReward = 20
@@ -95,6 +107,8 @@ namespace Veltrix.Infrastructure.Persistence.Migrations
                             Code = "CASHOUT_10X",
                             Description = "Cash out at 10.00x or higher.",
                             Icon = "bolt",
+                            IsActive = false,
+                            Kind = "Play",
                             Title = "To the moon",
                             VlxReward = 100,
                             XpReward = 100
@@ -105,6 +119,8 @@ namespace Veltrix.Infrastructure.Persistence.Migrations
                             Code = "BETS_100",
                             Description = "Place 100 bets.",
                             Icon = "trophy",
+                            IsActive = false,
+                            Kind = "Play",
                             Title = "Regular",
                             VlxReward = 50,
                             XpReward = 50
@@ -115,6 +131,8 @@ namespace Veltrix.Infrastructure.Persistence.Migrations
                             Code = "BIG_WIN_1000",
                             Description = "Win 1000 VLX or more in a single bet.",
                             Icon = "star",
+                            IsActive = false,
+                            Kind = "Play",
                             Title = "Big win",
                             VlxReward = 100,
                             XpReward = 100
@@ -125,6 +143,8 @@ namespace Veltrix.Infrastructure.Persistence.Migrations
                             Code = "CASHOUTS_50",
                             Description = "Cash out 50 times.",
                             Icon = "target",
+                            IsActive = false,
+                            Kind = "Play",
                             Title = "Sharp eye",
                             VlxReward = 50,
                             XpReward = 75
@@ -133,11 +153,49 @@ namespace Veltrix.Infrastructure.Persistence.Migrations
                         {
                             Id = 7,
                             Code = "AUTO_CASHOUT",
-                            Description = "Win a bet with auto cash-out.",
+                            Description = "Place a bet with an auto cash-out target.",
                             Icon = "timer",
-                            Title = "Set and forget",
+                            IsActive = true,
+                            Kind = "Play",
+                            Title = "Plan ahead",
                             VlxReward = 10,
                             XpReward = 20
+                        },
+                        new
+                        {
+                            Id = 8,
+                            Code = "READ_RULES",
+                            Description = "Read the game rules and why Crash has no winning strategy.",
+                            Icon = "book",
+                            IsActive = true,
+                            Kind = "Learn",
+                            Title = "Know the rules",
+                            VlxReward = 20,
+                            XpReward = 40
+                        },
+                        new
+                        {
+                            Id = 9,
+                            Code = "VERIFY_ROUND",
+                            Description = "Verify a finished round on the Provably fair page.",
+                            Icon = "shield",
+                            IsActive = true,
+                            Kind = "Learn",
+                            Title = "Check a round",
+                            VlxReward = 20,
+                            XpReward = 50
+                        },
+                        new
+                        {
+                            Id = 10,
+                            Code = "SET_DAILY_LIMIT",
+                            Description = "Set a daily bet limit on the Responsible play page.",
+                            Icon = "limit",
+                            IsActive = true,
+                            Kind = "Safety",
+                            Title = "Set your limit",
+                            VlxReward = 20,
+                            XpReward = 60
                         });
                 });
 
@@ -629,6 +687,8 @@ namespace Veltrix.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ServerSeedHash");
+
                     b.HasIndex("State");
 
                     b.HasIndex("GameId", "RoundNumber")
@@ -708,55 +768,55 @@ namespace Veltrix.Infrastructure.Persistence.Migrations
                         {
                             Number = 2,
                             Title = "Spotter",
-                            XpRequired = 100
+                            XpRequired = 10
                         },
                         new
                         {
                             Number = 3,
                             Title = "Climber",
-                            XpRequired = 250
+                            XpRequired = 30
                         },
                         new
                         {
                             Number = 4,
                             Title = "Pilot",
-                            XpRequired = 500
+                            XpRequired = 50
                         },
                         new
                         {
                             Number = 5,
                             Title = "Navigator",
-                            XpRequired = 1000
+                            XpRequired = 70
                         },
                         new
                         {
                             Number = 6,
                             Title = "Ace",
-                            XpRequired = 2000
+                            XpRequired = 90
                         },
                         new
                         {
                             Number = 7,
                             Title = "Veteran",
-                            XpRequired = 3500
+                            XpRequired = 110
                         },
                         new
                         {
                             Number = 8,
                             Title = "Elite",
-                            XpRequired = 5500
+                            XpRequired = 140
                         },
                         new
                         {
                             Number = 9,
                             Title = "Legend",
-                            XpRequired = 8000
+                            XpRequired = 170
                         },
                         new
                         {
                             Number = 10,
                             Title = "Mythic",
-                            XpRequired = 12000
+                            XpRequired = 200
                         });
                 });
 

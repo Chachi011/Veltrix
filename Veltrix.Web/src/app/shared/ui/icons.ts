@@ -176,7 +176,10 @@ const ACHIEVEMENT_ICONS: Record<string, LucideIconData> = {
   trophy: Icons.trophy,
   star: Icons.star,
   target: Icons.target,
-  timer: Icons.timer
+  timer: Icons.timer,
+  book: Icons.book,
+  shield: Icons.shield,
+  limit: Icons.responsible
 };
 
 export const achievementIcon = (name: string): LucideIconData => ACHIEVEMENT_ICONS[name] ?? Icons.medal;

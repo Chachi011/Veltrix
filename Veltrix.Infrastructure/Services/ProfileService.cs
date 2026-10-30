@@ -182,7 +182,8 @@ public sealed class ProfileService : IProfileService
 
         profile.Badges = await _db.UserAchievements
             .AsNoTracking()
-            .Where(u => u.User!.Nickname == nickname)
+            // Retired achievements (they rewarded betting volume) are not shown off as badges
+            .Where(u => u.User!.Nickname == nickname && u.Achievement!.IsActive)
             .OrderByDescending(u => u.UnlockedAt)
             .Select(u => new BadgeDto
             {

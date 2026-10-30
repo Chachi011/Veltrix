@@ -2,6 +2,7 @@ import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog';
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { LucideAngularModule } from 'lucide-angular';
 import { TranslatePipe } from '../../core/i18n/i18n-pipes';
+import { LimitsStore } from '../../core/state/limits.store';
 import { VlxPipe } from '../../shared/pipes';
 import { Button, Icons, ModalShell } from '../../shared/ui';
 
@@ -41,7 +42,10 @@ export type ReminderChoice = 'limits' | 'continue';
       </div>
       <ng-container modal-footer>
         <button vxButton type="button" variant="ghost" (click)="ref.close('limits')">{{ 'Review my limits' | t }}</button>
-        <button vxButton type="button" variant="primary" (click)="ref.close('continue')">{{ 'Keep playing' | t }}</button>
+        <!-- Responsible play: a player who cannot bet any more today is not told to keep playing -->
+        <button vxButton type="button" variant="primary" (click)="ref.close('continue')">
+          {{ limits.canPlayNow() ? ('Keep playing' | t) : ('Close' | t) }}
+        </button>
       </ng-container>
     </vx-modal>
   `
@@ -49,5 +53,6 @@ export type ReminderChoice = 'limits' | 'continue';
 export class SessionReminderDialog {
   protected readonly data = inject<ReminderData>(DIALOG_DATA);
   protected readonly ref = inject<DialogRef<ReminderChoice>>(DialogRef);
+  protected readonly limits = inject(LimitsStore);
   protected readonly icons = Icons;
 }

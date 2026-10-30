@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Veltrix.Domain.Entities;
+using Veltrix.Domain.Enums;
 
 namespace Veltrix.Infrastructure.Persistence.Configurations;
 
@@ -21,15 +22,21 @@ public class AchievementConfiguration : IEntityTypeConfiguration<Achievement>
 
         builder.HasIndex(x => x.Code).IsUnique();
 
-        // XP measures experience; the VLX reward is paid into the wallet with a ledger row when unlocked.
+        // Responsible play: every task is ONE action (try, learn, set up a safety tool), never a count of bets, an amount,
+        // a win size or time played. Learn and Safety tasks give more XP than Play tasks, so the top level needs them.
+        // XP is the only source of levels; the VLX reward is paid into the wallet with a ledger row when unlocked.
         // The rules that unlock each code are in Veltrix.Domain/Progress (AchievementRules).
         builder.HasData(
-            new Achievement { Id = 1, Code = "FIRST_BET", Title = "First bet", Description = "Place your first bet.", Icon = "rocket", XpReward = 10, VlxReward = 10 },
-            new Achievement { Id = 2, Code = "FIRST_CASHOUT", Title = "First cash-out", Description = "Cash out before the crash for the first time.", Icon = "coins", XpReward = 20, VlxReward = 20 },
-            new Achievement { Id = 3, Code = "CASHOUT_10X", Title = "To the moon", Description = "Cash out at 10.00x or higher.", Icon = "bolt", XpReward = 100, VlxReward = 100 },
-            new Achievement { Id = 4, Code = "BETS_100", Title = "Regular", Description = "Place 100 bets.", Icon = "trophy", XpReward = 50, VlxReward = 50 },
-            new Achievement { Id = 5, Code = "BIG_WIN_1000", Title = "Big win", Description = "Win 1000 VLX or more in a single bet.", Icon = "star", XpReward = 100, VlxReward = 100 },
-            new Achievement { Id = 6, Code = "CASHOUTS_50", Title = "Sharp eye", Description = "Cash out 50 times.", Icon = "target", XpReward = 75, VlxReward = 50 },
-            new Achievement { Id = 7, Code = "AUTO_CASHOUT", Title = "Set and forget", Description = "Win a bet with auto cash-out.", Icon = "timer", XpReward = 20, VlxReward = 10 });
+            new Achievement { Id = 1, Code = "FIRST_BET", Title = "Try Crash", Description = "Play your first round of Crash.", Icon = "rocket", XpReward = 10, VlxReward = 10, Kind = AchievementKind.Play },
+            new Achievement { Id = 2, Code = "FIRST_CASHOUT", Title = "First cash-out", Description = "Cash out before the crash for the first time.", Icon = "coins", XpReward = 20, VlxReward = 20, Kind = AchievementKind.Play },
+            // Retired (inactive): they rewarded chasing high multipliers, the number of bets / cash-outs or the stake size
+            new Achievement { Id = 3, Code = "CASHOUT_10X", Title = "To the moon", Description = "Cash out at 10.00x or higher.", Icon = "bolt", XpReward = 100, VlxReward = 100, Kind = AchievementKind.Play, IsActive = false },
+            new Achievement { Id = 4, Code = "BETS_100", Title = "Regular", Description = "Place 100 bets.", Icon = "trophy", XpReward = 50, VlxReward = 50, Kind = AchievementKind.Play, IsActive = false },
+            new Achievement { Id = 5, Code = "BIG_WIN_1000", Title = "Big win", Description = "Win 1000 VLX or more in a single bet.", Icon = "star", XpReward = 100, VlxReward = 100, Kind = AchievementKind.Play, IsActive = false },
+            new Achievement { Id = 6, Code = "CASHOUTS_50", Title = "Sharp eye", Description = "Cash out 50 times.", Icon = "target", XpReward = 75, VlxReward = 50, Kind = AchievementKind.Play, IsActive = false },
+            new Achievement { Id = 7, Code = "AUTO_CASHOUT", Title = "Plan ahead", Description = "Place a bet with an auto cash-out target.", Icon = "timer", XpReward = 20, VlxReward = 10, Kind = AchievementKind.Play },
+            new Achievement { Id = 8, Code = "READ_RULES", Title = "Know the rules", Description = "Read the game rules and why Crash has no winning strategy.", Icon = "book", XpReward = 40, VlxReward = 20, Kind = AchievementKind.Learn },
+            new Achievement { Id = 9, Code = "VERIFY_ROUND", Title = "Check a round", Description = "Verify a finished round on the Provably fair page.", Icon = "shield", XpReward = 50, VlxReward = 20, Kind = AchievementKind.Learn },
+            new Achievement { Id = 10, Code = "SET_DAILY_LIMIT", Title = "Set your limit", Description = "Set a daily bet limit on the Responsible play page.", Icon = "limit", XpReward = 60, VlxReward = 20, Kind = AchievementKind.Safety });
     }
 }

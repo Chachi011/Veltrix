@@ -38,6 +38,16 @@ describe('betAction (the one big button of the bet panel)', () => {
     expect(betAction({ ...player('Running', bet('Active')), paused: true })).toBe('cashout');
   });
 
+  it('at the daily limit the button explains the limit instead of offering "Place bet"', () => {
+    expect(betAction({ ...player('BettingOpen'), limitReached: true })).toBe('limit');
+    expect(betAction({ ...player('Running'), limitReached: true })).toBe('limit');
+    // The bet that used up the limit can still be cashed out, and its result is still shown
+    expect(betAction({ ...player('Running', bet('Active')), limitReached: true })).toBe('cashout');
+    expect(betAction({ ...player('Crashed', bet('Lost')), limitReached: true })).toBe('lost');
+    // A self-exclusion is the stronger message
+    expect(betAction({ ...player('BettingOpen'), paused: true, limitReached: true })).toBe('paused');
+  });
+
   it('shows the result after the round', () => {
     expect(betAction(player('Running', bet('CashedOut')))).toBe('won');
     expect(betAction(player('Crashed', bet('Lost')))).toBe('lost');

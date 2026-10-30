@@ -6,6 +6,7 @@ import { StatsApi } from '../../core/api/stats.api';
 import { I18n, mark } from '../../core/i18n/i18n';
 import { TranslateLabelsPipe, TranslatePipe } from '../../core/i18n/i18n-pipes';
 import { MyStatsDto } from '../../core/models/api.models';
+import { LimitsStore } from '../../core/state/limits.store';
 import { formatDay, formatWhole } from '../../shared/format';
 import { Button, Card, ChartSeries, ChartView, EmptyState, Icons, Skeleton, StatCard, TabItem, Tabs } from '../../shared/ui';
 
@@ -29,9 +30,11 @@ const RANGES: TabItem[] = [
             [title]="'No settled bets yet' | t"
             [message]="'Your win rate, cash-outs and daily results will appear here.' | t"
           >
-            <a vxButton routerLink="/crash" variant="primary" size="sm">
-              <lucide-icon [img]="icons.rocket" [size]="15" aria-hidden="true" />{{ 'Play a round' | t }}
-            </a>
+            @if (limits.canPlayNow()) {
+              <a vxButton routerLink="/crash" variant="primary" size="sm">
+                <lucide-icon [img]="icons.rocket" [size]="15" aria-hidden="true" />{{ 'Play a round' | t }}
+              </a>
+            }
           </vx-empty-state>
         </vx-card>
       } @else {
@@ -127,6 +130,7 @@ const RANGES: TabItem[] = [
 export class MyStats {
   private readonly api = inject(StatsApi);
   private readonly i18n = inject(I18n);
+  protected readonly limits = inject(LimitsStore);
 
   protected readonly icons = Icons;
   protected readonly ranges = RANGES;

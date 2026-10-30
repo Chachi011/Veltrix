@@ -31,6 +31,12 @@ public sealed class PlayerLimitsDto
     public bool IsSelfExcluded { get; set; }
     public DateTime? SelfExcludedUntil { get; set; }
 
+    /// <summary>
+    /// False while self-excluded or when what is left of today's limit is below the smallest bet. The client then shows
+    /// nothing that asks the player to play (no Play buttons, no play achievements, "Daily limit reached" on the bet button).
+    /// </summary>
+    public bool CanPlayNow { get; set; }
+
     /// <summary>How long a higher limit waits, so the UI can explain it.</summary>
     public int LimitIncreaseDelayHours { get; set; }
 }

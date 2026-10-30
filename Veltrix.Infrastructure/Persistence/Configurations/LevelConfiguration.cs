@@ -17,16 +17,18 @@ public class LevelConfiguration : IEntityTypeConfiguration<Level>
         builder.Property(x => x.Title).HasMaxLength(50).IsRequired();
         builder.HasIndex(x => x.XpRequired).IsUnique();
 
+        // XP comes only from achievements (200 XP in total), so completing every task, mostly learning and safety,
+        // reaches the top level; playing alone (50 XP) reaches level 4 at most
         builder.HasData(
             new Level { Number = 1, Title = "Rookie", XpRequired = 0 },
-            new Level { Number = 2, Title = "Spotter", XpRequired = 100 },
-            new Level { Number = 3, Title = "Climber", XpRequired = 250 },
-            new Level { Number = 4, Title = "Pilot", XpRequired = 500 },
-            new Level { Number = 5, Title = "Navigator", XpRequired = 1_000 },
-            new Level { Number = 6, Title = "Ace", XpRequired = 2_000 },
-            new Level { Number = 7, Title = "Veteran", XpRequired = 3_500 },
-            new Level { Number = 8, Title = "Elite", XpRequired = 5_500 },
-            new Level { Number = 9, Title = "Legend", XpRequired = 8_000 },
-            new Level { Number = 10, Title = "Mythic", XpRequired = 12_000 });
+            new Level { Number = 2, Title = "Spotter", XpRequired = 10 },
+            new Level { Number = 3, Title = "Climber", XpRequired = 30 },
+            new Level { Number = 4, Title = "Pilot", XpRequired = 50 },
+            new Level { Number = 5, Title = "Navigator", XpRequired = 70 },
+            new Level { Number = 6, Title = "Ace", XpRequired = 90 },
+            new Level { Number = 7, Title = "Veteran", XpRequired = 110 },
+            new Level { Number = 8, Title = "Elite", XpRequired = 140 },
+            new Level { Number = 9, Title = "Legend", XpRequired = 170 },
+            new Level { Number = 10, Title = "Mythic", XpRequired = 200 });
     }
 }

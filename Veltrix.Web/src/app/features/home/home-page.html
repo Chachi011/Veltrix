@@ -11,9 +11,11 @@
         {{ 'Every crash point is fixed before the round starts, and you can verify it afterwards.' | t }}
       </p>
       <div class="mt-5 flex flex-wrap gap-2">
-        <a vxButton routerLink="/crash" variant="primary" size="lg">
-          <lucide-icon [img]="icons.rocket" [size]="18" aria-hidden="true" />{{ 'Play now' | t }}
-        </a>
+        @if (limits.canPlayNow()) {
+          <a vxButton routerLink="/crash" variant="primary" size="lg">
+            <lucide-icon [img]="icons.rocket" [size]="18" aria-hidden="true" />{{ 'Play now' | t }}
+          </a>
+        }
         @if (!auth.isLoggedIn()) {
           <a vxButton routerLink="/register" variant="secondary" size="lg">{{ 'Create an account' | t }}</a>
         }

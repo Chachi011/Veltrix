@@ -10,7 +10,7 @@ Source of truth for roles, endpoints and data models: the specification `VELTRIX
 
 **v1.0-diploma is frozen. Never move, delete or retag it. All later work goes on new branches.**
 
-The annotated tag `v1.0-diploma` on `main` is the version submitted for the exam ("Diploma version, ready for submission"). To look at it: `git checkout v1.0-diploma`; to build on it: `git switch -c <new-branch> v1.0-diploma` (or branch from `develop`).
+The annotated tag `v1.0-diploma` on `main` is the first version submitted for the exam ("Diploma version, ready for submission"). `v1.1-diploma` (also on `main`) adds the responsible-play review of achievements and XP. To look at it: `git checkout v1.0-diploma`; to build on it: `git switch -c <new-branch> v1.0-diploma` (or branch from `develop`).
 
 ## Always
 
@@ -59,6 +59,12 @@ Veltrix.Web            Angular client: core/ (api, auth, http, realtime, state, 
 - A **cancelled round refunds every active bet** automatically (cashed-out bets keep their payout). On startup, unfinished rounds are cancelled and refunded.
 - Seed and crash point are never shown before a round is over (`GameplayMapping.ToDto` is the one place that decides).
 
+## Responsible play rules for progression (the author's, v1.1)
+
+- **No XP, task or achievement may reward betting volume, the amount staked, the number of bets or the time played.** XP comes only from one-time tasks; a settled bet gives none. Every task is ONE action (no counters, no amounts, no multipliers, no time). `ResponsibleAchievementTests` guards this.
+- **Prefer variety, learning and safety** (verify a round, read the rules, set a daily limit, try the game); they give more XP than play tasks, and playing alone cannot reach the top level.
+- **A player who cannot bet right now (self-excluded, or the daily limit used up) sees nothing that asks them to play**: no play tasks, no Play / Play now / Play a round buttons (Watch instead), no "Place bet" or "Keep playing". One rule decides it: `PlayerLimit.CanStillBetToday`, reported as `canPlayNow` with the limits; the client reads `LimitsStore.canPlayNow()`. Any new call to action that invites play must check it.
+
 ## Security rules learned the hard way
 
 - `[AllowAnonymous]` on a controller **overrides** `[Authorize]` on its actions. Put it on individual actions; `AuthorizationAttributeTests` guards this.
@@ -76,7 +82,7 @@ Veltrix.Web            Angular client: core/ (api, auth, http, realtime, state, 
 | 2 | Round engine, bets, cash-out, wallet, SignalR, provably fair (**MVP gate**) | **Done** (merged into `develop`) |
 | 3 | Angular UI: design system, login/register, Crash page (Canvas), wallet, history, profile, responsive, dark/light | **Done** (verified by the author on desktop and phone; merged into `develop`) |
 | 4 | Operator/Admin panels, leaderboard, limits/self-exclusion UI, notifications, settings, charts | **Done** (checked by the author; merged into `develop`) |
-| 5 | Spec audit, quality, optional (*) features, delivery (4 steps below) | **Done** (closed by the author; merged into `develop` and `main`, tag `v1.0-diploma`). Steps 1, 2 and 4 **done**; Step 3: (1) Georgian + English and (2) achievements + XP levels **done**, (3)–(8) **not done** (not in `v1.0-diploma`) |
+| 5 | Spec audit, quality, optional (*) features, delivery (4 steps below) | **Done** (closed by the author; merged into `develop` and `main`, tags `v1.0-diploma` and `v1.1-diploma`). Steps 1, 2 and 4 **done**; Step 3: (1) Georgian + English and (2) achievements + XP levels **done** (reworked for responsible play in `v1.1-diploma`), (3)–(8) **not done** |
 
 ### Phase 5 steps (update this file and `docs/SPEC-COVERAGE.md` at the end of every step; unclear choices go to "Decisions to review" in SPEC-COVERAGE.md)
 

@@ -19,6 +19,10 @@ export const DEFAULT_REMINDER_MIN = 60;
  * The player's responsible play settings. App-wide, because the Crash page (betting paused) and the
  * session reminder need them too, not only the Responsible play page.
  * The rules themselves are enforced by the server; this store only shows them.
+ *
+ * Responsible play: canPlayNow comes from the server (same rule as the achievements). While it is false, no page
+ * invites the player to play: no Play / Play now buttons, no play achievements, and the bet button explains why.
+ * Guests and staff have no limits loaded, so for them it stays true (they never bet anyway).
  */
 export const LimitsStore = signalStore(
   { providedIn: 'root' },
@@ -26,7 +30,13 @@ export const LimitsStore = signalStore(
   withComputed(({ limits }) => ({
     isSelfExcluded: computed(() => limits()?.isSelfExcluded ?? false),
     selfExcludedUntil: computed(() => limits()?.selfExcludedUntil ?? null),
-    reminderMinutes: computed(() => limits()?.sessionReminderMin ?? DEFAULT_REMINDER_MIN)
+    reminderMinutes: computed(() => limits()?.sessionReminderMin ?? DEFAULT_REMINDER_MIN),
+    canPlayNow: computed(() => limits()?.canPlayNow ?? true),
+    /** Not self-excluded, but today's limit is used up: the time the day resets, else null. */
+    dailyLimitResetsAt: computed(() => {
+      const l = limits();
+      return l && !l.canPlayNow && !l.isSelfExcluded ? l.dayResetsAt : null;
+    })
   })),
   withMethods((store, api = inject(LimitsApi)) => ({
     async load(): Promise<void> {

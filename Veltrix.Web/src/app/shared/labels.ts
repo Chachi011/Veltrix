@@ -1,5 +1,5 @@
 import { mark } from '../core/i18n/i18n';
-import { BetStatus, GameStatus, RoundState, TransactionType, UserRole } from '../core/models/api.models';
+import { AchievementKind, BetStatus, GameStatus, RoundState, TransactionType, UserRole } from '../core/models/api.models';
 
 // The English names of the API's enum values, shown through the t pipe: {{ betStatusLabels[bet.status] | t }}.
 // One place, so every page names a status the same way (and the i18n check finds them).
@@ -17,6 +17,12 @@ export const TRANSACTION_TYPE_LABELS: Record<TransactionType, string> = {
   Refund: mark('Refund'),
   Bonus: mark('Bonus'),
   AdminAdjustment: mark('Adjustment')
+};
+
+export const ACHIEVEMENT_KIND_LABELS: Record<AchievementKind, string> = {
+  Safety: mark('Safety'),
+  Learn: mark('Learning'),
+  Play: mark('Playing')
 };
 
 export const ROLE_LABELS: Record<UserRole, string> = {

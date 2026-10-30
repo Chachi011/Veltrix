@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { firstValueFrom } from 'rxjs';
 import { PagesApi } from '../../core/api/pages.api';
+import { AuthStore } from '../../core/auth/auth.store';
 import { I18n } from '../../core/i18n/i18n';
 import { TranslatePipe } from '../../core/i18n/i18n-pipes';
 import { StaticPageDto } from '../../core/models/api.models';
@@ -12,7 +13,13 @@ import { Button, Card, Icons, Markdown, PageHeader, Skeleton } from '../../share
  * Rules (guest rights in spec section 3) and "why Crash has no winning strategy" (spec 4.8).
  * The English text comes from the StaticPages table, so it can be changed without a new deployment;
  * the Georgian text is in the one Georgian file (src/i18n/ka.json, section "pages").
+ * A player who keeps the end of the rules on screen for READ_TIME_MS tells the server once
+ * (POST /api/pages/no-winning-strategy/read); the server decides whether that completes "Know the rules".
+ * The time matters: on a wide screen the whole page fits, so merely opening it must not count as reading.
  */
+/** How long the end of the rules must stay visible before it counts as read. */
+export const READ_TIME_MS = 10_000;
+
 @Component({
   selector: 'vx-rules-page',
   imports: [RouterLink, LucideAngularModule, Button, Card, Markdown, PageHeader, Skeleton, TranslatePipe],
@@ -37,6 +44,10 @@ import { Button, Card, Icons, Markdown, PageHeader, Skeleton } from '../../share
               </div>
             </vx-card>
           }
+        }
+        @if (shown().length > 0) {
+          <!-- The end of the rules: reaching it counts as "read" -->
+          <div #end class="h-px" aria-hidden="true"></div>
         }
       </div>
 
@@ -63,7 +74,9 @@ import { Button, Card, Icons, Markdown, PageHeader, Skeleton } from '../../share
 })
 export class RulesPage {
   private readonly api = inject(PagesApi);
+  private readonly auth = inject(AuthStore);
   private readonly i18n = inject(I18n);
+  private readonly end = viewChild<ElementRef<HTMLElement>>('end');
 
   protected readonly icons = Icons;
   private readonly pages = signal<StaticPageDto[]>([]);
@@ -80,5 +93,28 @@ export class RulesPage {
     void Promise.all(['rules', 'no-winning-strategy'].map((slug) => firstValueFrom(this.api.get(slug)).catch(() => null))).then(
       (pages) => this.pages.set(pages.filter((p): p is StaticPageDto => p !== null))
     );
+
+    // Only players collect achievements; staff and guests send nothing
+    effect((onCleanup) => {
+      const end = this.end()?.nativeElement;
+      if (!end || this.auth.role() !== 'Player' || typeof IntersectionObserver === 'undefined') {
+        return;
+      }
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const observer = new IntersectionObserver((entries) => {
+        clearTimeout(timer); // scrolled away before the time was up: start again next time
+        if (entries.some((e) => e.isIntersecting)) {
+          timer = setTimeout(() => {
+            observer.disconnect();
+            void firstValueFrom(this.api.markRead('no-winning-strategy')).catch(() => undefined);
+          }, READ_TIME_MS);
+        }
+      });
+      observer.observe(end);
+      onCleanup(() => {
+        clearTimeout(timer);
+        observer.disconnect();
+      });
+    });
   }
 }
