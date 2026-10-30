@@ -11,7 +11,7 @@
         "tags": [
           "Achievements"
         ],
-        "summary": "All achievements with their XP / VLX reward and how many players unlocked each. Open to guests.",
+        "summary": "The active achievements (safety and learning first) with their XP / VLX reward and how many players unlocked each. Open to guests.",
         "responses": {
           "200": {
             "description": "OK",
@@ -34,17 +34,14 @@
         "tags": [
           "Achievements"
         ],
-        "summary": "My achievements: unlocked ones with the date, the others with the progress so far (e.g. 37 / 100 bets).",
+        "summary": "My achievements: unlocked ones with the date, the others with their progress. While I cannot bet (self-excluded,\r\nor today's limit is used up) the ones that ask me to play are left out and playTasksHidden is true.",
         "responses": {
           "200": {
             "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/MyAchievementDto"
-                  }
+                  "$ref": "#/components/schemas/MyAchievementsDto"
                 }
               }
             }
@@ -1343,7 +1340,7 @@
         "tags": [
           "Fairness"
         ],
-        "summary": "Recalculates hash and crash point from a seed. Pass the published hash / crash point to compare.",
+        "summary": "Recalculates hash and crash point from a seed. Pass the published hash / crash point to compare.\r\nA logged-in player who verifies a real finished round completes the \"Check a round\" achievement.",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2066,6 +2063,58 @@
             }
           }
         }
+      }
+    },
+    "/api/pages/{slug}/read": {
+      "post": {
+        "tags": [
+          "Pages"
+        ],
+        "summary": "The player read this page to its end (the Rules page sends it for \"no-winning-strategy\"). Reading the rules\r\ncompletes the learning achievement \"Know the rules\" once; other pages are only checked to exist.",
+        "description": "**Roles:** Player",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Requires role: Player"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
       }
     },
     "/api/players/{nickname}": {
@@ -2911,9 +2960,20 @@
           "unlockedBy": {
             "type": "integer",
             "format": "int32"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/AchievementKind"
           }
         },
         "additionalProperties": false
+      },
+      "AchievementKind": {
+        "enum": [
+          "Play",
+          "Learn",
+          "Safety"
+        ],
+        "type": "string"
       },
       "AdminOverviewDto": {
         "type": "object",
@@ -3872,6 +3932,9 @@
             "type": "integer",
             "format": "int32"
           },
+          "kind": {
+            "$ref": "#/components/schemas/AchievementKind"
+          },
           "unlockedAt": {
             "type": "string",
             "format": "date-time",
@@ -3886,6 +3949,22 @@
             "type": "number",
             "format": "double",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MyAchievementsDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MyAchievementDto"
+            },
+            "nullable": true
+          },
+          "playTasksHidden": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -4085,6 +4164,9 @@
             "type": "string",
             "format": "date-time",
             "nullable": true
+          },
+          "canPlayNow": {
+            "type": "boolean"
           },
           "limitIncreaseDelayHours": {
             "type": "integer",

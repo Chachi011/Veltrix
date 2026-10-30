@@ -2,11 +2,11 @@
 
 Audit of the project against the specification **VELTRIX-პროექტის-აღწერა.pdf** (14 pages, Oct 23, 2026), a copy of which is kept in this repository as [`docs/SPEC.pdf`](SPEC.pdf), section by section.
 
-- Audited on **2026-10-27** as **Phase 5 · Step 1**, branch `feature/phase5` (Phases 1–4 done and merged into `develop`). Updated at the end of every Phase 5 step; last update: **Step 4 (delivery), 2026-10-29: the submitted version, Git tag `v1.0-diploma`**, see [§ Phase 5 Step 4](#phase-5-step-4-delivery).
+- Audited on **2026-10-27** as **Phase 5 · Step 1**, branch `feature/phase5` (Phases 1–4 done and merged into `develop`). Updated at the end of every Phase 5 step; last update: **2026-10-30, `v1.1-diploma`: responsible-play review of achievements and XP**, see [§ Responsible-play review](#responsible-play-review-of-achievements-and-xp-v11-diploma). The first submitted version is the tag `v1.0-diploma` (frozen).
 - **Status:** ✅ done · 🟡 partial · ❌ missing.
 - Items marked **(\*)** in the spec are optional ("after the main part"); they are listed separately in [§ Optional (\*) items](#optional--items).
 - **Added in this pass** = the gap was found by this audit and closed in Step 1 (see [§ Gaps closed in this pass](#gaps-closed-in-this-pass)).
-- Phase 5 is closed by the author's decision. Of the optional Step 3 features, (1) Georgian + English and (2) achievements + XP levels are in `v1.0-diploma`; (3)–(8) are not (see [§ Phase 5 Step 3](#phase-5-step-3-optional-features)). Later work happens on new branches; the tag never moves.
+- Phase 5 is closed by the author's decision. Of the optional Step 3 features, (1) Georgian + English and (2) achievements + XP levels are in `v1.0-diploma` and `v1.1-diploma`; (3)–(8) are not (see [§ Phase 5 Step 3](#phase-5-step-3-optional-features)). `v1.1-diploma` reworks (2) so that nothing rewards gambling volume. Later work happens on new branches; the tags never move.
 
 ## Summary
 
@@ -39,7 +39,7 @@ The one partial required item is a deliberate decision, not a missing feature: p
 | C# | ✅ | All `Veltrix.*` projects |
 | ASP.NET Core Web API (.NET 8) | ✅ | `Veltrix.API` (`net8.0`) |
 | Microsoft SQL Server | ✅ | `UseSqlServer` in `Veltrix.Infrastructure/DependencyInjection.cs` |
-| EF Core: Code First, migrations, seed | ✅ | `Persistence/Configurations/*`, `Persistence/Migrations/*` (6 migrations; all of them + the test accounts as one script in `database/veltrix.sql`), `HasData` seeds + `DatabaseInitializer` (test users) + `DemoDataSeeder` (Development demo history) |
+| EF Core: Code First, migrations, seed | ✅ | `Persistence/Configurations/*`, `Persistence/Migrations/*` (7 migrations; all of them + the test accounts as one script in `database/veltrix.sql`), `HasData` seeds + `DatabaseInitializer` (test users) + `DemoDataSeeder` (Development demo history) |
 | SignalR real time | ✅ | `Veltrix.API/Hubs/CrashHub.cs`, `Services/SignalRGameNotifier.cs` |
 | JWT access + refresh token, role-based access | ✅ | `Infrastructure/Auth/JwtTokenService.cs`, `AuthService`, `RefreshToken` rotation |
 | BCrypt password hashing | ✅ | `Infrastructure/Auth/BCryptPasswordHasher.cs` |
@@ -47,7 +47,7 @@ The one partial required item is a deliberate decision, not a missing feature: p
 | Game engine as BackgroundService (IHostedService) | ✅ | `CrashGameEngine : BackgroundService` |
 | Serilog (console + file) | ✅ | `Program.cs` (`UseSerilog`), `appsettings.json` → `Serilog.WriteTo` Console + File |
 | Swagger / OpenAPI | ✅ | `API/Extensions/ApiServiceExtensions.cs` (`AddSwaggerWithJwt`), XML comments on every action |
-| Testing: xUnit + Moq | ✅ | `Veltrix.Tests` (285 tests); Moq service tests in `Veltrix.Tests/Services/*` — **Moq added in this pass**; WebApplicationFactory integration tests in `Veltrix.Tests/Integration/*` (Step 2) |
+| Testing: xUnit + Moq | ✅ | `Veltrix.Tests` (304 tests); Moq service tests in `Veltrix.Tests/Services/*` — **Moq added in this pass**; WebApplicationFactory integration tests in `Veltrix.Tests/Integration/*` (Step 2) |
 | Layered architecture (API → Application → Domain → Infrastructure) | ✅ | 4 projects + tests; dependencies point inward (CLAUDE.md → Architecture) |
 
 ### Front-end
@@ -64,7 +64,7 @@ The one partial required item is a deliberate decision, not a missing feature: p
 | Reactive Forms with validation | ✅ | Auth, profile, limits, bet panel, game form, admin drawer, settings forms; `shared/validators.ts` |
 | Chart.js (statistics, multiplier curve) | ✅ | `shared/ui/chart.ts` (`vx-chart`, lazy-loaded) for statistics and dashboards; the live multiplier curve uses HTML Canvas directly (`crash-chart.ts`), which the spec lists as the animation technology |
 | HTML Canvas for the multiplier | ✅ | `features/crash/components/crash-chart.ts` |
-| Jasmine / Karma (services and stores) | ✅ | 125 tests, `*.spec.ts` — **more store/service tests added in this pass** and in Steps 2 and 3 |
+| Jasmine / Karma (services and stores) | ✅ | 134 tests, `*.spec.ts` — **more store/service tests added in this pass** and in Steps 2 and 3 |
 
 ### Tools
 
@@ -162,7 +162,7 @@ The one partial required item is a deliberate decision, not a missing feature: p
 | Leaderboard: day, week, all time | ✅ | `LeaderboardService` (day = last 24 h, week = last 7 days), `/leaderboard` |
 | Ranking: biggest multiplier, biggest virtual win | ✅ | `type=multiplier` (best cash-out) and `type=profit` (net virtual win = payouts − stakes) |
 | Public player profile (nickname, avatar, best results) | ✅ | `GET /api/players/{nickname}` + `/players/:nickname` (`features/players/player-page.ts`), nicknames link to it from the leaderboard, live bets and home — **page added in this pass** |
-| Achievements / badges (\*), levels and XP (\*) | ✅ | Awarded during round settlement (`RoundSettlementService`, rules in `Domain/Progress`), `GET /api/achievements`, `/my`; profile → Level and achievements, badges on `/players/:nickname`; see optional items |
+| Achievements / badges (\*), levels and XP (\*) | ✅ | 6 one-step tasks (safety, learning, trying the game); XP only from them, never from bets (`Domain/Progress`); Play tasks unlocked at round settlement, Learn / Safety tasks by their action; `GET /api/achievements`, `/my`; profile → Level and achievements, badges on `/players/:nickname`; see [§ Responsible-play review](#responsible-play-review-of-achievements-and-xp-v11-diploma) |
 
 ### 4.7 Player interface
 
@@ -219,7 +219,7 @@ The one partial required item is a deliberate decision, not a missing feature: p
 
 ## 5. API endpoints
 
-All documented in Swagger (`/swagger`) and in `docs/api/openapi.json` (Postman import); errors are ProblemDetails (`ExceptionHandlingMiddleware`). **53 operations** in total (the spec's evaluation table mentions 50).
+All documented in Swagger (`/swagger`) and in `docs/api/openapi.json` (Postman import); errors are ProblemDetails (`ExceptionHandlingMiddleware`). **54 operations** in total (the spec's evaluation table mentions 50).
 
 | Group | Endpoints | Status | Controller |
 |---|---|---|---|
@@ -237,7 +237,7 @@ All documented in Swagger (`/swagger`) and in `docs/api/openapi.json` (Postman i
 | ADMIN | `GET /api/admin/users`, `GET /api/admin/users/{id}`, `PUT …/role`, `PUT …/block`, `POST …/balance-adjustment`, `GET /api/admin/audit-logs`, `GET/PUT /api/admin/settings` | ✅ | `AdminUsersController`, `AdminAuditLogsController`, `AdminSettingsController` |
 | ACHIEVEMENTS (\*) | `GET /api/achievements`, `GET /api/achievements/my` | ✅ | `AchievementsController` (catalog public, `/my` logged in) |
 | REPORTS (\*) | `GET /api/admin/reports/export` | ❌ | not in `v1.0-diploma`, see optional items |
-| Extra (not in the spec, needed by spec features) | `GET/PUT /api/profile/preferences` (settings), `GET /api/pages/{slug}` (rules), `GET /api/admin/audit-logs/actions` | ✅ | `ProfileController`, `PagesController`, `AdminAuditLogsController` |
+| Extra (not in the spec, needed by spec features) | `GET/PUT /api/profile/preferences` (settings), `GET /api/pages/{slug}` (rules), `POST /api/pages/{slug}/read` (the "Know the rules" task, Player), `GET /api/admin/audit-logs/actions` | ✅ | `ProfileController`, `PagesController`, `AdminAuditLogsController` |
 
 **SignalR hub `/hubs/crash`**
 
@@ -263,7 +263,7 @@ All documented in Swagger (`/swagger`) and in `docs/api/openapi.json` (Postman i
 | AuditLog (actorUserId, action, entityType, entityId, oldValue/newValue JSON, createdAt) | ✅ | `AuditLog.cs`; `entityId` is a string on purpose (setting keys like `Wallet.DailyBonusAmount` are not numbers) |
 | SystemSetting (key, value, updatedAt) | ✅ | `SystemSetting.cs` (seeded) |
 | Relations: User 1–1 Wallet, 1–N Bet, 1–1 PlayerLimit; Game 1–N GameRound 1–N Bet; Wallet 1–N WalletTransaction; Bet 1–N WalletTransaction | ✅ | `Persistence/Configurations/*` |
-| Achievement (\*), UserAchievement (\*) | ✅ | `Achievement` (7 seeded, with XP and VLX reward, CHECK ≥ 0), `UserAchievement` (key = user + achievement, so one unlock per player) |
+| Achievement (\*), UserAchievement (\*) | ✅ | `Achievement` (10 seeded: 6 active + 4 retired, with `Kind` Play / Learn / Safety, `IsActive`, XP and VLX reward, CHECK ≥ 0), `UserAchievement` (key = user + achievement, so one unlock per player) |
 | ChatMessage (\*) | ✅ table only | the chat feature is optional and not in `v1.0-diploma` |
 
 Beyond the spec: 19 supporting tables (30 in total), listed in README → Database.
@@ -300,8 +300,8 @@ Beyond the spec: 19 supporting tables (30 in total), listed in README → Databa
 | xUnit: round state transitions (illegal ones refused) | ✅ | `GameRoundStateTests` |
 | xUnit: wallet (negative balance, double operation, refund) | ✅ | `WalletTests`, `BalanceAdjustmentTests`, `AdminUserServiceTests.AdjustBalance_TheSameRequestIdTwice_IsAppliedOnlyOnce` |
 | xUnit: bet and cash-out rules (refused in the wrong phase) | ✅ | `BetTests` |
-| Jasmine: Angular stores and services | ✅ | `AuthStore`, `CrashStore`, `NotificationsStore`, `WalletStore`, `LimitsStore`, `PreferencesStore`, `ToastStore`, `ThemeService`, `SoundService`, `LayoutService`, `CrashHub`, loading / error / auth interceptors, ProblemDetails helpers, form validators, guards, achievement toast (125 tests) |
-| Integration tests with WebApplicationFactory (\*) | ✅ | `Veltrix.Tests/Integration`: `AuthApiTests`, `BetApiTests`, `AdminApiTests`, `PreferencesApiTests`, `AchievementsApiTests`, `DemoDataSeederTests` (34 tests on a throwaway SQL Server database) — Steps 2 and 3 |
+| Jasmine: Angular stores and services | ✅ | `AuthStore`, `CrashStore`, `NotificationsStore`, `WalletStore`, `LimitsStore`, `PreferencesStore`, `ToastStore`, `ThemeService`, `SoundService`, `LayoutService`, `CrashHub`, loading / error / auth interceptors, ProblemDetails helpers, form validators, guards, achievement toast, responsible play (bet button at the daily limit, no Play button, achievements note, rules reading time) (134 tests) |
+| Integration tests with WebApplicationFactory (\*) | ✅ | `Veltrix.Tests/Integration`: `AuthApiTests`, `BetApiTests`, `AdminApiTests`, `PreferencesApiTests`, `AchievementsApiTests`, `DemoDataSeederTests` (39 tests on a throwaway SQL Server database) — Steps 2 and 3 |
 
 ### Git
 
@@ -331,10 +331,10 @@ Beyond the spec: 19 supporting tables (30 in total), listed in README → Databa
 | UI functionality | Canvas curve, validated forms, filters, Chart.js charts |
 | State management | NgRx SignalStores for auth, wallet, current round, notifications, limits, preferences; SignalR events flow into the stores |
 | Database design (SQL) | 11 core + 19 supporting tables, relations, unique indexes, CHECK constraints |
-| EF models and migrations | Code First, Fluent API configurations, 6 migrations, seed (`HasData` + runtime test accounts), one SQL script |
-| REST API | 53 operations, Swagger, ProblemDetails, pagination |
+| EF models and migrations | Code First, Fluent API configurations, 7 migrations, seed (`HasData` + runtime test accounts), one SQL script |
+| REST API | 54 operations, Swagger, ProblemDetails, pagination |
 | Authorization / authentication | JWT + rotating refresh tokens, 4 roles, guards, lockout |
-| Code quality and documentation | Layered architecture, 285 xUnit (incl. Moq service tests and 34 WebApplicationFactory integration tests) + 125 Jasmine tests, 0 build warnings, Serilog, README, DESIGN.md, this file |
+| Code quality and documentation | Layered architecture, 304 xUnit (incl. Moq service tests and 39 WebApplicationFactory integration tests) + 134 Jasmine tests, 0 build warnings, Serilog, README, DESIGN.md, this file |
 | Presentation | `docs/PRESENTATION.md` |
 
 ---
@@ -349,8 +349,8 @@ Beyond the spec: 19 supporting tables (30 in total), listed in README → Databa
 | Auto-bet with a number of rounds | 4.2 | ❌ | `AutoBetConfig` table exists. Step 3 (3), not in `v1.0-diploma` |
 | Balance refill when it reaches zero (once a day) | 4.4 | ❌ | |
 | Chat with moderation | 4.5, 4.9 | ❌ | `ChatMessage`, `ChatMute` tables exist. Step 3 (5), not in `v1.0-diploma` |
-| Achievements / badges | 4.6 | ✅ | 7 achievements unlocked by the server during round settlement with an XP and VLX reward (ledger row) and a notification; profile tiles with progress, badges on the public profile — Step 3 (2) |
-| Levels and XP | 4.6 | ✅ | XP per settled bet (1 lost / 3 cashed out) + achievement XP; 10 levels; level-up notification; progress bar to the next level — Step 3 (2) |
+| Achievements / badges | 4.6 | ✅ | 6 one-step tasks (1 safety, 2 learning, 3 trying the game), each with an XP and VLX reward (ledger row) and a notification; unlocked by the server; never for betting volume, stakes, number of bets or time; play tasks hidden from players who cannot bet — Step 3 (2), reworked in `v1.1-diploma` |
+| Levels and XP | 4.6 | ✅ | XP ONLY from those tasks (200 in total), none per bet; 10 levels (0–200 XP); level-up notification; progress bar to the next level — Step 3 (2), reworked in `v1.1-diploma` |
 | Georgian and English | 4.7 | ✅ | Whole UI, API messages and Rules pages in Georgian (default) and English; `core/i18n`, `src/i18n/ka.json`, `UserPreference.Language` — Step 3 |
 | Page: why Crash has no winning strategy | 4.8 | ✅ | `/rules` renders the seeded `no-winning-strategy` page — **added in this pass** |
 | CSV export of reports | 4.10 | ❌ | Step 3 (6), not in `v1.0-diploma` |
@@ -358,7 +358,7 @@ Beyond the spec: 19 supporting tables (30 in total), listed in README → Databa
 | Achievements endpoints `GET /api/achievements`, `/my` | 5 | ✅ | `AchievementsController` — Step 3 (2) |
 | `GET /api/admin/reports/export` | 5 | ❌ | |
 | SignalR `ChatMessage` / `SendChatMessage` | 5 | ❌ | |
-| Integration tests (WebApplicationFactory) | 7 | ✅ | `Veltrix.Tests/Integration` (34 tests): auth, bets, cash-out, refunds, admin role checks, preferences, achievements, demo data — Steps 2 and 3 |
+| Integration tests (WebApplicationFactory) | 7 | ✅ | `Veltrix.Tests/Integration` (39 tests): auth, bets, cash-out, refunds, admin role checks, preferences, achievements and their responsible-play rules, demo data — Steps 2 and 3 |
 | Docker Compose (SQL Server + API + Angular) | 2 | ❌ | Step 3 (8), not in `v1.0-diploma` |
 | GitHub Actions (build + tests on every push) | 2 | ❌ | Step 3 (8), not in `v1.0-diploma` |
 
@@ -394,22 +394,37 @@ The author's Step 3 list also had (7) PWA, which is not an item of the spec; it 
 
 ## Phase 5 Step 3 (optional features)
 
-| Feature | What | Where |
+Everything Step 3 added, as it is in `v1.1-diploma`. **Not in the plan** marks what was added on the way (needed by a planned feature, or found while checking it); **v1.1** marks the responsible-play rework (see the next section). There is no separate "tasks / quests" feature: the achievements ARE the tasks.
+
+| Feature | What it does | Where | Tests |
+|---|---|---|---|
+| Lazy top-bar dropdowns (**not in the plan**, preparation) | The account menu and the notifications panel load on first use, so the CDK Overlay/Menu left the first download (499 → 405 kB) and the new features fit in the 500 kB budget | `layout/top-bar-popups.ts`, `top-bar.ts` | `app.spec.ts` (app shell); `ng build` budget |
+| **(1) Georgian + English** | Georgian is the default, English the second language; instant switch (no reload) in Settings → Language, the account menu, and a top-bar button for guests; saved on the account (`language`, validated `ka` / `en`); existing accounts moved to `ka` | `core/i18n/i18n.ts`, `PreferencesStore`, `settings-page.ts`, `UserPreference.Language`, migration `GeorgianDefaultLanguage` | `i18n.spec.ts` (live switching, fallback), `preferences.store.spec.ts`, `PreferencesApiTests` (2) |
+| | ALL Georgian text in one file (`ui`, `server`, `pages`), natural Georgian; Crash, Cash out and VLX kept; a checker finds every text in the code | `src/i18n/ka.json`, `scripts/i18n-check.mjs` | `npm run i18n:check` (0 missing / 0 unused), `i18n.spec.ts` (placeholders and terms of every entry) |
+| | API messages (errors, notifications, ledger reasons, level and achievement titles) shown in Georgian by the client, with placeholders; a captured value that is itself a known text ("Player", an achievement title) is translated too (**not in the plan**, added for achievements) | `I18n.server()`, `serverText` / `knownText` pipes | `GeorgianTranslationTests` (3: every user-facing API message has Georgian, nothing stale, same placeholders), `i18n.spec.ts` (patterns) |
+| | Georgian dates, browser tab titles, Noto Sans Georgian font, layout fixes for longer text | `vxDate` pipe, `TranslatedTitleStrategy`, DESIGN.md §8b | `i18n.spec.ts`; browser sweep 132 loads per language at 1440 / 768 / 375, both themes |
+| | **Bug found and fixed:** the content-page fallback used the UI default language, so every Rules page answered 404 once Georgian became the default | `StaticPageService` | `ContentPage_IsServedFromTheSeededTable_WithEnglishAsTheFallback` (failed before the fix) |
+| **(2) Achievements + XP levels** | 6 one-step tasks: Set your limit (Safety), Know the rules and Check a round (Learn), Try Crash, First cash-out and Plan ahead (Play). Each gives XP and VLX (**not in the plan**: the VLX reward, which CLAUDE.md lists as a source of points) through the wallet with a ledger row (`achievement:{user}:{code}`, so never twice) and a bell notification | `Domain/Progress/Progression.cs`, `AchievementConfiguration` (seed), `Infrastructure/Services/AchievementAwarder.cs` (`ProgressRewards`) | `ProgressionTests`, `ResponsibleAchievementTests`, `AchievementsApiTests` (9) |
+| | Play tasks are checked in the SAME transaction that settles the round; the engine pushes the new balance and notifications | `RoundSettlementService.AwardProgressAsync`, `CrashGameEngine` | `AchievementsApiTests`: first bet, plan ahead (lost too), auto cash-out win = three at once, no second reward |
+| | Learn / Safety tasks are completed by their action (**v1.1**): verifying a REAL revealed round, keeping the end of the rules on screen for 10 s, saving a daily limit; players only | `FairnessService.VerifyAsync`, `POST /api/pages/{slug}/read`, `LimitsService`, `rules-page.ts` | `AchievementsApiTests` (verify: real vs made-up seed, guests, staff; read: 204 / 404 / 401; limit), `WalletAndLimitsServiceTests` (3), `responsible-achievements.spec.ts` (reading time) |
+| | XP ONLY from tasks (**v1.1**; before: 1 XP per lost bet, 3 per cash-out); 10 levels from 0 to 200 XP; level-up notification (**not in the plan**) | `Experience`, `PlayerStats.AddSettledBet` (no XP), `LevelConfiguration`, migration `ResponsibleAchievements` (recalculates every player's XP) | `ProgressionTests`, `ResponsibleAchievementTests`; migration checked on old-style data, up and down |
+| | `GET /api/achievements` (active catalog, safety and learning first), `GET /api/achievements/my` (unlocked + progress + `playTasksHidden`); public profile gets XP, next level and badges (retired ones hidden) | `AchievementsController`, `AchievementService`, `ProfileService` | `AchievementsApiTests` (catalog order, 401 for guests, badges) |
+| | UI: level progress bar, task tiles with a Safety / Learning / Playing badge, a note when play tasks are hidden, badges on the public profile, bell styles, a toast that names the task (**not in the plan**) | `shared/ui/level-progress.ts`, `features/profile/my-achievements.ts`, `player-page.ts`, `notifications-panel.ts` | `notifications.store.spec.ts` (toast), `responsible-achievements.spec.ts` (note, kinds) |
+| | Nothing invites a player who cannot bet to play (**v1.1**): see the next section | `PlayerLimitsDto.CanPlayNow`, `LimitsStore`, bet panel, game card, home, leaderboard, history, statistics, session reminder | see the next section |
+| | Found while checking (**not in the plan**): the Georgian "Mark all read" was cut off in the bell header; the bet button texts "Betting paused / Daily limit reached until …" ran past the panel in Georgian (now wrap) | `notifications-panel.ts`, `bet-panel.html`, ka.json | browser checks (overflow measured at 1440 / 1024 / 390) |
+| **(3)–(8) not done** | Auto-bet, two bets per round in the UI, chat with moderation, CSV export, PWA, Docker Compose + GitHub Actions (and 2FA / email verification) are **not** in `v1.0-diploma` or `v1.1-diploma`: the author closed Phase 5 after (2). They are optional (\*) items; the database already has tables for several of them (`AutoBetConfig`, `ChatMessage`, `ChatMute`, `UserTwoFactor`, `EmailVerificationCode`) and the backend accepts bet slot 2 | — | — |
+
+## Responsible-play review of achievements and XP (v1.1-diploma)
+
+The author's rules, and how the code keeps them:
+
+| Rule | How it is enforced | Tests |
 |---|---|---|
-| Preparation | The top-bar dropdowns (account menu, notifications) load on first use: the CDK Overlay/Menu left the first download (499 → 405 kB), making room for the features below in the 500 kB budget | `layout/top-bar-popups.ts` |
-| **(1) Georgian + English** | Georgian is the default, English the second language; instant switch (no reload) in Settings → Language, the account menu, and a top-bar button for guests; saved on the account (`GET/PUT /api/profile/preferences` → `language`, validated `ka`/`en`); existing accounts moved to `ka` by the migration `GeorgianDefaultLanguage` | `core/i18n/*`, `PreferencesStore`, `settings-page.ts`, `UserPreference` |
-| | ALL Georgian text in one file `Veltrix.Web/src/i18n/ka.json` (685 UI texts, every API message, the two Rules pages), natural Georgian; Crash, Cash out and VLX kept | `src/i18n/ka.json` |
-| | API messages (errors, notifications, ledger reasons, audit reasons, level titles) shown in Georgian by the client, with placeholders for changing values | `I18n.server()`, `serverText` / `knownText` pipes |
-| | Georgian dates (month names), browser tab titles, Noto Sans Georgian font, layout fixes for longer text | `vxDate` pipe, `TranslatedTitleStrategy`, DESIGN.md §8b |
-| | Guards: `npm run i18n:check` (0 missing / 0 unused), Jasmine `i18n.spec.ts` (+12), xUnit `GeorgianTranslationTests` (every user-facing API message has Georgian), integration `PreferencesApiTests`; browser sweep 132 loads in each language at 1440 / 768 / 375, both themes | `scripts/i18n-check.mjs`, tests |
-| | **Bug found and fixed:** the content-page fallback used the UI default language, so when it became Georgian every Rules page answered 404; the fallback is now always English (`ContentPage_IsServedFromTheSeededTable_WithEnglishAsTheFallback` failed before the fix) | `StaticPageService` |
-| **(2) Achievements + XP levels** | XP for every settled bet (1 lost, 3 cashed out) and for every achievement; 10 levels with a level-up notification | `Domain/Progress/Progression.cs`, `PlayerStats` |
-| | 7 achievements (2 new: Sharp eye = 50 cash-outs, Set and forget = a win with auto cash-out), each with an XP and a VLX reward; unlocked in the SAME transaction that settles the round: `UserAchievement` row, XP, wallet credit with a ledger row (`achievement:{user}:{code}`), notification; the engine pushes the new balance and the notifications | `RoundSettlementService.AwardProgressAsync`, migration `AchievementRewardsAndXp` (VlxReward column + CHECK, XP backfill from past bets) |
-| | `GET /api/achievements` (public catalog), `GET /api/achievements/my` (unlocked + progress); public profile gets XP, next level and badges | `AchievementsController`, `AchievementService`, `ProfileService` |
-| | UI: level progress bar, achievement tiles on the profile (unlocked with date, locked with progress), badges on the public profile, bell styles and a toast that names the achievement; all texts in Georgian | `shared/ui/level-progress.ts`, `features/profile/my-achievements.ts`, `player-page.ts`, `notifications-panel.ts` |
-| | Tests: `ProgressionTests` (domain), `AchievementsApiTests` (4 integration tests), Jasmine achievement toast; checked live: a fresh player bet with auto cash-out 1.01x → 3 achievements, balance exactly 1000 − 10 + 10.10 + 40 rewards, ka and en at 1440 and 375 | |
-| | Found while checking: the Georgian "Mark all read" was cut off in the bell header with 4 unread notifications; the button no longer shrinks and the label is shorter ("ყველა წავიკითხე") | `notifications-panel.ts`, ka.json |
-| **(3)–(8) not done** | Auto-bet, two bets per round in the UI, chat with moderation, CSV export, PWA, Docker Compose + GitHub Actions (and 2FA / email verification) are **not** in `v1.0-diploma`: the author closed Phase 5 and asked to lock the version after (2). They are optional (\*) items; the database already has tables for several of them (`AutoBetConfig`, `ChatMessage`, `ChatMute`, `UserTwoFactor`, `EmailVerificationCode`) and the backend accepts bet slot 2 | — |
+| **1. No XP, task or achievement may reward betting volume, the amount staked, the number of bets or the time played** | Settling a bet gives no XP (`PlayerStats.AddSettledBet`); XP comes only from tasks. Every task is ONE action ("did it happen once"), no rule reads an amount, a count above one, a win size, a multiplier or time. Four achievements broke the rule and are retired (inactive, never awarded or shown): 100 bets, 50 cash-outs, a 1000 VLX win, a 10x cash-out. "Set and forget" (a WIN with auto cash-out) became "Plan ahead" (any bet with an auto target, won or lost) | `ResponsibleAchievementTests`: playing 100,000 times with huge stakes earns nothing more than playing once; the stake or win size changes nothing; every task is a single step; the four are retired and every active one has a trigger. `ProgressionTests`: a settled bet gives 0 XP. `AchievementsApiTests`: more rounds and a 500 VLX bet add no XP |
+| **2. Prefer variety, learning and safety** | Learn and Safety tasks: verify a round, read the rules, set a daily limit (plus "Try Crash" for variety). Each of them gives more XP than any play task (40–60 vs 10–20); playing alone reaches level 4 of 10 at most, the top level needs every task; they are listed first | `ResponsibleAchievementTests` (outweigh, top level, order), `AchievementsApiTests` (catalog order) |
+| **3. Self-excluded players and players at their daily limit see nothing that asks them to play** | One rule decides "can play now": not self-excluded, and what is left of today's limit is at least the smallest bet of an active game (`PlayerLimit.CanStillBetToday`). The server applies it to the achievements (`playTasksHidden`) and reports it as `canPlayNow` with the limits. Then the client shows: no play tasks (with a note why); on the Crash page "Betting paused / Daily limit reached until …" instead of "Place bet" (refreshed after a bet and when the day resets); **Watch** instead of **Play** on game cards; no "Play now" (home, empty leaderboard), "Play" (empty history) or "Play a round" (empty statistics) buttons and neutral empty-state texts; "Close" instead of "Keep playing" in the session reminder | `ResponsibleAchievementTests` (visibility, limit used up below the smallest bet, waiting increase, pause over); `AchievementsApiTests` (self-excluded and used-up limit: no play tasks, `canPlayNow` false); `bet-panel.spec.ts` (limit state, cash-out of the last bet still possible); `wallet-limits.store.spec.ts`; `responsible-achievements.spec.ts` (Watch instead of Play, note) |
+
+Checked live on a copy of an old-style database (XP from bets, two retired achievements): XP 425 → 30 and level 3, player with XP only from bets → 0; then through the real pages in Georgian and English at 1440 and 375: rules not counted on arrival but after 10 s, a real round verified, a limit set and used up (bet button, Watch, no Play now), a self-excluded player with only learning and safety tasks; 28 checks, no console errors, no overflow. The migration's Down restores the old XP exactly.
 
 ## Phase 5 Step 4 (delivery)
 
@@ -446,8 +461,19 @@ Choices made while working without the author. Each one follows the spec and DES
 | Amounts and multipliers keep the international format (`1,234.56`, `2.35x`) in Georgian too; dates are Georgian | One number format across the game (players compare multipliers); Georgian betting sites show multipliers the same way | Use `formatNumber` with the `ka` locale |
 | Kept untranslated besides Crash / Cash out / VLX: "Provably fair" (nav and badge) and "seed" | Established technical terms of crash games; the home page explains them in Georgian ("დამტკიცებადი სამართლიანობა") | Edit ka.json |
 | "Responsible play" is "უსაფრთხო თამაში" (not "პასუხისმგებლიანი თამაში") | The longer phrase did not fit the sidebar; both are common | Edit ka.json |
-| XP: 1 for a lost bet, 3 for a cash-out, 0 for a refund; achievement rewards 10–100 XP and 10–100 VLX | Small numbers keep the 10 seeded levels reachable in a demo without making XP worth farming; a refund is not play | `Experience.ForBet`, `AchievementConfiguration` seed |
-| Achievements are awarded only during round settlement, never by a separate job; accounts that met a goal before achievements existed get it when their next bet is settled | One transaction with the round keeps the reward exactly-once (unique key + ledger idempotency key) and goes through the normal wallet code; a retroactive SQL grant would bypass the wallet rules. The profile says "Unlocks when your next bet is settled" for such goals | — |
+| **v1.1** XP comes only from tasks; settling a bet gives none (before: 1 per lost bet, 3 per cash-out) | Your rule: nothing may reward betting volume or the number of bets. A level now shows what a player has learned and set up, not how much they gambled | Restore `Experience.ForBet` and the old level thresholds (and recalculate XP) |
+| **v1.1** Existing players' XP was recalculated by the migration from the active tasks they had completed; their level can go DOWN (e.g. 425 XP / level 3 → 30 XP / level 3, or a player with only bet XP → level 1) | A level built from betting volume would keep rewarding volume. The VLX already paid for retired achievements stays in the wallet: ledger rows are never changed | Migration `ResponsibleAchievements` Down restores the old formula exactly |
+| **v1.1** Level thresholds rescaled to 0–200 XP (the sum of all task XP) | With XP only from 6 tasks, the old 0–12,000 scale could never be reached; now playing alone reaches level 4 at most and the top level needs every learning and safety task | `LevelConfiguration` seed |
+| **v1.1** Four achievements retired, not deleted (100 bets, 50 cash-outs, 1000 VLX win, 10x cash-out); their old titles stay translated | Old ledger rows ("Achievement: Regular") and notifications still name them; deleting rows would break that history | Set `IsActive` back to true |
+| **v1.1** Renamed: "First bet" → "Try Crash" (same rule), "Set and forget" (win with auto cash-out) → "Plan ahead" (any bet with an auto target, won or lost) | "Try a game" is a variety task; auto cash-out is a planning tool, so using it counts, not winning with it | `AchievementConfiguration` seed |
+| **v1.1** "Check a round" counts only when the seed matches a REAL round whose result is revealed; a made-up seed still gets the calculation but no reward. Staff and guests collect nothing | Otherwise any random text would complete a learning task | `FairnessService.VerifyAsync` |
+| **v1.1** "Know the rules" counts when the END of the rules page has been on screen for 10 seconds (the page tells the server once) | On a 1440×900 screen the whole page fits, so "reached the end" alone would count on arrival (the browser check caught this). Reading cannot be proven, the server only accepts it once per player | `READ_TIME_MS` in `rules-page.ts` |
+| **v1.1** "Set your limit" counts for any saved daily limit, also a raise that waits 24 h; removing a limit does not count; players who had a limit before get it the next time they save | Using the tool is what is rewarded; a pending raise is still a limit | `LimitsService.UpdateMyLimitsAsync` |
+| **v1.1** Tasks still pay small VLX rewards (10–20 each, 100 in total) | CLAUDE.md lists achievements as a source of points; the amounts are small next to the 1000 VLX start, and the biggest rewards are for safety and learning | Set `VlxReward` to 0 in the seed |
+| **v1.1** "Cannot play now" = self-excluded, or less than the smallest active game's minimum bet left of today's limit (not just "0 left") | 0.50 VLX left of a limit cannot buy any bet, so inviting the player to play would be pointless | `PlayerLimit.CanStillBetToday` |
+| **v1.1** Kept for a player who cannot play: the navigation item "Play", "Open the game" on the home round card, and the daily-bonus reminder at the daily limit (self-excluded players already get none) | Navigation and watching are not invitations to bet (the game page itself says "Daily limit reached"); claiming a bonus is not playing | Hide them with `LimitsStore.canPlayNow()` |
+| **v1.1** The leaderboard is unchanged (best multiplier and net profit rankings) | Spec 4.6 requires these rankings; they are not XP, tasks or achievements. Worth discussing: they can still motivate chasing results | — |
+| Accounts that completed "Try Crash" / "First cash-out" before achievements existed get them when their next bet is settled | One transaction with the round keeps the reward exactly-once and goes through the normal wallet code; a retroactive SQL grant would bypass the wallet rules. The profile says "Unlocks when your next bet is settled" (a play task, so hidden while the player cannot play) | — |
 | The "coins" achievement icon is drawn as the VLX gem | DESIGN.md: VLX is not money, so the UI never shows coins | `achievementIcon()` |
 | The SQL script contains the BCrypt hashes of the public test passwords | The test accounts must log in from a database built only from the script; the passwords are already public in the README | Remove part 2 of `database/veltrix.sql` |
 | Step 3 features (3)–(8) were not built; the version was locked after (2) | The author wrote "Phase 5 is done. Lock the diploma version" | Build them on a new branch from `develop` (the tag stays) |

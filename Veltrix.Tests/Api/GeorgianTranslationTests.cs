@@ -17,7 +17,8 @@ public class GeorgianTranslationTests
         "Connection string 'DefaultConnection' is missing.",
         // Domain invariants that only a programming error can break
         "The level table has no level for 0 XP.",
-        "XP cannot be taken away."
+        "XP cannot be taken away.",
+        "Achievement {} pays VLX, so the wallet must be loaded."
     };
 
     /// <summary>
@@ -30,11 +31,14 @@ public class GeorgianTranslationTests
         "Welcome balance", "Bet on round #{}", "Cash-out at {}x on round #{}", "Auto cash-out at {}x", "Round #{} cancelled",
         "System", "The multiplier grows from 1.00x. Cash out before it crashes!",
         "Server restarted during the round", "Cancelled by operator",
-        // Achievements: the ledger reason and the seeded titles / descriptions
+        // Achievements: the ledger reason and the seeded titles / descriptions of the active ones
         "Achievement: {}",
-        "First bet", "Place your first bet.", "First cash-out", "Cash out before the crash for the first time.",
-        "To the moon", "Cash out at 10.00x or higher.", "Regular", "Place 100 bets.", "Big win",
-        "Win 1000 VLX or more in a single bet.", "Sharp eye", "Cash out 50 times.", "Set and forget", "Win a bet with auto cash-out.", "Rookie", "Spotter", "Climber", "Pilot", "Navigator", "Ace", "Veteran", "Elite", "Legend", "Mythic",
+        "Try Crash", "Play your first round of Crash.", "First cash-out", "Cash out before the crash for the first time.",
+        "Plan ahead", "Place a bet with an auto cash-out target.", "Know the rules",
+        "Read the game rules and why Crash has no winning strategy.", "Check a round",
+        "Verify a finished round on the Provably fair page.", "Set your limit", "Set a daily bet limit on the Responsible play page.",
+        // Old titles (renamed or retired achievements): still named by old ledger rows and notifications
+        "First bet", "Set and forget", "To the moon", "Regular", "Big win", "Sharp eye", "Rookie", "Spotter", "Climber", "Pilot", "Navigator", "Ace", "Veteran", "Elite", "Legend", "Mythic",
         "Daily bonus available",
         "Your daily bonus of {} VLX is ready. Claim it on the wallet page.",
         "Your account was blocked",

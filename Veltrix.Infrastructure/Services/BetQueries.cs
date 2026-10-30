@@ -17,4 +17,8 @@ internal static class BetQueries
             .Where(b => b.UserId == userId && b.PlacedAt >= startOfDay && b.Status != BetStatus.Refunded)
             .SumAsync(b => (decimal?)b.Amount, ct) ?? 0;
     }
+
+    /// <summary>The smallest bet any active game accepts (0 when no game is active). Below it, a player cannot bet at all.</summary>
+    public static async Task<decimal> SmallestActiveMinBetAsync(this DbSet<Game> games, CancellationToken ct) =>
+        await games.Where(g => g.Status == GameStatus.Active).MinAsync(g => (decimal?)g.MinBet, ct) ?? 0;
 }

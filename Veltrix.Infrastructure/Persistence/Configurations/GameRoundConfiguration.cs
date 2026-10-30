@@ -17,6 +17,8 @@ public class GameRoundConfiguration : IEntityTypeConfiguration<GameRound>
 
         builder.HasIndex(x => new { x.GameId, x.RoundNumber }).IsUnique();
         builder.HasIndex(x => x.State);
+        // "Verify a round": the fairness check finds the round by its published hash
+        builder.HasIndex(x => x.ServerSeedHash);
 
         builder.HasOne(x => x.Game)
             .WithMany(x => x.Rounds)

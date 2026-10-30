@@ -25,10 +25,13 @@ public class FairnessController : ControllerBase
     public async Task<ActionResult<FairnessRoundDto>> GetRound(int id, CancellationToken ct) =>
         Ok(await _fairnessService.GetRoundAsync(id, ct));
 
-    /// <summary>Recalculates hash and crash point from a seed. Pass the published hash / crash point to compare.</summary>
+    /// <summary>
+    /// Recalculates hash and crash point from a seed. Pass the published hash / crash point to compare.
+    /// A logged-in player who verifies a real finished round completes the "Check a round" achievement.
+    /// </summary>
     [HttpPost("verify")]
     [ProducesResponseType<VerifyFairnessResult>(StatusCodes.Status200OK)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
-    public ActionResult<VerifyFairnessResult> Verify(VerifyFairnessRequest request) =>
-        Ok(_fairnessService.Verify(request));
+    public async Task<ActionResult<VerifyFairnessResult>> Verify(VerifyFairnessRequest request, CancellationToken ct) =>
+        Ok(await _fairnessService.VerifyAsync(request, ct));
 }

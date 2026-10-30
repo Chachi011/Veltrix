@@ -46,6 +46,13 @@ public class PlayerLimit
         PendingLimitAppliesAt <= now ? PendingDailyBetLimit : DailyBetLimit;
 
     /// <summary>
+    /// Can this player still place a bet today? False while self-excluded, or when what is left of today's limit is
+    /// smaller than the smallest bet a game accepts. Used to hide tasks that ask to play (responsible play).
+    /// </summary>
+    public bool CanStillBetToday(decimal betToday, decimal smallestBet, DateTime now) =>
+        !IsSelfExcluded(now) && (EffectiveDailyBetLimit(now) is not { } limit || limit - betToday >= smallestBet);
+
+    /// <summary>
     /// Checked before every bet. <paramref name="betToday"/> is the total already bet today (refunds excluded).
     /// </summary>
     public void EnsureCanBet(decimal amount, decimal betToday, DateTime now)

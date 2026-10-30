@@ -5,6 +5,7 @@ using Veltrix.Application.DTOs.Limits;
 using Veltrix.Application.DTOs.Notifications;
 using Veltrix.Domain.Common;
 using Veltrix.Domain.Enums;
+using Veltrix.Domain.Progress;
 using Veltrix.Infrastructure.Services;
 
 namespace Veltrix.Tests.Services;
@@ -16,7 +17,9 @@ public class WalletAndLimitsServiceTests : IDisposable
 
     private WalletService Wallet() => new(_ctx.Db, _ctx.CurrentUser.Object, _ctx.Notifier.Object, _ctx.Time, NullLogger<WalletService>.Instance);
 
-    private LimitsService Limits() => new(_ctx.Db, _ctx.CurrentUser.Object, _ctx.Notifier.Object, _ctx.Time, NullLogger<LimitsService>.Instance);
+    private LimitsService Limits() => new(_ctx.Db, _ctx.CurrentUser.Object, _ctx.Notifier.Object,
+        new AchievementAwarder(_ctx.Db, _ctx.Notifier.Object, _ctx.Time, NullLogger<AchievementAwarder>.Instance),
+        _ctx.Time, NullLogger<LimitsService>.Instance);
 
     public void Dispose() => _ctx.Dispose();
 
@@ -88,7 +91,59 @@ public class WalletAndLimitsServiceTests : IDisposable
         await using var fresh = _ctx.Fresh();
         Assert.Equal(2, await fresh.AuditLogs.CountAsync(a => a.Action == AuditActions.LimitsChanged));
 
-        // Limits never send live events (the page shows the answer itself)
+        // The only live events come from the "Set your limit" achievement of the FIRST save (once), not the limit itself:
+        // the unlock, the level-up its 60 XP brings, and the balance with its VLX reward
+        _ctx.Notifier.Verify(
+            n => n.NotificationAsync(player.Id, It.Is<NotificationDto>(d => d.Type == NotificationTypes.AchievementUnlocked)), Times.Once);
+        _ctx.Notifier.Verify(
+            n => n.NotificationAsync(player.Id, It.Is<NotificationDto>(d => d.Type == NotificationTypes.LevelUp)), Times.Once);
+        _ctx.Notifier.Verify(n => n.BalanceUpdatedAsync(player.Id, It.IsAny<decimal>()), Times.Once);
         _ctx.Notifier.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task SavingADailyLimit_CompletesTheSafetyTask_Once_WithItsRewardThroughTheLedger()
+    {
+        var player = _ctx.AddUser("careful");
+        _ctx.ActAs(player);
+
+        await Limits().UpdateMyLimitsAsync(new UpdateLimitsRequest { DailyBetLimit = 100, SessionReminderMin = 60 });
+        await Limits().UpdateMyLimitsAsync(new UpdateLimitsRequest { DailyBetLimit = 80, SessionReminderMin = 60 });
+
+        await using var fresh = _ctx.Fresh();
+        var task = await fresh.Achievements.SingleAsync(a => a.Code == AchievementCodes.SetDailyLimit);
+        Assert.Equal(1, await fresh.UserAchievements.CountAsync(u => u.UserId == player.Id && u.AchievementId == task.Id));
+        Assert.Equal(task.XpReward, (await fresh.PlayerStats.SingleAsync(s => s.UserId == player.Id)).Xp);
+        var reward = await fresh.WalletTransactions.SingleAsync(t => t.IdempotencyKey == $"achievement:{player.Id}:{AchievementCodes.SetDailyLimit}");
+        Assert.Equal(task.VlxReward, reward.Amount);
+        Assert.Equal(1000m + task.VlxReward, (await fresh.Wallets.SingleAsync(w => w.UserId == player.Id)).Balance);
+        _ctx.Notifier.Verify(
+            n => n.NotificationAsync(player.Id, It.Is<NotificationDto>(d => d.Type == NotificationTypes.AchievementUnlocked)),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task RemovingTheLimit_OrSavingOnlyTheReminder_CompletesNothing()
+    {
+        var player = _ctx.AddUser("no_limit");
+        _ctx.ActAs(player);
+
+        await Limits().UpdateMyLimitsAsync(new UpdateLimitsRequest { DailyBetLimit = null, SessionReminderMin = 30 });
+
+        await using var fresh = _ctx.Fresh();
+        Assert.False(await fresh.UserAchievements.AnyAsync(u => u.UserId == player.Id));
+        _ctx.Notifier.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task StaffSavingALimit_CollectNoAchievement()
+    {
+        var admin = _ctx.AddUser("limits_admin", UserRole.Admin);
+        _ctx.ActAs(admin);
+
+        await Limits().UpdateMyLimitsAsync(new UpdateLimitsRequest { DailyBetLimit = 100, SessionReminderMin = 60 });
+
+        await using var fresh = _ctx.Fresh();
+        Assert.False(await fresh.UserAchievements.AnyAsync(u => u.UserId == admin.Id));
     }
 }

@@ -6,6 +6,7 @@ using Veltrix.Application.DTOs.Limits;
 using Veltrix.Application.Interfaces;
 using Veltrix.Domain.Common;
 using Veltrix.Domain.Entities;
+using Veltrix.Domain.Progress;
 using Veltrix.Infrastructure.Persistence;
 
 namespace Veltrix.Infrastructure.Services;
@@ -16,6 +17,7 @@ public sealed class LimitsService : ILimitsService
     private readonly ApplicationDbContext _db;
     private readonly ICurrentUserService _currentUser;
     private readonly IGameNotifier _notifier;
+    private readonly AchievementAwarder _awarder;
     private readonly TimeProvider _time;
     private readonly ILogger<LimitsService> _logger;
 
@@ -23,12 +25,14 @@ public sealed class LimitsService : ILimitsService
         ApplicationDbContext db,
         ICurrentUserService currentUser,
         IGameNotifier notifier,
+        AchievementAwarder awarder,
         TimeProvider time,
         ILogger<LimitsService> logger)
     {
         _db = db;
         _currentUser = currentUser;
         _notifier = notifier;
+        _awarder = awarder;
         _time = time;
         _logger = logger;
     }
@@ -67,6 +71,10 @@ public sealed class LimitsService : ILimitsService
 
             _logger.LogInformation("User {UserId} changed limits: {Before} -> {After}", userId, before, after);
         }
+
+        // Safety task "Set your limit": saving a daily limit (any amount; removing it does not count). Once per player.
+        if (request.DailyBetLimit is not null)
+            await _awarder.TryUnlockAsync(userId, AchievementCodes.SetDailyLimit, ct);
 
         return await ToDtoAsync(limit, ct);
     }
@@ -138,6 +146,8 @@ public sealed class LimitsService : ILimitsService
             SessionReminderMin = limit.SessionReminderMin,
             IsSelfExcluded = excluded,
             SelfExcludedUntil = excluded ? limit.SelfExcludedUntil : null,
+            // Same domain rule as the achievements: decides whether the client may invite the player to play
+            CanPlayNow = limit.CanStillBetToday(betToday, await _db.Games.SmallestActiveMinBetAsync(ct), now),
             LimitIncreaseDelayHours = (int)PlayerLimit.LimitIncreaseDelay.TotalHours
         };
     }

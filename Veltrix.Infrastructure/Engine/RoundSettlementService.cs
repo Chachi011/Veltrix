@@ -104,8 +104,8 @@ public sealed class RoundSettlementService
         });
 
     /// <summary>
-    /// The round crashes: every bet that is still active is lost, player statistics and XP are updated, and
-    /// achievements and level-ups are awarded. One transaction, so the round is never "crashed" with some
+    /// The round crashes: every bet that is still active is lost, player statistics are updated, and
+    /// Play achievements and level-ups are awarded. One transaction, so the round is never "crashed" with some
     /// bets still unsettled, and a reward is never paid twice.
     /// </summary>
     public Task<CrashOutcome> CrashAsync(int roundId, CancellationToken ct) =>
@@ -238,7 +238,7 @@ public sealed class RoundSettlementService
         return round;
     }
 
-    /// <summary>Totals, records and XP of every player in the round (PlayerStats.AddSettledBet, a Domain rule).</summary>
+    /// <summary>Totals and records of every player in the round (PlayerStats.AddSettledBet, a Domain rule; no XP for bets).</summary>
     private async Task<Dictionary<int, PlayerStats>> UpdatePlayerStatsAsync(IReadOnlyCollection<Bet> bets, DateTime now, CancellationToken ct)
     {
         var userIds = bets.Select(b => b.UserId).Distinct().ToList();
@@ -260,10 +260,9 @@ public sealed class RoundSettlementService
     }
 
     /// <summary>
-    /// Achievements and levels (spec 4.6) for the players of this round. Rules: AchievementRules / Experience in the Domain.
-    /// An unlocked achievement adds its XP and pays its VLX reward into the wallet with a ledger row (Bonus, unique key
-    /// "achievement:{user}:{code}", so it can never be paid twice); a higher level and each unlock create a bell notification.
-    /// Everything is saved with the crash itself.
+    /// The Play achievements (spec 4.6) of the players of this round: try the game, try cash-out, try auto cash-out.
+    /// Rules: AchievementRules in the Domain; what an unlock does (XP, VLX reward with a ledger row, notification):
+    /// ProgressRewards. Retired achievements are never awarded. Everything is saved with the crash itself.
     /// </summary>
     private async Task<(List<BalanceChange> Balances, List<Notification> Notifications)> AwardProgressAsync(
         IReadOnlyCollection<Bet> bets, Dictionary<int, PlayerStats> stats, DateTime now, CancellationToken ct)
@@ -274,7 +273,10 @@ public sealed class RoundSettlementService
             return (new List<BalanceChange>(), notifications);
 
         var userIds = stats.Keys.ToList();
-        var achievements = await _db.Achievements.AsNoTracking().OrderBy(a => a.Id).ToListAsync(ct);
+        var achievements = await _db.Achievements.AsNoTracking()
+            .Where(a => a.IsActive && AchievementCodes.CompletedBySettlement.Contains(a.Code))
+            .OrderBy(a => a.Id)
+            .ToListAsync(ct);
         var levels = await _db.Levels.AsNoTracking().ToListAsync(ct);
         var unlocked = (await _db.UserAchievements
                 .Where(u => userIds.Contains(u.UserId))
@@ -289,33 +291,21 @@ public sealed class RoundSettlementService
 
             foreach (var achievement in achievements)
             {
-                if (unlocked.Contains((userId, achievement.Id)) || !AchievementRules.IsEarned(achievement.Code, s, betsOfThePlayer))
+                if (unlocked.Contains((userId, achievement.Id)) || !AchievementRules.IsEarnedAtSettlement(achievement.Code, s, betsOfThePlayer))
                     continue;
 
-                _db.UserAchievements.Add(new UserAchievement { UserId = userId, AchievementId = achievement.Id, UnlockedAt = now });
-                s.AddXp(achievement.XpReward, now);
-
-                if (achievement.VlxReward > 0)
+                Wallet? wallet = null;
+                if (achievement.VlxReward > 0 && !rewarded.TryGetValue(userId, out wallet))
                 {
-                    if (!rewarded.TryGetValue(userId, out var wallet))
-                    {
-                        wallet = await _db.Wallets.FirstAsync(w => w.UserId == userId, ct);
-                        rewarded[userId] = wallet;
-                    }
-                    wallet.Credit(achievement.VlxReward, TransactionType.Bonus, $"achievement:{userId}:{achievement.Code}", now,
-                        $"Achievement: {achievement.Title}");
+                    wallet = await _db.Wallets.FirstAsync(w => w.UserId == userId, ct);
+                    rewarded[userId] = wallet;
                 }
 
-                notifications.Add(UserNotifications.Add(_db, userId, NotificationTypes.AchievementUnlocked, "Achievement unlocked",
-                    $"{achievement.Title}: +{achievement.XpReward} XP, +{achievement.VlxReward} VLX.", now));
+                notifications.Add(ProgressRewards.Unlock(_db, userId, achievement, s, wallet, now));
             }
 
-            if (s.UpdateLevel(levels))
-            {
-                var level = levels.First(l => l.Number == s.LevelNumber);
-                notifications.Add(UserNotifications.Add(_db, userId, NotificationTypes.LevelUp, "Level up",
-                    $"You reached level {level.Number}: {level.Title}.", now));
-            }
+            if (ProgressRewards.LevelUp(_db, userId, s, levels, now) is { } levelUp)
+                notifications.Add(levelUp);
         }
 
         return (rewarded.Values.Select(w => new BalanceChange(w.UserId, w.Balance)).ToList(), notifications);

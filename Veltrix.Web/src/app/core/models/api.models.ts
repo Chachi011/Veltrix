@@ -118,24 +118,34 @@ export interface PublicProfileDto {
 
 // ---------- Achievements (Phase 5) ----------
 
+/** Play needs a bet (hidden while the player cannot bet); Learn and Safety never do. */
+export type AchievementKind = 'Play' | 'Learn' | 'Safety';
+
 export interface AchievementDto {
   code: string;
   /** English title and description from the database seed (shown with | serverText). */
   title: string;
   description: string;
-  /** Icon name chosen by the client: rocket, coins, bolt, trophy, star, target, timer. */
+  /** Icon name chosen by the client: rocket, coins, timer, book, shield, limit. */
   icon: string;
   xpReward: number;
   vlxReward: number;
   /** How many players unlocked it. */
   unlockedBy: number;
+  kind: AchievementKind;
 }
 
 export interface MyAchievementDto extends AchievementDto {
   unlockedAt: string | null;
-  /** e.g. 37 of 100 bets; null for one-moment achievements (auto cash-out). */
+  /** 0 or 1 of 1 for first bet / first cash-out; null for the others. */
   progress: number | null;
   target: number | null;
+}
+
+export interface MyAchievementsDto {
+  items: MyAchievementDto[];
+  /** True when tasks that ask to play were left out: the player is self-excluded or used up today's limit. */
+  playTasksHidden: boolean;
 }
 
 export interface BadgeDto {
@@ -415,6 +425,8 @@ export interface PlayerLimitsDto {
   isSelfExcluded: boolean;
   selfExcludedUntil: string | null;
   limitIncreaseDelayHours: number;
+  /** False while self-excluded or when today's limit is used up: then nothing may invite the player to play. */
+  canPlayNow: boolean;
 }
 
 export interface UpdateLimitsRequest {

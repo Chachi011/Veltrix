@@ -74,6 +74,7 @@ public class ApplicationDbContext : DbContext
         configurationBuilder.Properties<TransactionType>().HaveConversion<string>().HaveMaxLength(20);
         configurationBuilder.Properties<SelfExclusionPeriod>().HaveConversion<string>().HaveMaxLength(20);
         configurationBuilder.Properties<ThemePreference>().HaveConversion<string>().HaveMaxLength(20);
+        configurationBuilder.Properties<AchievementKind>().HaveConversion<string>().HaveMaxLength(20);
 
         // All times are stored in UTC. datetime2 does not remember that, so mark values read back as UTC;
         // otherwise JSON has no "Z" and the browser would treat them as local time.

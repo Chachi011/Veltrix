@@ -7,6 +7,7 @@ import { AuthStore } from '../../core/auth/auth.store';
 import { mark } from '../../core/i18n/i18n';
 import { TranslateLabelsPipe, TranslatePipe } from '../../core/i18n/i18n-pipes';
 import { LeaderboardDto, LeaderboardEntryDto, LeaderboardPeriod, LeaderboardType } from '../../core/models/api.models';
+import { LimitsStore } from '../../core/state/limits.store';
 import { MultiplierPipe, VlxPipe } from '../../shared/pipes';
 import {
   Avatar,
@@ -62,6 +63,7 @@ export class LeaderboardPage {
   private readonly api = inject(StatsApi);
   private readonly router = inject(Router);
   protected readonly auth = inject(AuthStore);
+  protected readonly limits = inject(LimitsStore);
 
   protected readonly icons = Icons;
   protected readonly periods = PERIODS;
