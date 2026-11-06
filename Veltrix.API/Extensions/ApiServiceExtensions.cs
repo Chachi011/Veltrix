@@ -149,7 +149,7 @@ public static class ApiServiceExtensions
             policy.WithOrigins(origins)
                 .AllowAnyHeader()
                 .AllowAnyMethod()
-                // SignalR (Phase 2) needs credentials
+                // SignalR needs credentials
                 .AllowCredentials()));
     }
 

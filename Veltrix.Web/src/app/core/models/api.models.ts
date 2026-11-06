@@ -116,7 +116,7 @@ export interface PublicProfileDto {
   badges: BadgeDto[];
 }
 
-// ---------- Achievements (Phase 5) ----------
+// ---------- Achievements ----------
 
 /** Play needs a bet (hidden while the player cannot bet); Learn and Safety never do. */
 export type AchievementKind = 'Play' | 'Learn' | 'Safety';
@@ -349,7 +349,7 @@ export interface NotificationDto {
   createdAt: string;
 }
 
-// ---------- Leaderboard & statistics (Phase 4) ----------
+// ---------- Leaderboard & statistics ----------
 
 export type LeaderboardPeriod = 'Day' | 'Week' | 'All';
 export type LeaderboardType = 'Multiplier' | 'Profit';
@@ -407,7 +407,7 @@ export interface MyStatsDto {
   cashOutDistribution: MultiplierBucketDto[];
 }
 
-// ---------- Responsible play (Phase 4) ----------
+// ---------- Responsible play ----------
 
 export type SelfExclusionPeriod = 'Hours24' | 'Days7' | 'Days30';
 
@@ -434,7 +434,7 @@ export interface UpdateLimitsRequest {
   sessionReminderMin: number;
 }
 
-// ---------- Notifications (Phase 4) ----------
+// ---------- Notifications ----------
 
 export type NotificationType =
   | 'DailyBonus'
@@ -451,7 +451,7 @@ export interface NotificationPageDto extends PagedResult<NotificationDto> {
   unreadCount: number;
 }
 
-// ---------- Operator (Phase 4) ----------
+// ---------- Operator ----------
 
 export interface SaveGameRequest {
   name: string;
@@ -471,7 +471,7 @@ export interface RoundCancellationDto {
   cancelledAt: string;
 }
 
-// ---------- Admin (Phase 4) ----------
+// ---------- Admin ----------
 
 export interface AdminUserQuery {
   page: number;
@@ -593,7 +593,7 @@ export interface DailyStatisticDto {
   averageCrashPoint: number;
 }
 
-// ---------- Settings, content, catalog (spec coverage pass) ----------
+// ---------- Settings, content, catalog ----------
 
 /** System = follow the device setting. */
 export type ThemePreference = 'System' | 'Dark' | 'Light';

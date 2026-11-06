@@ -21,7 +21,6 @@ try
         .ReadFrom.Services(services)
         .Enrich.FromLogContext());
 
-    // Each layer registers its own services
     builder.Services
         .AddApplication()
         .AddInfrastructure(builder.Configuration)
