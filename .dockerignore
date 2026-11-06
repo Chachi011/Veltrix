@@ -1,0 +1,24 @@
+# What Docker never copies into an image build (the build context is the repository root)
+
+# Secrets
+.env
+**/appsettings.*.local.json
+
+# Build output, caches and dependencies (the images build their own)
+**/bin
+**/obj
+**/node_modules
+**/dist
+**/.angular
+
+# Runtime data and local files
+**/Logs
+**/uploads
+**/*.user
+.vs
+.git
+
+# Not needed to build the API or the web app
+docs
+database
+Veltrix.Tests

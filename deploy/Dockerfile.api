@@ -1,0 +1,32 @@
+# VELTRIX API: built with the .NET 8 SDK, run on the smaller ASP.NET Core 8 runtime image.
+# Build context: the repository root (docker-compose.prod.yml sets it).
+
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+# Project files first: the NuGet restore stays cached until a .csproj changes
+COPY Veltrix.Domain/Veltrix.Domain.csproj Veltrix.Domain/
+COPY Veltrix.Application/Veltrix.Application.csproj Veltrix.Application/
+COPY Veltrix.Infrastructure/Veltrix.Infrastructure.csproj Veltrix.Infrastructure/
+COPY Veltrix.API/Veltrix.API.csproj Veltrix.API/
+RUN dotnet restore Veltrix.API/Veltrix.API.csproj
+
+COPY Veltrix.Domain/ Veltrix.Domain/
+COPY Veltrix.Application/ Veltrix.Application/
+COPY Veltrix.Infrastructure/ Veltrix.Infrastructure/
+COPY Veltrix.API/ Veltrix.API/
+RUN dotnet publish Veltrix.API/Veltrix.API.csproj -c Release -o /app/publish --no-restore /p:UseAppHost=false
+
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+WORKDIR /app
+ENV ASPNETCORE_ENVIRONMENT=Production \
+    ASPNETCORE_HTTP_PORTS=8080
+COPY --from=build /app/publish .
+
+# Avatars (a named volume is mounted here) and the rolling log files must be writable by the non-root user
+RUN mkdir -p /app/uploads/avatars /app/Logs && chown -R app:app /app/uploads /app/Logs
+USER app
+
+# Plain HTTP inside the Docker network only; Caddy terminates HTTPS in front of it
+EXPOSE 8080
+ENTRYPOINT ["dotnet", "Veltrix.API.dll"]
