@@ -48,7 +48,7 @@ Veltrix.Web            Angular client: core/ (api, auth, http, realtime, state, 
 - The Application layer must not reference ASP.NET Core types (e.g. `IFormFile` and `[BindNever]` stay in the API layer).
 - Errors: throw `AppException` subclasses (Application) or `DomainException` (Domain); `ExceptionHandlingMiddleware` turns them into ProblemDetails. Controllers contain no try/catch.
 - One `User` table with a `Role` field (Player, Operator, Admin). A guest is a request without a JWT.
-- 30 tables (11 core from the spec + 19 supporting); see README → Database.
+- 31 tables (11 core from the spec + 20 supporting, incl. `AssistantMessages`); see README → Database.
 
 ## Core game rules (never break)
 

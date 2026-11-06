@@ -3,7 +3,7 @@
  *
  * Part 1 (generated): every EF Core migration, idempotent
  *   dotnet ef migrations script --idempotent --project Veltrix.Infrastructure --startup-project Veltrix.API
- *   30 tables, CHECK constraints, unique indexes, and the reference data from HasData:
+ *   31 tables, CHECK constraints, unique indexes, and the reference data from HasData:
  *   the "crash" game, system settings, 10 levels, 10 achievements (6 active, 4 retired), 2 content pages.
  * Part 2 (hand-written, at the end): the four test accounts, one per role, exactly as
  *   DatabaseInitializer / User.Create make them (wallet with the welcome ledger row, limits, preferences, stats).
@@ -1713,6 +1713,47 @@ GO
 COMMIT;
 GO
 
+BEGIN TRANSACTION;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261106172344_AssistantMessages'
+)
+BEGIN
+    CREATE TABLE [AssistantMessages] (
+        [Id] int NOT NULL IDENTITY,
+        [UserId] int NOT NULL,
+        [Role] nvarchar(20) NOT NULL,
+        [Text] nvarchar(4000) NOT NULL,
+        [CreatedAt] datetime2 NOT NULL,
+        CONSTRAINT [PK_AssistantMessages] PRIMARY KEY ([Id]),
+        CONSTRAINT [FK_AssistantMessages_Users_UserId] FOREIGN KEY ([UserId]) REFERENCES [Users] ([Id]) ON DELETE CASCADE
+    );
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261106172344_AssistantMessages'
+)
+BEGIN
+    CREATE INDEX [IX_AssistantMessages_UserId_CreatedAt] ON [AssistantMessages] ([UserId], [CreatedAt]);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261106172344_AssistantMessages'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261106172344_AssistantMessages', N'8.0.11');
+END;
+GO
+
+COMMIT;
+GO
 
 
 /* ---------------------------------------------------------------------------------------------

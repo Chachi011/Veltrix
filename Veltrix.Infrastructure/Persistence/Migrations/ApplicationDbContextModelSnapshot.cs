@@ -199,6 +199,37 @@ namespace Veltrix.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Veltrix.Domain.Entities.AssistantMessage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "CreatedAt");
+
+                    b.ToTable("AssistantMessages", (string)null);
+                });
+
             modelBuilder.Entity("Veltrix.Domain.Entities.AuditLog", b =>
                 {
                     b.Property<int>("Id")
@@ -1511,6 +1542,17 @@ namespace Veltrix.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("CK_WalletTransactions_Balance_Math", "[BalanceAfter] = [BalanceBefore] + [Amount]");
                         });
+                });
+
+            modelBuilder.Entity("Veltrix.Domain.Entities.AssistantMessage", b =>
+                {
+                    b.HasOne("Veltrix.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Veltrix.Domain.Entities.AuditLog", b =>

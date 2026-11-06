@@ -48,7 +48,7 @@ flowchart LR
         SV["Services + RoundSettlementService<br/>Infrastructure"]
         D["Domain rules<br/>Wallet · Bet · GameRound · ProvablyFair"]
     end
-    DB[("SQL Server<br/>30 tables")]
+    DB[("SQL Server<br/>31 tables")]
     P -- "HTTP /api: bet, cash out, profile, admin" --> R
     R --> SV
     E -- "runs every round" --> SV
@@ -117,7 +117,7 @@ dotnet user-secrets set "Jwt:Key" "<any-random-string-of-at-least-32-characters>
 **4. Database: choose one**
 
 - **A. Automatic (recommended).** Nothing to do: in Development the API creates the `Veltrix` database with the migrations, adds the test accounts and, once, the demo players.
-- **B. One SQL script.** [`database/veltrix.sql`](database/veltrix.sql) builds the same database without EF tools: every migration (30 tables, constraints, reference data) plus the four test accounts. It checks before every step, so running it twice is safe.
+- **B. One SQL script.** [`database/veltrix.sql`](database/veltrix.sql) builds the same database without EF tools: every migration (31 tables, constraints, reference data) plus the four test accounts. It checks before every step, so running it twice is safe.
 
   ```bash
   sqlcmd -S localhost -E -Q "CREATE DATABASE Veltrix"
@@ -183,7 +183,7 @@ It runs only when `Database:SeedDemoData` is `true` (set in `appsettings.Develop
 
 ## Database
 
-There are 30 tables, created by the migrations `InitialCreate` and `AddExtendedModels` (later migrations add columns, constraints and indexes):
+There are 31 tables, created by the migrations `InitialCreate` and `AddExtendedModels` (later migrations add columns, constraints and indexes, and `AssistantMessages` adds the AI assistant's table):
 
 | Area | Tables |
 |---|---|
@@ -193,8 +193,9 @@ There are 30 tables, created by the migrations `InitialCreate` and `AddExtendedM
 | Profile and progress | `UserPreferences, PlayerStats, Levels, Achievements, UserAchievements` |
 | Game engine | `AutoBetConfigs, GameRoundEvents, RoundCancellations` |
 | Admin and content | `BalanceAdjustments, ChatMessages, ChatMutes, DailyStatistics, StaticPages` |
+| AI assistant | `AssistantMessages` |
 
-Seeded reference data: the `crash` game, system settings, 10 levels (0–200 XP), 10 achievements (6 active, 4 retired), and 2 content pages. There are 7 migrations; [`database/veltrix.sql`](database/veltrix.sql) is all of them plus the test accounts in one script (setup step 4B). A test (`DatabaseScriptTests`) fails if a migration is added without regenerating it:
+Seeded reference data: the `crash` game, system settings, 10 levels (0–200 XP), 10 achievements (6 active, 4 retired), and 2 content pages. There are 8 migrations; [`database/veltrix.sql`](database/veltrix.sql) is all of them plus the test accounts in one script (setup step 4B). A test (`DatabaseScriptTests`) fails if a migration is added without regenerating it:
 
 ```bash
 dotnet ef migrations script --idempotent --project Veltrix.Infrastructure --startup-project Veltrix.API -o <file>

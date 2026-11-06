@@ -39,7 +39,7 @@ The one partial required item is a deliberate decision, not a missing feature: p
 | C# | ✅ | All `Veltrix.*` projects |
 | ASP.NET Core Web API (.NET 8) | ✅ | `Veltrix.API` (`net8.0`) |
 | Microsoft SQL Server | ✅ | `UseSqlServer` in `Veltrix.Infrastructure/DependencyInjection.cs` |
-| EF Core: Code First, migrations, seed | ✅ | `Persistence/Configurations/*`, `Persistence/Migrations/*` (7 migrations; all of them + the test accounts as one script in `database/veltrix.sql`), `HasData` seeds + `DatabaseInitializer` (test users) + `DemoDataSeeder` (Development demo history) |
+| EF Core: Code First, migrations, seed | ✅ | `Persistence/Configurations/*`, `Persistence/Migrations/*` (8 migrations; all of them + the test accounts as one script in `database/veltrix.sql`), `HasData` seeds + `DatabaseInitializer` (test users) + `DemoDataSeeder` (Development demo history) |
 | SignalR real time | ✅ | `Veltrix.API/Hubs/CrashHub.cs`, `Services/SignalRGameNotifier.cs` |
 | JWT access + refresh token, role-based access | ✅ | `Infrastructure/Auth/JwtTokenService.cs`, `AuthService`, `RefreshToken` rotation |
 | BCrypt password hashing | ✅ | `Infrastructure/Auth/BCryptPasswordHasher.cs` |
@@ -266,7 +266,7 @@ All documented in Swagger (`/swagger`) and in `docs/api/openapi.json` (Postman i
 | Achievement (\*), UserAchievement (\*) | ✅ | `Achievement` (10 seeded: 6 active + 4 retired, with `Kind` Play / Learn / Safety, `IsActive`, XP and VLX reward, CHECK ≥ 0), `UserAchievement` (key = user + achievement, so one unlock per player) |
 | ChatMessage (\*) | ✅ table only | the chat feature is optional and not in `v1.0-diploma` |
 
-Beyond the spec: 19 supporting tables (30 in total), listed in README → Database.
+Beyond the spec: 20 supporting tables (31 in total, incl. `AssistantMessages`), listed in README → Database.
 
 ## 7. Quality, security and delivery
 
@@ -330,8 +330,8 @@ Beyond the spec: 19 supporting tables (30 in total), listed in README → Databa
 | Component structure (Angular) | Standalone components, `features/*`, reusable `shared/ui` design system + `/styleguide` |
 | UI functionality | Canvas curve, validated forms, filters, Chart.js charts |
 | State management | NgRx SignalStores for auth, wallet, current round, notifications, limits, preferences; SignalR events flow into the stores |
-| Database design (SQL) | 11 core + 19 supporting tables, relations, unique indexes, CHECK constraints |
-| EF models and migrations | Code First, Fluent API configurations, 7 migrations, seed (`HasData` + runtime test accounts), one SQL script |
+| Database design (SQL) | 11 core + 20 supporting tables, relations, unique indexes, CHECK constraints |
+| EF models and migrations | Code First, Fluent API configurations, 8 migrations, seed (`HasData` + runtime test accounts), one SQL script |
 | REST API | 54 operations, Swagger, ProblemDetails, pagination |
 | Authorization / authentication | JWT + rotating refresh tokens, 4 roles, guards, lockout |
 | Code quality and documentation | Layered architecture, 304 xUnit (incl. Moq service tests and 39 WebApplicationFactory integration tests) + 134 Jasmine tests, 0 build warnings, Serilog, README, DESIGN.md, this file |
