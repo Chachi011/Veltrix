@@ -130,7 +130,7 @@ export const Icons = {
   close: X,
   zap: Zap,
 
-  // Phase 4: panels, leaderboard, responsible play
+  // Panels, leaderboard, responsible play
   activity: Activity,
   block: Ban,
   chartColumn: ChartColumn,
@@ -157,7 +157,7 @@ export const Icons = {
   userCog: UserCog,
   pause: CirclePause,
 
-  // Phase 5
+  // Languages and achievements
   languages: Languages,
   star: Star,
   target: Crosshair

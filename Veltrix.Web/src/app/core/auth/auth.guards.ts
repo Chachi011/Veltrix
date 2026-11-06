@@ -16,7 +16,7 @@ export const authGuard: CanActivateFn = (_route, state) =>
 export const guestGuard: CanActivateFn = () =>
   inject(AuthStore).isLoggedIn() ? inject(Router).createUrlTree(['/crash']) : true;
 
-/** Role-based pages (Operator / Admin panels in Phase 4). */
+/** Role-based pages (Operator / Admin panels). */
 export const roleGuard =
   (...roles: UserRole[]): CanActivateFn =>
   (_route, state) => {

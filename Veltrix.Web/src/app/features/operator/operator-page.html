@@ -17,7 +17,6 @@
 
   @if (store.round(); as round) {
     <div class="grid gap-4 md:gap-6 xl:grid-cols-3">
-      <!-- The round -->
       <vx-card class="xl:col-span-2" [title]="'Round #{number}' | t: { number: round.roundNumber }" [subtitle]="store.game()?.name ?? ''">
         <vx-badge card-actions [tone]="stateTone(round.state)" dot>{{ stateLabels[round.state] | t }}</vx-badge>
 
