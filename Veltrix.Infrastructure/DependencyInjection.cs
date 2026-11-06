@@ -1,8 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Veltrix.Application.Common.Interfaces;
 using Veltrix.Application.Interfaces;
+using Veltrix.Infrastructure.Assistant;
 using Veltrix.Infrastructure.Auth;
 using Veltrix.Infrastructure.Email;
 using Veltrix.Infrastructure.Engine;
@@ -63,6 +66,8 @@ public static class DependencyInjection
         services.AddScoped<IAchievementService, AchievementService>();
         services.AddScoped<AchievementAwarder>();
 
+        AddAssistant(services, configuration);
+
         services.AddScoped<DatabaseInitializer>();
 
         // Small periodic jobs, each in its own DI scope per run
@@ -72,6 +77,28 @@ public static class DependencyInjection
         AddCrashEngine(services, configuration);
 
         return services;
+    }
+
+    /// <summary>
+    /// The AI assistant. Veltrix does not call an AI model itself: it posts the question to an n8n webhook, and the
+    /// n8n workflow (docs/n8n/veltrix-assistant.json) talks to the model. The rules for the model live here, in
+    /// AssistantPrompts, so they are versioned and tested with the code.
+    /// </summary>
+    private static void AddAssistant(IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddOptions<AssistantOptions>().Bind(configuration.GetSection(AssistantOptions.SectionName));
+
+        // ONE HttpClient for the whole app (a new HttpClient per request would run out of sockets).
+        // PooledConnectionLifetime makes it pick up DNS changes; the timeout per call comes from AssistantOptions.
+        services.AddSingleton<IAssistantClient>(sp => new N8nAssistantClient(
+            new HttpClient(new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(5) })
+            {
+                Timeout = Timeout.InfiniteTimeSpan
+            },
+            sp.GetRequiredService<IOptions<AssistantOptions>>(),
+            sp.GetRequiredService<ILogger<N8nAssistantClient>>()));
+
+        services.AddScoped<IAssistantService, AssistantService>();
     }
 
     private static void AddCrashEngine(IServiceCollection services, IConfiguration configuration)

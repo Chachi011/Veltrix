@@ -19,7 +19,10 @@ import type { TopBarPopup, TopBarPopupKind } from './top-bar-popups';
 /** The dropdowns (and the CDK Overlay/Menu they need) load on first use, not with the first page. */
 const loadPopups = () => import('./top-bar-popups');
 
-/** Sticky glass bar: page title, balance, daily bonus, notifications, account menu. */
+/** The AI assistant drawer, its store and the CDK Dialog: only players who open it download them. */
+const loadAssistant = () => import('../features/assistant/assistant-drawer');
+
+/** Sticky glass bar: page title, balance, daily bonus, AI assistant, notifications, account menu. */
 @Component({
   selector: 'vx-top-bar',
   imports: [RouterLink, LucideAngularModule, AnimatedNumber, Avatar, Button, ThemeToggle, TranslatePipe],
@@ -39,6 +42,9 @@ export class TopBar {
   /** Which dropdown is open (drives aria-expanded). */
   protected readonly openPopup = signal<TopBarPopupKind | null>(null);
   private popup: TopBarPopup | null = null;
+
+  /** The assistant drawer is open (drives aria-expanded). */
+  protected readonly assistantOpen = signal(false);
 
   protected readonly pageTitle = signal('');
 
@@ -89,6 +95,20 @@ export class TopBar {
 
   protected claimBonus(): void {
     void this.wallet.claimDailyBonus();
+  }
+
+  protected async openAssistant(): Promise<void> {
+    if (this.assistantOpen()) {
+      return;
+    }
+    this.popup?.close();
+    this.assistantOpen.set(true);
+    const assistant = await loadAssistant().catch(() => null);
+    if (!assistant) {
+      this.assistantOpen.set(false); // offline: the code could not be downloaded
+      return;
+    }
+    assistant.openAssistantDrawer(this.injector, () => this.assistantOpen.set(false));
   }
 
   /** Opens a dropdown under its button, or closes it when it is already open. */

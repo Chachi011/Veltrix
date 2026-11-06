@@ -21,6 +21,7 @@ public static class ApiServiceExtensions
     public const string AngularCorsPolicy = "Angular";
     public const string AuthRateLimitPolicy = "auth";
     public const string BetsRateLimitPolicy = "bets";
+    public const string AssistantRateLimitPolicy = "assistant";
     public const string HubsPath = "/hubs";
 
     public static IServiceCollection AddApiServices(this IServiceCollection services, IConfiguration configuration)
@@ -176,6 +177,19 @@ public static class ApiServiceExtensions
             options.AddPolicy(AuthRateLimitPolicy, httpContext =>
                 RateLimitPartition.GetFixedWindowLimiter(
                     httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 10,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueLimit = 0
+                    }));
+
+            // Max 10 assistant questions per minute per player: every question costs an AI call
+            options.AddPolicy(AssistantRateLimitPolicy, httpContext =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    httpContext.User.FindFirst(Microsoft.IdentityModel.JsonWebTokens.JwtRegisteredClaimNames.Sub)?.Value
+                        ?? httpContext.Connection.RemoteIpAddress?.ToString()
+                        ?? "unknown",
                     _ => new FixedWindowRateLimiterOptions
                     {
                         PermitLimit = 10,

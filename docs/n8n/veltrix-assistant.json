@@ -1,0 +1,88 @@
+{
+  "name": "VELTRIX AI assistant",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "veltrix-assistant",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "6f1c2a9e-0d1b-4c43-9a8e-1b2f3c4d5e01",
+      "name": "Question from VELTRIX",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "veltrix-assistant"
+    },
+    {
+      "parameters": {
+        "jsCode": "// VELTRIX sends: { sessionId, language, systemPrompt, history: [{ role, text }], message }\n// The rules for the AI are in systemPrompt (written and tested in the VELTRIX code). This node only puts the\n// recent conversation in front of the new question, so follow-up questions make sense to the model.\nconst body = $input.first().json.body || {};\nconst history = Array.isArray(body.history) ? body.history : [];\nconst lines = history.map((turn) => (turn.role === 'user' ? 'Player: ' : 'Assistant: ') + turn.text);\nconst message = String(body.message || '');\nconst prompt = lines.length > 0\n  ? 'Conversation so far:\\n' + lines.join('\\n') + '\\n\\nThe player now writes:\\n' + message\n  : message;\n\nreturn [{ json: { prompt, systemPrompt: String(body.systemPrompt || ''), sessionId: body.sessionId } }];"
+      },
+      "id": "6f1c2a9e-0d1b-4c43-9a8e-1b2f3c4d5e02",
+      "name": "Build the prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 0]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.prompt }}",
+        "options": {
+          "systemMessage": "={{ $json.systemPrompt }}"
+        }
+      },
+      "id": "6f1c2a9e-0d1b-4c43-9a8e-1b2f3c4d5e03",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [480, 0]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "options": {
+          "temperature": 0.3,
+          "maxTokens": 500
+        }
+      },
+      "id": "6f1c2a9e-0d1b-4c43-9a8e-1b2f3c4d5e04",
+      "name": "Chat model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [480, 220]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { reply: $json.output } }}",
+        "options": {}
+      },
+      "id": "6f1c2a9e-0d1b-4c43-9a8e-1b2f3c4d5e05",
+      "name": "Answer to VELTRIX",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [800, 0]
+    }
+  ],
+  "connections": {
+    "Question from VELTRIX": {
+      "main": [[{ "node": "Build the prompt", "type": "main", "index": 0 }]]
+    },
+    "Build the prompt": {
+      "main": [[{ "node": "AI Agent", "type": "main", "index": 0 }]]
+    },
+    "Chat model": {
+      "ai_languageModel": [[{ "node": "AI Agent", "type": "ai_languageModel", "index": 0 }]]
+    },
+    "AI Agent": {
+      "main": [[{ "node": "Answer to VELTRIX", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

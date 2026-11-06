@@ -54,6 +54,7 @@ public class AuthorizationAttributeTests
     [Theory]
     [InlineData(typeof(BetsController))]
     [InlineData(typeof(LimitsController))]
+    [InlineData(typeof(AssistantController))] // the AI assistant explains the game and its tools: players only
     public void BettingAndLimits_AreForPlayersOnly(Type controller)
     {
         var authorize = controller.GetCustomAttribute<AuthorizeAttribute>();
@@ -127,5 +128,14 @@ public class RateLimitAttributeTests
     public void TokenEndpoints_AreNotRateLimited(string action)
     {
         Assert.NotEmpty(typeof(AuthController).GetMethod(action)!.GetCustomAttributes<DisableRateLimitingAttribute>());
+    }
+
+    [Fact]
+    public void AssistantQuestions_AreRateLimited()
+    {
+        // Every question is an AI call: a script must not be able to send hundreds of them
+        var ask = typeof(AssistantController).GetMethod(nameof(AssistantController.Ask))!;
+
+        Assert.Contains(ask.GetCustomAttributes<EnableRateLimitingAttribute>(), a => a.PolicyName == "assistant");
     }
 }

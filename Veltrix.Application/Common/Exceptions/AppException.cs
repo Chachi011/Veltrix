@@ -42,6 +42,12 @@ public sealed class ConflictException : AppException
     public ConflictException(string message) : base(409, "Conflict", message) { }
 }
 
+/// <summary>An outside service we depend on (the AI assistant's n8n workflow) is down, too slow or not set up.</summary>
+public sealed class ServiceUnavailableException : AppException
+{
+    public ServiceUnavailableException(string message) : base(503, "Service unavailable", message) { }
+}
+
 public sealed class AccountLockedException : AppException
 {
     public AccountLockedException(DateTime lockedUntil)

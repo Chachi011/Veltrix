@@ -56,13 +56,16 @@ import {
   RotateCcw,
   ScrollText,
   Search,
+  SendHorizontal,
   Settings,
   ShieldAlert,
   ShieldCheck,
+  Sparkles,
   SquarePen,
   Star,
   Sun,
   Timer,
+  Trash2,
   TrendingDown,
   TrendingUp,
   Trophy,
@@ -160,7 +163,12 @@ export const Icons = {
   // Phase 5
   languages: Languages,
   star: Star,
-  target: Crosshair
+  target: Crosshair,
+
+  // AI assistant
+  sparkles: Sparkles,
+  send: SendHorizontal,
+  trash: Trash2
 } as const;
 
 export type IconName = keyof typeof Icons;

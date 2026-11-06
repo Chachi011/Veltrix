@@ -52,6 +52,9 @@ public class ApplicationDbContext : DbContext
     public DbSet<DailyStatistic> DailyStatistics => Set<DailyStatistic>();
     public DbSet<StaticPage> StaticPages => Set<StaticPage>();
 
+    // AI assistant: the players' help chat (the answers come from an n8n workflow)
+    public DbSet<AssistantMessage> AssistantMessages => Set<AssistantMessage>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -75,6 +78,7 @@ public class ApplicationDbContext : DbContext
         configurationBuilder.Properties<SelfExclusionPeriod>().HaveConversion<string>().HaveMaxLength(20);
         configurationBuilder.Properties<ThemePreference>().HaveConversion<string>().HaveMaxLength(20);
         configurationBuilder.Properties<AchievementKind>().HaveConversion<string>().HaveMaxLength(20);
+        configurationBuilder.Properties<AssistantMessageRole>().HaveConversion<string>().HaveMaxLength(20);
 
         // All times are stored in UTC. datetime2 does not remember that, so mark values read back as UTC;
         // otherwise JSON has no "Z" and the browser would treat them as local time.

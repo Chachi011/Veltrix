@@ -436,6 +436,19 @@ Checked live on a copy of an old-style database (XP from bets, two retired achie
 | Postman / OpenAPI file regenerated (53 operations, + the achievements endpoints) | `docs/api/openapi.json` |
 | Locked: `feature/phase5` → `develop` → `main` (`--no-ff`), annotated tag `v1.0-diploma` on `main`; final check on `develop`: `dotnet build` 0 warnings, `dotnet test` 285 passed, `ng build` 0 warnings (417 kB initial), Jasmine 125 passed, i18n check 0 missing / 0 unused | Git |
 
+## Beyond the spec: AI assistant (branch `feature/ai-assistant`)
+
+Not in the specification; added by the author after `v1.1-diploma`. The diploma tags are unchanged.
+
+| What | Where | Tests |
+|---|---|---|
+| Players ask an AI assistant about the game, VLX, provably fair and the responsible play tools; Player only (like bets and limits) | `AssistantController` (`api/assistant/messages`: GET history, POST ask, DELETE "New chat"), top-bar ✨ button → `features/assistant` drawer | `AuthorizationAttributeTests` |
+| The AI runs in an **n8n workflow**; VELTRIX posts the question to its webhook with a shared secret header | `N8nAssistantClient`, `AssistantOptions` (user-secrets), `docs/n8n/veltrix-assistant.json`, `docs/n8n/README.md` | `AssistantClientTests` |
+| The rules for the model are in the code: VELTRIX topics only, no strategies or predictions, no invitation to play more, nothing that invites play while `canPlayNow` is false, care when a player shows signs of a problem | `AssistantPrompts` | `AssistantClientTests`, `AssistantServiceTests` |
+| Conversation saved in SQL Server (question + answer saved together, only when the answer arrived) and kept in the browser session (`AssistantStore`) | `AssistantMessages` table (migration `AddAssistantMessages`), `AssistantService` | `AssistantServiceTests`, `assistant.store.spec.ts` |
+| Abuse and cost limits: 10 questions per minute per player, 500 characters per question, 30 s timeout; every failure = one friendly 503, nothing saved | rate limit policy `assistant`, `AskAssistantRequestValidator`, `ServiceUnavailableException` | `RateLimitAttributeTests`, `AssistantClientTests` |
+| Georgian and English: the model answers in the player's language; all UI and server texts in `ka.json` | `AssistantPrompts.Build(language, …)` | `GeorgianTranslationTests`, `npm run i18n:check` |
+
 ## Decisions to review
 
 Choices made while working without the author. Each one follows the spec and DESIGN.md as closely as possible; all are easy to change.
@@ -481,6 +494,8 @@ Choices made while working without the author. Each one follows the spec and DES
 | The SQL script contains the BCrypt hashes of the public test passwords | The test accounts must log in from a database built only from the script; the passwords are already public in the README | Remove part 2 of `database/veltrix.sql` |
 | Step 3 features (3)–(8) were not built; the version was locked after (2) | The author wrote "Phase 5 is done. Lock the diploma version" | Build them on a new branch from `develop` (the tag stays) |
 | The freeze rule is written into CLAUDE.md in the tagged commit itself | So that anyone who checks out `v1.0-diploma` reads the rule too | — |
+| The AI assistant is for players only, and operators keep the moderator role (no new Moderator role) | The author's choice: the assistant explains the player's game and tools; the spec gives chat moderation to the operator | If staff need it, add `Operator` to `AssistantController`'s roles |
+| The model's rules live in `AssistantPrompts.cs`, not in the n8n workflow | Reviewed in Git and tested; the workflow only passes them on, so editing it cannot weaken them | — |
 
 ## Still open (non-\*)
 

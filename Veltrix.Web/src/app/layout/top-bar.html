@@ -41,6 +41,22 @@
           </span>
         }
 
+        <!-- AI assistant (players only): the drawer and its code load on first use -->
+        @if (auth.isPlayer()) {
+          <button
+            vxButton
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-haspopup="dialog"
+            [attr.aria-label]="'AI assistant' | t"
+            [attr.aria-expanded]="assistantOpen()"
+            (click)="openAssistant()"
+          >
+            <lucide-icon [img]="icons.sparkles" [size]="18" aria-hidden="true" />
+          </button>
+        }
+
         <!-- Notifications: unread badge; new ones arrive live over SignalR. The dropdown loads on first use. -->
         <button
           vxButton

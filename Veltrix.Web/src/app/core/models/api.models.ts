@@ -631,3 +631,21 @@ export interface GameQuery {
   type?: 'Crash' | null;
   status?: GameStatus | null;
 }
+
+// ---------- AI assistant (players only) ----------
+
+export type AssistantMessageRole = 'User' | 'Assistant';
+
+export interface AssistantMessageDto {
+  id: number;
+  role: AssistantMessageRole;
+  /** The player's question as typed, or the answer: Markdown subset (paragraphs, lists, **bold**, *italic*). */
+  text: string;
+  createdAt: string;
+}
+
+/** The saved question and the assistant's answer to it. */
+export interface AssistantReplyDto {
+  question: AssistantMessageDto;
+  answer: AssistantMessageDto;
+}

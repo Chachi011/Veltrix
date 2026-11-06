@@ -734,7 +734,28 @@
     "Show password": "პაროლის ჩვენება",
     "Switch to light theme": "ღია თემაზე გადართვა",
     "Switch to dark theme": "მუქ თემაზე გადართვა",
-    "Dismiss": "დახურვა"
+    "Dismiss": "დახურვა",
+
+    "AI assistant": "AI ასისტენტი",
+    "Questions about the game, VLX and your safety tools": "კითხვები თამაშზე, VLX-ზე და უსაფრთხოების ხელსაწყოებზე",
+    "Hi, {name}!": "გამარჯობა, {name}!",
+    "I can explain the rules of Crash, provably fair rounds, VLX and the responsible play tools.": "შემიძლია აგიხსნა Crash-ის წესები, რაუნდების სამართლიანობის შემოწმება, VLX და უსაფრთხო თამაშის ხელსაწყოები.",
+    "I do not give betting tips: every round is random, and no strategy beats the house edge.": "ფსონების რჩევებს არ ვიძლევი: ყოველი რაუნდი შემთხვევითია და პლატფორმის უპირატესობას ვერცერთი სტრატეგია ვერ ამარცხებს.",
+    "How does Crash work?": "როგორ მუშაობს Crash?",
+    "How can I check that a round was fair?": "როგორ შევამოწმო, რომ რაუნდი სამართლიანი იყო?",
+    "What are VLX and how do I get them?": "რა არის VLX და როგორ მივიღო?",
+    "How do I set a daily limit?": "როგორ დავაყენო დღიური ლიმიტი?",
+    "Conversation": "საუბარი",
+    "Assistant": "ასისტენტი",
+    "Thinking…": "ვფიქრობ…",
+    "Your question": "შენი კითხვა",
+    "Ask a question about VELTRIX": "დასვი კითხვა VELTRIX-ზე",
+    "Send": "გაგზავნა",
+    "Answers are written by AI and can be wrong.": "პასუხებს AI წერს და შეიძლება შეცდეს.",
+    "New chat": "ახალი საუბარი",
+    "Start a new chat?": "დავიწყოთ ახალი საუბარი?",
+    "This deletes the whole conversation with the assistant.": "ასისტენტთან მთელი საუბარი წაიშლება.",
+    "Delete chat": "საუბრის წაშლა"
   },
 
   "server": {
@@ -893,7 +914,11 @@
     "Veteran": "ვეტერანი",
     "Elite": "ელიტა",
     "Legend": "ლეგენდა",
-    "Mythic": "მითიური"
+    "Mythic": "მითიური",
+
+    "The assistant is not available right now. Please try again in a moment.": "ასისტენტი ახლა მიუწვდომელია. სცადე ცოტა ხანში.",
+    "Write a question first.": "ჯერ კითხვა დაწერე.",
+    "A question can be at most {max} characters.": "კითხვა მაქსიმუმ {max} სიმბოლო შეიძლება იყოს."
   },
 
   "pages": {

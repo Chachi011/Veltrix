@@ -65,6 +65,14 @@ Veltrix.Web            Angular client: core/ (api, auth, http, realtime, state, 
 - **Prefer variety, learning and safety** (verify a round, read the rules, set a daily limit, try the game); they give more XP than play tasks, and playing alone cannot reach the top level.
 - **A player who cannot bet right now (self-excluded, or the daily limit used up) sees nothing that asks them to play**: no play tasks, no Play / Play now / Play a round buttons (Watch instead), no "Place bet" or "Keep playing". One rule decides it: `PlayerLimit.CanStillBetToday`, reported as `canPlayNow` with the limits; the client reads `LimitsStore.canPlayNow()`. Any new call to action that invites play must check it.
 
+## AI assistant (after v1.1, branch `feature/ai-assistant`)
+
+- **Players only** (`AssistantController` has `[Authorize(Roles = Player)]` on the class; `AuthorizationAttributeTests` guards it). Operators keep the moderator role; there is no Moderator role.
+- **The model's rules live in `AssistantPrompts.cs`**, never only in the n8n workflow, so they are reviewed and tested. They follow the responsible play rules above: no strategies or crash-point predictions, no invitation to play more, and **nothing that invites play while `canPlayNow` is false** (the prompt gets the same `PlayerLimit` rule). A new rule gets a test.
+- n8n is only the carrier (`docs/n8n/`): the API posts `{ sessionId, language, systemPrompt, history, message }` with the `X-Veltrix-Secret` header and reads `{ reply }`. Webhook URL and secret are in user-secrets (`Assistant:WebhookUrl`, `Assistant:Secret`), never in Git.
+- Every failure (not set up, down, timeout, bad answer) = ONE friendly 503 (`N8nAssistantClient.UnavailableMessage`); nothing is saved and the client puts the question back in the box. Never log the question text.
+- Rate limit `assistant` (10/min/player) on POST only; 500 characters per question.
+
 ## Security rules learned the hard way
 
 - `[AllowAnonymous]` on a controller **overrides** `[Authorize]` on its actions. Put it on individual actions; `AuthorizationAttributeTests` guards this.
@@ -104,6 +112,7 @@ cd Veltrix.Web && npx ng build                             # production build: m
 cd Veltrix.Web && npm run i18n:check                       # every UI text has Georgian in src/i18n/ka.json (0 missing, 0 unused)
 dotnet ef migrations add <Name> --project Veltrix.Infrastructure --startup-project Veltrix.API --output-dir Persistence/Migrations
 dotnet ef migrations has-pending-model-changes --project Veltrix.Infrastructure --startup-project Veltrix.API
+npx n8n                                                    # AI assistant workflow on http://localhost:5678 (setup: docs/n8n/README.md)
 ```
 
 Test accounts (development seed): `admin@veltrix.dev / Admin123!`, `operator@veltrix.dev / Operator123!`, `player1@veltrix.dev`, `player2@veltrix.dev / Player123!`. The login page has quick-fill buttons in development. Demo players (`Database:SeedDemoData`, first Development start, once): 15 accounts `<nickname>@demo.veltrix.dev / Player123!` (e.g. `nova`) with 30 days of history.
