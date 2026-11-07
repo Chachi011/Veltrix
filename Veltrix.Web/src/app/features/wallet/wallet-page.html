@@ -22,7 +22,6 @@
     </div>
   </vx-card>
 
-  <!-- Daily bonus -->
   <vx-card
     [title]="'Daily bonus' | t"
     [subtitle]="store.wallet() ? ('Claim {amount} every 24 hours.' | t: { amount: (store.wallet()!.dailyBonusAmount | vlx) }) : ('Once every 24 hours.' | t)"
@@ -60,7 +59,6 @@
   </vx-card>
 </div>
 
-<!-- Transactions -->
 <vx-card
   class="mt-4 md:mt-6"
   [title]="'Transactions' | t"

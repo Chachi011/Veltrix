@@ -2,7 +2,7 @@
 
 Audit of the project against the specification **VELTRIX-პროექტის-აღწერა.pdf** (14 pages, Oct 23, 2026), a copy of which is kept in this repository as [`docs/SPEC.pdf`](SPEC.pdf), section by section.
 
-- Audited on **2026-10-27** as **Phase 5 · Step 1**, branch `feature/phase5` (Phases 1–4 done and merged into `develop`). Updated at the end of every Phase 5 step; last update: **2026-10-30, `v1.1-diploma`: responsible-play review of achievements and XP**, see [§ Responsible-play review](#responsible-play-review-of-achievements-and-xp-v11-diploma). The first submitted version is the tag `v1.0-diploma` (frozen).
+- Audited on **2026-10-27** as **Phase 5 · Step 1**, branch `feature/phase5` (Phases 1–4 done and merged into `develop`). Updated at the end of every Phase 5 step; last update: **2026-11-07, production hosting with Docker Compose** (after `v1.1-diploma`; see [docs/DEPLOY.md](DEPLOY.md)); before that **2026-10-30, `v1.1-diploma`: responsible-play review of achievements and XP**, see [§ Responsible-play review](#responsible-play-review-of-achievements-and-xp-v11-diploma). The first submitted version is the tag `v1.0-diploma` (frozen).
 - **Status:** ✅ done · 🟡 partial · ❌ missing.
 - Items marked **(\*)** in the spec are optional ("after the main part"); they are listed separately in [§ Optional (\*) items](#optional--items).
 - **Added in this pass** = the gap was found by this audit and closed in Step 1 (see [§ Gaps closed in this pass](#gaps-closed-in-this-pass)).
@@ -13,7 +13,7 @@ Audit of the project against the specification **VELTRIX-პროექტი�
 | | ✅ Done | 🟡 Partial | ❌ Missing |
 |---|---|---|---|
 | Required (non-\*) items | 151 | 1 | 0 |
-| Optional (\*) items | 6 | 1 | 11 |
+| Optional (\*) items | 7 | 1 | 10 |
 
 The one partial required item is a deliberate decision, not a missing feature: plain CSS via Tailwind CSS v4 instead of SCSS (DESIGN.md). Details in [§ Still open](#still-open-non-).
 
@@ -72,7 +72,7 @@ The one partial required item is a deliberate decision, not a missing feature: p
 |---|---|---|
 | Git + GitHub, branches per feature | ✅ | `main` ← `develop` ← `feature/*`, remote `origin` |
 | Postman for API checking | ✅ | `docs/api/openapi.json` imports straight into Postman (README → API in Postman) — **added in this pass** |
-| Docker Compose (\*) | ❌ | see optional items |
+| Docker Compose (\*) | ✅ | `docker-compose.prod.yml` (production; see optional items) |
 | GitHub Actions (\*) | ❌ | see optional items |
 
 ## 3. User roles
@@ -309,7 +309,7 @@ Beyond the spec: 19 supporting tables (30 in total), listed in README → Databa
 |---|---|---|
 | `main` and `develop` branches, `feature/*` branches | ✅ | `main` ← `develop` ← `feature/*` (merged with `--no-ff`); `master` was renamed to `main` when the diploma version was locked; tag `v1.0-diploma` on `main` |
 | Clear, small, frequent commits | ✅ | `git log` |
-| `.gitignore`; secrets (connection string, JWT key) not in the repository | ✅ | JWT key in user-secrets; the connection string uses Windows authentication (no password) |
+| `.gitignore`; secrets (connection string, JWT key) not in the repository | ✅ | JWT key in user-secrets; the connection string uses Windows authentication (no password). Production: every secret in the server's `.env` (in `.gitignore` and `.dockerignore`); only `.env.example` is committed |
 
 ### Delivery
 
@@ -359,7 +359,7 @@ Beyond the spec: 19 supporting tables (30 in total), listed in README → Databa
 | `GET /api/admin/reports/export` | 5 | ❌ | |
 | SignalR `ChatMessage` / `SendChatMessage` | 5 | ❌ | |
 | Integration tests (WebApplicationFactory) | 7 | ✅ | `Veltrix.Tests/Integration` (39 tests): auth, bets, cash-out, refunds, admin role checks, preferences, achievements and their responsible-play rules, demo data — Steps 2 and 3 |
-| Docker Compose (SQL Server + API + Angular) | 2 | ❌ | Step 3 (8), not in `v1.0-diploma` |
+| Docker Compose (SQL Server + API + Angular) | 2 | ✅ | `docker-compose.prod.yml`: SQL Server 2022 Express + API + Caddy (serves the Angular build, HTTPS, proxies `/api` `/hubs` `/uploads`); `deploy/`, guide `docs/DEPLOY.md`. Added after `v1.1-diploma` (not in either tag); `AdminBootstrapTests` |
 | GitHub Actions (build + tests on every push) | 2 | ❌ | Step 3 (8), not in `v1.0-diploma` |
 
 The author's Step 3 list also had (7) PWA, which is not an item of the spec; it is not in `v1.0-diploma` either.
@@ -411,7 +411,7 @@ Everything Step 3 added, as it is in `v1.1-diploma`. **Not in the plan** marks w
 | | `GET /api/achievements` (active catalog, safety and learning first), `GET /api/achievements/my` (unlocked + progress + `playTasksHidden`); public profile gets XP, next level and badges (retired ones hidden) | `AchievementsController`, `AchievementService`, `ProfileService` | `AchievementsApiTests` (catalog order, 401 for guests, badges) |
 | | UI: level progress bar, task tiles with a Safety / Learning / Playing badge, a note when play tasks are hidden, badges on the public profile, bell styles, a toast that names the task (**not in the plan**) | `shared/ui/level-progress.ts`, `features/profile/my-achievements.ts`, `player-page.ts`, `notifications-panel.ts` | `notifications.store.spec.ts` (toast), `responsible-achievements.spec.ts` (note, kinds) |
 | | Nothing invites a player who cannot bet to play (**v1.1**): see the next section | `PlayerLimitsDto.CanPlayNow`, `LimitsStore`, bet panel, game card, home, leaderboard, history, statistics, session reminder | see the next section |
-| | Found while checking (**not in the plan**): the Georgian "Mark all read" was cut off in the bell header; the bet button texts "Betting paused / Daily limit reached until …" ran past the panel in Georgian (now wrap) | `notifications-panel.ts`, `bet-panel.html`, ka.json | browser checks (overflow measured at 1440 / 1024 / 390) |
+| | Found while checking (**not in the plan**): the Georgian "Mark all read" did not fit in the bell header (the header now wraps, so the author's full label "ყველას წაკითხულად მონიშვნა" fits); the bet button texts "Betting paused / Daily limit reached until …" ran past the panel in Georgian (now wrap); after the Georgian wording pass the admin Settings buttons did not fit side by side at 375 px (now stacked on phones) | `notifications-panel.ts`, `bet-panel.html`, `admin-settings-page.ts`, ka.json | browser checks (overflow, cut-off text and overlap measured at 1440 / 1024 / 375) |
 | **(3)–(8) not done** | Auto-bet, two bets per round in the UI, chat with moderation, CSV export, PWA, Docker Compose + GitHub Actions (and 2FA / email verification) are **not** in `v1.0-diploma` or `v1.1-diploma`: the author closed Phase 5 after (2). They are optional (\*) items; the database already has tables for several of them (`AutoBetConfig`, `ChatMessage`, `ChatMute`, `UserTwoFactor`, `EmailVerificationCode`) and the backend accepts bet slot 2 | — | — |
 
 ## Responsible-play review of achievements and XP (v1.1-diploma)
@@ -472,12 +472,23 @@ Choices made while working without the author. Each one follows the spec and DES
 | **v1.1** Tasks still pay small VLX rewards (10–20 each, 100 in total) | CLAUDE.md lists achievements as a source of points; the amounts are small next to the 1000 VLX start, and the biggest rewards are for safety and learning | Set `VlxReward` to 0 in the seed |
 | **v1.1** "Cannot play now" = self-excluded, or less than the smallest active game's minimum bet left of today's limit (not just "0 left") | 0.50 VLX left of a limit cannot buy any bet, so inviting the player to play would be pointless | `PlayerLimit.CanStillBetToday` |
 | **v1.1** Kept for a player who cannot play: the navigation item "Play", "Open the game" on the home round card, and the daily-bonus reminder at the daily limit (self-excluded players already get none) | Navigation and watching are not invitations to bet (the game page itself says "Daily limit reached"); claiming a bonus is not playing | Hide them with `LimitsStore.canPlayNow()` |
+| Georgian: "Result" is now "სტატუსი" / "All results" "ყველა სტატუსი" (history column and filter, operator card "სტატუსი: გაუქმებული"), not "შედეგი" | The author made "Profit" "შედეგი"; the history table shows both columns, and two columns titled "შედეგი" would be confusing. The column shows the bet's status badge, and the app already says "სტატუსი" for statuses | Edit `Result` / `All results` in ka.json |
+| Georgian: the sentences about payouts follow the author's new words: "Payouts minus stakes" → "გაცემულისა და ფსონების სხვაობა", "Payout if all cash out" → "გასაცემი, თუ ყველა გააკეთებს Cash out-ს", the cancel dialog "…გაცემულ თანხას შეინარჩუნებენ", the leaderboard note "შედეგი = გაცემულს გამოკლებული ფსონები" | "Payout" = გაცემული and "Profit" = შედეგი everywhere, so a payout is never called "მოგება" (that word stays for "Win") | Edit those four entries in ka.json |
+| The history bets table is a few pixels wider than its frame at 375 px (Georgian 351 / 341 px, English 343 / 341 px) and scrolls slightly sideways inside it; not changed in the wording pass | It was like this before (in English too): the width comes from the status badges and amounts, not from the renamed headers; every header stays fully readable | Hide one more column on phones, or use `.vx-table-compact` there |
 | **v1.1** The leaderboard is unchanged (best multiplier and net profit rankings) | Spec 4.6 requires these rankings; they are not XP, tasks or achievements. Worth discussing: they can still motivate chasing results | — |
 | Accounts that completed "Try Crash" / "First cash-out" before achievements existed get them when their next bet is settled | One transaction with the round keeps the reward exactly-once and goes through the normal wallet code; a retroactive SQL grant would bypass the wallet rules. The profile says "Unlocks when your next bet is settled" (a play task, so hidden while the player cannot play) | — |
 | The "coins" achievement icon is drawn as the VLX gem | DESIGN.md: VLX is not money, so the UI never shows coins | `achievementIcon()` |
 | The SQL script contains the BCrypt hashes of the public test passwords | The test accounts must log in from a database built only from the script; the passwords are already public in the README | Remove part 2 of `database/veltrix.sql` |
 | Step 3 features (3)–(8) were not built; the version was locked after (2) | The author wrote "Phase 5 is done. Lock the diploma version" | Build them on a new branch from `develop` (the tag stays) |
 | The freeze rule is written into CLAUDE.md in the tagged commit itself | So that anyone who checks out `v1.0-diploma` reads the rule too | — |
+| **Production** SQL Server 2022 **Express** (not Developer) | Developer is not licensed for production; Express is free. Limits: 10 GB per database, ~1.4 GB buffer memory, no backup compression; far above what the game needs | `MSSQL_PID` in `docker-compose.prod.yml` (Standard needs a licence) |
+| **Production** the API logs in to SQL Server as `sa` | One container, one database, reachable only from the API on an internal network; a separate login would need an extra setup script | Create a `veltrix` login with `db_owner` on `Veltrix` and use it in `CONNECTION_STRING` |
+| **Production** the API trusts `X-Forwarded-For` / `-Proto` from any sender (`ReverseProxy:TrustForwardedHeaders`, only set in the compose file) | Docker gives Caddy a changing IP, so a fixed "known proxy" would break; the API has no published port, so Caddy is the only sender. Without it every user would share Caddy's IP in the rate limit, and HTTPS redirection would loop | Set `KnownNetworks` to the frontend network's subnet |
+| **Production** the admin from `.env` is created only when NO admin exists, must pass the registration rules, never promotes an existing account, and starts with 0 VLX | A weak or half-set admin should stop the start, not slip through; staff do not bet. Later changes to `ADMIN_*` are ignored (change the password in the app) | `DatabaseInitializer.EnsureAdminAsync` |
+| **Production** HSTS for one year, without `includeSubDomains` / `preload` | Other subdomains of the author's domain may not have HTTPS | `deploy/Caddyfile` |
+| **Production** password reset codes are only written to the API log (no email service) | There is no email provider yet (spec: email notifications are optional); the admin can read the code with `docker compose logs api` | Add an SMTP `IEmailSender` |
+| **Production** the API exits with code 1 when the start fails (before: 0) | So Docker restarts it and `docker compose ps` shows the failure | `Program.cs` |
+| **Production** the server deploys `main` without the AI assistant | The author's choice: `feature/ai-assistant` stays separate until n8n is set up; `N8N_*` in `.env` stay empty and do nothing on `main` | Merge `feature/ai-assistant` and fill in `N8N_*` |
 
 ## Still open (non-\*)
 

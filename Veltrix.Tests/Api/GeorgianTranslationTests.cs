@@ -18,7 +18,11 @@ public class GeorgianTranslationTests
         // Domain invariants that only a programming error can break
         "The level table has no level for 0 XP.",
         "XP cannot be taken away.",
-        "Achievement {} pays VLX, so the wallet must be loaded."
+        "Achievement {} pays VLX, so the wallet must be loaded.",
+        // Start-up configuration errors about the production admin account (server log only)
+        "Database:AdminEmail and Database:AdminPassword must be set together.",
+        "The admin account in Database:AdminEmail / AdminPassword / AdminNickname is not valid: {}",
+        "Cannot create the admin account: the email or the nickname '{}' is already used."
     };
 
     /// <summary>

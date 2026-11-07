@@ -1,14 +1,11 @@
 import {
   type LucideIconData,
   Activity,
-  ArrowRight,
   Ban,
   Bell,
   BookOpen,
-  Calendar,
   Camera,
   ChartColumn,
-  ChartLine,
   Check,
   CheckCheck,
   ChevronDown,
@@ -24,7 +21,6 @@ import {
   Copy,
   Crosshair,
   Crown,
-  ExternalLink,
   Eye,
   EyeOff,
   Gamepad2,
@@ -57,7 +53,6 @@ import {
   ScrollText,
   Search,
   Settings,
-  ShieldAlert,
   ShieldCheck,
   SquarePen,
   Star,
@@ -82,10 +77,8 @@ import {
  * Usage: <lucide-icon [img]="icons.wallet" [size]="18" />
  */
 export const Icons = {
-  arrowRight: ArrowRight,
   bell: Bell,
   book: BookOpen,
-  calendar: Calendar,
   camera: Camera,
   check: Check,
   chevronDown: ChevronDown,
@@ -130,16 +123,14 @@ export const Icons = {
   close: X,
   zap: Zap,
 
-  // Phase 4: panels, leaderboard, responsible play
+  // Panels, leaderboard, responsible play
   activity: Activity,
   block: Ban,
   chartColumn: ChartColumn,
-  chartLine: ChartLine,
   markAllRead: CheckCheck,
   stop: CircleStop,
   clock: Clock,
   crown: Crown,
-  externalLink: ExternalLink,
   gamepad: Gamepad2,
   responsible: HandHeart,
   hourglass: Hourglass,
@@ -152,18 +143,15 @@ export const Icons = {
   audit: ScrollText,
   search: Search,
   settings: Settings,
-  shieldAlert: ShieldAlert,
   edit: SquarePen,
   userCog: UserCog,
   pause: CirclePause,
 
-  // Phase 5
+  // Languages and achievements
   languages: Languages,
   star: Star,
   target: Crosshair
 } as const;
-
-export type IconName = keyof typeof Icons;
 
 /**
  * The server stores an icon NAME per achievement (database seed); the client chooses the picture.

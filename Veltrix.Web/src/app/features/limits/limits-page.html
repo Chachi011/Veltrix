@@ -14,7 +14,6 @@
   }
 
   <div class="grid gap-4 md:gap-6 lg:grid-cols-2">
-    <!-- Daily bet limit -->
     <vx-card
       [title]="'Daily bet limit' | t"
       [subtitle]="'The most you can stake per day. Lowering it applies at once; raising or removing it waits {hours} hours.' | t: { hours: l.limitIncreaseDelayHours }"
@@ -85,7 +84,6 @@
       </form>
     </vx-card>
 
-    <!-- Session reminder -->
     <vx-card
       [title]="'Session reminder' | t"
       [subtitle]="'A short break reminder after a while of continuous play, with your time and stakes.' | t"
@@ -160,7 +158,6 @@
       </div>
     </vx-card>
 
-    <!-- Facts -->
     <vx-card class="lg:col-span-2" [title]="'Good to know' | t">
       <ul class="grid gap-4 text-[13px] md:grid-cols-3">
         <li class="flex items-start gap-3">

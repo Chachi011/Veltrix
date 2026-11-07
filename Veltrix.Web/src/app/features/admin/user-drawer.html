@@ -66,7 +66,6 @@
         {{ 'This is your own account: you cannot change your own role, block yourself or adjust your own balance.' | t }}
       </p>
     } @else {
-      <!-- Role -->
       <section class="mt-6" aria-labelledby="role-title">
         <h3 id="role-title" class="text-sm font-semibold">{{ 'Role' | t }}</h3>
         <div class="mt-2 flex gap-2">
@@ -81,7 +80,6 @@
         </div>
       </section>
 
-      <!-- Block -->
       <section class="mt-6" aria-labelledby="block-title">
         <h3 id="block-title" class="text-sm font-semibold">{{ u.isBlocked ? ('Unblock account' | t) : ('Block account' | t) }}</h3>
         <p class="mt-1 text-[13px] text-muted">
@@ -108,7 +106,6 @@
         </div>
       </section>
 
-      <!-- Balance adjustment -->
       <section class="mt-6" aria-labelledby="adjust-title">
         <h3 id="adjust-title" class="text-sm font-semibold">{{ 'Adjust balance' | t }}</h3>
         <p class="mt-1 text-[13px] text-muted">{{ 'Virtual VLX only. A reason is required; the balance can never go below zero.' | t }}</p>
@@ -138,7 +135,6 @@
       </section>
     }
 
-    <!-- History -->
     <section class="mt-8" aria-labelledby="adjustments-title">
       <h3 id="adjustments-title" class="text-sm font-semibold">{{ 'Recent adjustments' | t }}</h3>
       @if (u.recentAdjustments.length === 0) {

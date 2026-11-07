@@ -23,17 +23,6 @@ export class MultiplierPipe implements PipeTransform {
   }
 }
 
-/** Long hex hash → "1f06f8e3…f5ad" (the full value goes in a title attribute). */
-@Pipe({ name: 'shortHash' })
-export class ShortHashPipe implements PipeTransform {
-  transform(value: string | null | undefined, keep = 8): string {
-    if (!value) {
-      return '—';
-    }
-    return value.length <= keep * 2 ? value : `${value.slice(0, keep)}…${value.slice(-4)}`;
-  }
-}
-
 /**
  * ISO date → "just now", "5 min ago", "3 h ago", "2 d ago", then "Oct 24", in the current language.
  * Impure so it follows a language switch (see TranslatePipe).

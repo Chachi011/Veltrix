@@ -33,7 +33,7 @@ describe('Markdown subset (content pages)', () => {
     expect(block).toEqual({ kind: 'p', segments: [{ text: '<img src=x onerror=alert(1)>', strong: false, em: false }] });
   });
 
-  // Bug found in the browser: template line breaks became spaces ("grows from 1.00x ." on the Rules page)
+  // Regression: template line breaks became spaces ("grows from 1.00x ." on the Rules page)
   it('renders bold and italic without extra spaces around them', async () => {
     TestBed.configureTestingModule({ providers: [provideZonelessChangeDetection()] });
     const fixture = TestBed.createComponent(Markdown);
