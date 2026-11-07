@@ -29,6 +29,10 @@ try
 
     var app = builder.Build();
 
+    // First of all: logging, HTTPS redirection and the rate limits must see the real client behind the proxy
+    if (app.Configuration.GetValue<bool>(ApiServiceExtensions.TrustForwardedHeadersKey))
+        app.UseForwardedHeaders();
+
     // Order matters. Request logging is outermost, so it logs the FINAL status code (e.g. 401), after the
     // exception middleware has turned an exception into a ProblemDetails response; the exception
     // middleware wraps everything else.
@@ -70,6 +74,8 @@ catch (Exception ex) when (ex is not HostAbortedException)
 {
     // HostAbortedException is thrown on purpose by "dotnet ef" tools; it is not a real crash
     Log.Fatal(ex, "VELTRIX API terminated unexpectedly");
+    // A non-zero exit code, so Docker (and any other supervisor) sees a failed start, not a normal stop
+    Environment.ExitCode = 1;
 }
 finally
 {

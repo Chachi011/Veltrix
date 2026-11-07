@@ -74,6 +74,17 @@ Veltrix.Web            Angular client: core/ (api, auth, http, realtime, state, 
 - The `auth` rate limit (10/min/IP) covers login/register/forgot/reset only, not refresh/logout (`RateLimitAttributeTests`).
 - Secrets (JWT key) live in user-secrets, never in Git.
 
+## Production hosting (one Droplet, Docker Compose)
+
+Guide: [docs/DEPLOY.md](docs/DEPLOY.md). Files: `docker-compose.prod.yml` (sqlserver + api + caddy), `deploy/` (`Dockerfile.api`, `Dockerfile.web`, `Caddyfile`, `backup.sh`), `Veltrix.API/appsettings.Production.json`, `.env.example`.
+
+- **Every production secret is in the server's `.env`** (ignored by Git and `.dockerignore`); only `.env.example` is committed. A new secret = a new `${VAR}` in the compose file + a line in `.env.example`.
+- **SQL Server never gets a published port** and stays on the `internal` backend network; only Caddy publishes 80/443.
+- Production: migrations on, **no test users, no demo data**, Swagger off, CORS = `https://${DOMAIN}` only. The ONE admin comes from `Database:AdminEmail/AdminPassword/AdminNickname` on the first start only (registration rules; an existing account is never promoted; `AdminBootstrapTests`).
+- `ReverseProxy:TrustForwardedHeaders` is set ONLY in the compose file (the API is reachable only through Caddy). Never turn it on where clients reach the API directly: they could fake `X-Forwarded-For` and dodge the rate limit.
+- A failed start exits with code 1 (Docker restarts it and shows it). No email service yet: reset codes are only in the API log.
+- `main` is what the server deploys; the AI assistant (`feature/ai-assistant`) is not in it until n8n is set up.
+
 ## Phase plan
 
 | Phase | Content | Status |
@@ -88,7 +99,7 @@ Veltrix.Web            Angular client: core/ (api, auth, http, realtime, state, 
 
 1. **Spec audit** — `docs/SPEC-COVERAGE.md` (item / status / where in the code, (*) items separately) and every missing non-(*) item: Home, Games catalog, public player profile, Rules, Settings (sound, animations), Moq service tests, more Jasmine, OpenAPI for Postman. **Done.**
 2. **Quality** — Jasmine tests for the stores and key services (auth, wallet, round/crash, limits); integration tests with WebApplicationFactory (auth, bets, admin role checks); no build warnings (`dotnet build`, `ng build`) — **done** (28 integration tests, 112 Jasmine, 0 warnings at the end of Step 2; at `v1.0-diploma`: 285 xUnit incl. 34 integration, 125 Jasmine); Development demo seed (~15 players with bet history, so the leaderboard, charts and admin dashboard are not empty) — **done** (`DemoDataSeeder`).
-3. **Optional (*) features, in this order** — (1) Georgian + English UI, ka default, switch in Settings — **done**; (2) achievements + XP levels — **done**; (3) auto-bet (number of rounds, stop on loss/profit); (4) two bets per round in the UI; (5) global chat with operator moderation; (6) CSV export in the admin panel; (7) PWA; (8) Docker Compose + GitHub Actions — (3)–(8) **not done**: the author locked the version after (2). If they are built later, it is on new branches. 2FA and email verification only if time remains.
+3. **Optional (*) features, in this order** — (1) Georgian + English UI, ka default, switch in Settings — **done**; (2) achievements + XP levels — **done**; (3) auto-bet (number of rounds, stop on loss/profit); (4) two bets per round in the UI; (5) global chat with operator moderation; (6) CSV export in the admin panel; (7) PWA; (8) Docker Compose + GitHub Actions — (3)–(8) **not done**: the author locked the version after (2). If they are built later, it is on new branches. Later, on `feature/production-docker`: production Docker Compose **done** (see Production hosting); GitHub Actions still not done. 2FA and email verification only if time remains.
 4. **Delivery** — README (overview, screenshots, architecture diagram, clean-PC setup, test accounts per role); `/database`: migrations + seed as one SQL script; `docs/PRESENTATION.md`: 10-minute demo script and the 10 most likely exam questions with short answers. **Done** (`database/veltrix.sql` is guarded by `DatabaseScriptTests`: regenerate it when a migration is added).
 
 Optional (*) features only after the MVP: auto-bet, two bets per round (backend supports slot 2), achievements/XP, chat with moderation, 2FA, email verification, ka/en, CSV export, Docker Compose, GitHub Actions.
@@ -104,6 +115,10 @@ cd Veltrix.Web && npx ng build                             # production build: m
 cd Veltrix.Web && npm run i18n:check                       # every UI text has Georgian in src/i18n/ka.json (0 missing, 0 unused)
 dotnet ef migrations add <Name> --project Veltrix.Infrastructure --startup-project Veltrix.API --output-dir Persistence/Migrations
 dotnet ef migrations has-pending-model-changes --project Veltrix.Infrastructure --startup-project Veltrix.API
+# On the production server (in ~/veltrix):
+docker compose -f docker-compose.prod.yml up -d --build    # start / update
+docker compose -f docker-compose.prod.yml logs -f api      # API log
+sh deploy/backup.sh                                        # database + avatars into ~/backups
 ```
 
 Test accounts (development seed): `admin@veltrix.dev / Admin123!`, `operator@veltrix.dev / Operator123!`, `player1@veltrix.dev`, `player2@veltrix.dev / Player123!`. The login page has quick-fill buttons in development. Demo players (`Database:SeedDemoData`, first Development start, once): 15 accounts `<nickname>@demo.veltrix.dev / Player123!` (e.g. `nova`) with 30 days of history.
@@ -113,7 +128,7 @@ Stop the running API before `dotnet build` (it locks the DLLs). Check that port 
 ## Conventions
 
 - **Git:** `main` ← `develop` ← `feature/<phase-or-topic>` (`master` was renamed to `main` when the diploma version was locked). Small, logical commits with clear messages. Merge features into `develop` with `--no-ff`. Do not push unless asked. The tag `v1.0-diploma` is frozen (see the top of this file).
-- **Line endings:** `.gitattributes` (CRLF for `.cs/.csproj/.slnx`, LF for `.ts/.html/.scss/.json`). Seed text in `HasData` is normalized with `ReplaceLineEndings("\n")`.
+- **Line endings:** `.gitattributes` (CRLF for `.cs/.csproj/.slnx`, LF for `.ts/.html/.scss/.json` and the server files `.sh/.yml/Dockerfile.*/Caddyfile/.env.example`). Seed text in `HasData` is normalized with `ReplaceLineEndings("\n")`.
 - **EF:** after model changes run `has-pending-model-changes`; never edit an applied migration (add a new one). Data fixes go in the migration (`migrationBuilder.Sql`).
 - **Query DTOs:** computed values are methods, not properties (properties become query parameters; see `PageQuery.Offset()`).
 - **Angular:** standalone components, OnPush, signals; stores are NgRx SignalStores. Components that show reactive-form errors use Default change detection. Interceptor order: loading → error → auth.
