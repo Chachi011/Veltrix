@@ -70,7 +70,8 @@ Veltrix.Web            Angular client: core/ (api, auth, http, realtime, state, 
 - **Players only** (`AssistantController` has `[Authorize(Roles = Player)]` on the class; `AuthorizationAttributeTests` guards it). Operators keep the moderator role; there is no Moderator role.
 - **The model's rules live in `AssistantPrompts.cs`**, never only in the n8n workflow, so they are reviewed and tested. They follow the responsible play rules above: no strategies or crash-point predictions, no invitation to play more, and **nothing that invites play while `canPlayNow` is false** (the prompt gets the same `PlayerLimit` rule). A new rule gets a test.
 - n8n is only the carrier (`docs/n8n/`): the API posts `{ sessionId, language, systemPrompt, history, message }` with the `X-Veltrix-Secret` header and reads `{ reply }`. Webhook URL and secret are in user-secrets (`Assistant:WebhookUrl`, `Assistant:Secret`), never in Git.
-- Every failure (not set up, down, timeout, bad answer) = ONE friendly 503 (`N8nAssistantClient.UnavailableMessage`); nothing is saved and the client puts the question back in the box. Never log the question text.
+- Not set up (no webhook URL) = 503 `N8nAssistantClient.NotConfiguredMessage`, and `GET /api/assistant/status` lets the drawer say "The assistant is not configured" before anyone asks (box disabled). Every other failure (down, timeout, bad answer) = ONE friendly 503 (`UnavailableMessage`). Nothing is saved; the client puts the question back in the box and shows the reason INSIDE the drawer (no toast). Never log the question text.
+- Toasts must stay above the CDK overlay (`z-[1100]` > 1000, `toast-container.spec.ts`): an error toast under an open drawer or dialog is invisible.
 - Rate limit `assistant` (10/min/player) on POST only; 500 characters per question.
 
 ## Security rules learned the hard way

@@ -46,6 +46,16 @@ public class AssistantServiceTests : IDisposable
 
     private static AskAssistantRequest Ask(string message) => new() { Message = message };
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Status_TellsWhetherTheAiIsSetUp(bool configured)
+    {
+        _ai.Setup(a => a.IsConfigured).Returns(configured);
+
+        Assert.Equal(configured, Service().GetStatus().Configured);
+    }
+
     [Fact]
     public async Task Ask_SavesTheQuestionAndTheAnswer()
     {

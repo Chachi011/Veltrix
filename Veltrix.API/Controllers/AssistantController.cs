@@ -25,6 +25,11 @@ public class AssistantController : ControllerBase
         _assistantService = assistantService;
     }
 
+    /// <summary>Whether the assistant is set up. The chat shows "The assistant is not configured" instead of a dead input box.</summary>
+    [HttpGet("status")]
+    [ProducesResponseType<AssistantStatusDto>(StatusCodes.Status200OK)]
+    public ActionResult<AssistantStatusDto> GetStatus() => Ok(_assistantService.GetStatus());
+
     /// <summary>My conversation with the assistant, oldest first (the latest 50 messages).</summary>
     [HttpGet("messages")]
     [ProducesResponseType<IReadOnlyList<AssistantMessageDto>>(StatusCodes.Status200OK)]

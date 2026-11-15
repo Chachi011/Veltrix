@@ -649,3 +649,8 @@ export interface AssistantReplyDto {
   question: AssistantMessageDto;
   answer: AssistantMessageDto;
 }
+
+/** GET /api/assistant/status: false until an admin connects the n8n workflow. */
+export interface AssistantStatusDto {
+  configured: boolean;
+}

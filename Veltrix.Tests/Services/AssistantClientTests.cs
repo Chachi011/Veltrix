@@ -83,13 +83,27 @@ public class AssistantClientTests
         Assert.Equal(N8nAssistantClient.UnavailableMessage, error.Message);
     }
 
-    [Fact]
-    public async Task No_webhook_url_means_the_assistant_is_off()
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task No_webhook_url_means_the_assistant_is_off_and_says_it_is_not_configured(string url)
     {
         var handler = Answering(HttpStatusCode.OK, """{ "reply": "x" }""");
+        var client = Client(handler, url: url);
 
-        await Assert.ThrowsAsync<ServiceUnavailableException>(() => Client(handler, url: "").AskAsync(Question));
+        var error = await Assert.ThrowsAsync<ServiceUnavailableException>(() => client.AskAsync(Question));
+
+        Assert.False(client.IsConfigured);
+        Assert.Equal(503, error.StatusCode);
+        // Its own message: "try again in a moment" would be wrong, waiting does not help
+        Assert.Equal(N8nAssistantClient.NotConfiguredMessage, error.Message);
         Assert.Null(handler.Request); // nothing was sent
+    }
+
+    [Fact]
+    public void A_webhook_url_means_the_assistant_is_configured()
+    {
+        Assert.True(Client(Answering(HttpStatusCode.OK, "")).IsConfigured);
     }
 
     [Fact]

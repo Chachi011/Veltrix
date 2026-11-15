@@ -6,6 +6,9 @@ namespace Veltrix.Application.Common.Interfaces;
 /// </summary>
 public interface IAssistantClient
 {
+    /// <summary>False when the AI is not set up at all (no webhook URL), so the chat can say so before anyone asks.</summary>
+    bool IsConfigured { get; }
+
     Task<string> AskAsync(AssistantRequest request, CancellationToken ct = default);
 }
 

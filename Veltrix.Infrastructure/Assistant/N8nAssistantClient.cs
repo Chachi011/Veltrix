@@ -14,12 +14,14 @@ namespace Veltrix.Infrastructure.Assistant;
 /// Answer: { "reply": "..." } from a Respond to Webhook node. "output" (the AI Agent node's own field), an array of
 /// such objects, or plain text are accepted too, so a slightly different workflow still works.
 ///
-/// Every failure becomes ONE friendly 503 message for the player; the details go to the log only.
-/// The question text is never logged (it is the player's private message).
+/// Every failure becomes a friendly 503 message for the player; the details go to the log only. "Not set up" has
+/// its own message, because trying again later does not help then. The question text is never logged
+/// (it is the player's private message).
 /// </summary>
 public sealed class N8nAssistantClient : IAssistantClient
 {
     public const string UnavailableMessage = "The assistant is not available right now. Please try again in a moment.";
+    public const string NotConfiguredMessage = "The assistant is not configured.";
     public const string SecretHeader = "X-Veltrix-Secret";
 
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
@@ -36,13 +38,15 @@ public sealed class N8nAssistantClient : IAssistantClient
         _logger = logger;
     }
 
+    public bool IsConfigured => !string.IsNullOrWhiteSpace(_options.Value.WebhookUrl);
+
     public async Task<string> AskAsync(AssistantRequest request, CancellationToken ct = default)
     {
         var options = _options.Value;
-        if (string.IsNullOrWhiteSpace(options.WebhookUrl))
+        if (!IsConfigured)
         {
             _logger.LogWarning("Assistant:WebhookUrl is not set, so the AI assistant cannot answer");
-            throw new ServiceUnavailableException(UnavailableMessage);
+            throw new ServiceUnavailableException(NotConfiguredMessage);
         }
 
         // Our own timeout, linked to the request's token: a closed browser tab still cancels the call

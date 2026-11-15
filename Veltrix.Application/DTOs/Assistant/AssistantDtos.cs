@@ -11,6 +11,12 @@ public sealed class AssistantMessageDto
     public DateTime CreatedAt { get; set; }
 }
 
+/// <summary>GET /api/assistant/status: whether the AI is set up, so the chat can say so instead of failing on every question.</summary>
+public sealed class AssistantStatusDto
+{
+    public bool Configured { get; set; }
+}
+
 /// <summary>POST /api/assistant/messages</summary>
 public sealed class AskAssistantRequest
 {

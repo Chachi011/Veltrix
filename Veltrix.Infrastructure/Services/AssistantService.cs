@@ -51,6 +51,8 @@ public sealed class AssistantService : IAssistantService
 
     private int CurrentUserId => _currentUser.UserId ?? throw new UnauthorizedException("Not logged in.");
 
+    public AssistantStatusDto GetStatus() => new() { Configured = _client.IsConfigured };
+
     public async Task<IReadOnlyList<AssistantMessageDto>> GetMyHistoryAsync(CancellationToken ct = default)
     {
         var latest = await LatestAsync(CurrentUserId, HistoryPageSize, ct);

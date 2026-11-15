@@ -14,7 +14,7 @@ import { FormsModule } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
 import { AuthStore } from '../../core/auth/auth.store';
 import { I18n, mark } from '../../core/i18n/i18n';
-import { TranslatePipe } from '../../core/i18n/i18n-pipes';
+import { ServerTextPipe, TranslatePipe } from '../../core/i18n/i18n-pipes';
 import { reducedMotion } from '../../shared/motion';
 import { Button, DrawerShell, Icons, Markdown, ModalService, Skeleton } from '../../shared/ui';
 import { ASSISTANT_MAX_LENGTH, AssistantStore } from './assistant.store';
@@ -36,7 +36,7 @@ const SUGGESTIONS = [
  */
 @Component({
   selector: 'vx-assistant-drawer',
-  imports: [FormsModule, LucideAngularModule, DrawerShell, Markdown, Button, Skeleton, TranslatePipe],
+  imports: [FormsModule, LucideAngularModule, DrawerShell, Markdown, Button, Skeleton, TranslatePipe, ServerTextPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <vx-drawer [title]="'AI assistant' | t" [description]="'Questions about the game, VLX and your safety tools' | t">
@@ -69,7 +69,7 @@ const SUGGESTIONS = [
                 variant="outline"
                 size="sm"
                 class="h-auto! justify-start py-2 text-left whitespace-normal"
-                [disabled]="store.sending()"
+                [disabled]="store.sending() || store.configured() === false"
                 (click)="send(question)"
               >
                 {{ question | t }}
@@ -112,6 +112,21 @@ const SUGGESTIONS = [
       <div #end aria-hidden="true"></div>
 
       <div drawer-footer class="flex flex-col gap-2">
+        <!-- Why there is no answer, right above the box (a toast is easy to miss while the drawer is open) -->
+        @if (store.configured() === false) {
+          <p class="flex items-start gap-2.5 rounded-control border border-warning/25 bg-warning/10 p-3 text-[13px]" role="status">
+            <lucide-icon [img]="icons.info" [size]="15" class="mt-0.5 shrink-0 text-warning" aria-hidden="true" />
+            <span>
+              <span class="font-semibold">{{ 'The assistant is not configured.' | t }}</span>
+              {{ 'An administrator has to connect it first.' | t }}
+            </span>
+          </p>
+        } @else if (store.error(); as error) {
+          <p class="flex items-start gap-2.5 rounded-control border border-danger/25 bg-danger/10 p-3 text-[13px] text-danger" role="alert">
+            <lucide-icon [img]="icons.alert" [size]="15" class="mt-0.5 shrink-0" aria-hidden="true" />
+            {{ error | serverText }}
+          </p>
+        }
         <div class="flex items-end gap-2">
           <label for="assistant-question" class="sr-only">{{ 'Your question' | t }}</label>
           <textarea
@@ -121,6 +136,7 @@ const SUGGESTIONS = [
             class="vx-input h-auto! max-h-36 min-h-11 flex-1 resize-none py-2.5"
             [ngModel]="store.draft()"
             (ngModelChange)="store.setDraft($event)"
+            [disabled]="store.configured() === false"
             [attr.maxlength]="maxLength"
             [placeholder]="'Ask a question about VELTRIX' | t"
             (keydown.enter)="onEnter($event)"

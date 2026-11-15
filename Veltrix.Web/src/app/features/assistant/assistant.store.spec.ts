@@ -18,7 +18,8 @@ describe('AssistantStore', () => {
   let api: jasmine.SpyObj<AssistantApi>;
 
   beforeEach(() => {
-    api = jasmine.createSpyObj<AssistantApi>('AssistantApi', ['history', 'ask', 'clear']);
+    api = jasmine.createSpyObj<AssistantApi>('AssistantApi', ['status', 'history', 'ask', 'clear']);
+    api.status.and.returnValue(of({ configured: true }));
     api.history.and.returnValue(of([message(1, 'User', 'Hi'), message(2, 'Assistant', 'Hello!')]));
     TestBed.configureTestingModule({
       providers: [provideZonelessChangeDetection(), { provide: AssistantApi, useValue: api }]
@@ -75,10 +76,11 @@ describe('AssistantStore', () => {
     expect(store.draft()).toBe('my own question');
   });
 
-  it('when the AI cannot answer, the question goes back into the box', async () => {
+  it('when the AI cannot answer, the question goes back into the box and the reason is kept for the drawer', async () => {
     await store.open(7);
     store.setDraft('Anyone there?');
-    api.ask.and.returnValue(throwError(() => new HttpErrorResponse({ status: 503 })));
+    const detail = 'The assistant is not available right now. Please try again in a moment.';
+    api.ask.and.returnValue(throwError(() => new HttpErrorResponse({ status: 503, error: { status: 503, detail } })));
 
     const answered = await store.ask();
 
@@ -86,6 +88,32 @@ describe('AssistantStore', () => {
     expect(store.draft()).toBe('Anyone there?');
     expect(store.messages().length).toBe(2); // nothing added
     expect(store.pending()).toBeNull();
+    expect(store.error()).toBe(detail);
+  });
+
+  it('a new question clears the reason the last one failed', async () => {
+    await store.open(7);
+    api.ask.and.returnValue(throwError(() => new HttpErrorResponse({ status: 429, error: { status: 429, detail: 'Too many requests.' } })));
+    await store.ask('First');
+    expect(store.error()).toBe('Too many requests.');
+
+    api.ask.and.returnValue(of({ question: message(3, 'User', 'Q'), answer: message(4, 'Assistant', 'A') }));
+    await store.ask('Second');
+
+    expect(store.error()).toBeNull();
+  });
+
+  it('when the AI is not configured, nothing can be sent (the drawer says why)', async () => {
+    api.status.and.returnValue(of({ configured: false }));
+    await store.open(7);
+    store.setDraft('How does Crash work?');
+
+    expect(store.configured()).toBeFalse();
+    expect(store.canSend()).toBeFalse();
+    expect(await store.ask()).toBeFalse();
+    expect(await store.ask('How do I set a daily limit?')).toBeFalse();
+    expect(api.ask).not.toHaveBeenCalled();
+    expect(store.draft()).toBe('How does Crash work?'); // kept
   });
 
   it('cannot send an empty or too long question', async () => {

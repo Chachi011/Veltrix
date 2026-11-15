@@ -5,6 +5,9 @@ namespace Veltrix.Application.Interfaces;
 /// <summary>The AI assistant chat of the logged-in player.</summary>
 public interface IAssistantService
 {
+    /// <summary>Whether the AI is set up (an admin has connected the n8n workflow).</summary>
+    AssistantStatusDto GetStatus();
+
     /// <summary>My conversation, oldest first (the latest messages only).</summary>
     Task<IReadOnlyList<AssistantMessageDto>> GetMyHistoryAsync(CancellationToken ct = default);
 

@@ -755,7 +755,9 @@
     "New chat": "ახალი საუბარი",
     "Start a new chat?": "დავიწყოთ ახალი საუბარი?",
     "This deletes the whole conversation with the assistant.": "ასისტენტთან მთელი საუბარი წაიშლება.",
-    "Delete chat": "საუბრის წაშლა"
+    "Delete chat": "საუბრის წაშლა",
+    "The assistant is not configured.": "ასისტენტი არ არის დაყენებული.",
+    "An administrator has to connect it first.": "ჯერ ადმინისტრატორმა უნდა დააკავშიროს."
   },
 
   "server": {
@@ -917,6 +919,7 @@
     "Mythic": "მითიური",
 
     "The assistant is not available right now. Please try again in a moment.": "ასისტენტი ახლა მიუწვდომელია. სცადე ცოტა ხანში.",
+    "The assistant is not configured.": "ასისტენტი ჯერ არ არის დაყენებული.",
     "Write a question first.": "ჯერ კითხვა დაწერე.",
     "A question can be at most {max} characters.": "კითხვა მაქსიმუმ {max} სიმბოლო შეიძლება იყოს."
   },

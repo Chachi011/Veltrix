@@ -19,8 +19,8 @@ Angular drawer ──POST /api/assistant/messages──▶ VELTRIX API ──POS
 - **The AI provider is replaceable without code.** OpenAI, Anthropic or a local Ollama model: change one node in n8n.
 - **The database is the source of truth.** The API sends the recent conversation with every question, so the
   workflow keeps no state, and a player sees the same chat after a reload or on another device.
-- **Failures are safe.** If n8n is down, slow (timeout) or answers badly, the player gets one friendly message (503),
-  nothing is saved and the question stays in the input box.
+- **Failures are safe.** If n8n is down, slow (timeout) or answers badly, the player gets one friendly message (503)
+  in the chat panel, nothing is saved and the question stays in the input box.
 - **Cost and abuse:** players only, 10 questions per minute per player (rate limit `assistant`), 500 characters per question.
 
 ## Setup (once per machine)
@@ -75,8 +75,8 @@ dotnet user-secrets set "Assistant:Secret" "<the value from step 3>" --project V
 Optional (`appsettings.json` → `Assistant`): `TimeoutSeconds` (default 30) and `HistoryMessages` (how many earlier
 messages go with a question, default 10).
 
-Without a `WebhookUrl` the app still runs; the assistant then answers every question with
-"The assistant is not available right now".
+Without a `WebhookUrl` the app still runs; the chat panel then says "The assistant is not configured" and its input
+box is disabled (`GET /api/assistant/status` returns `{ "configured": false }`).
 
 ## The contract
 
@@ -104,5 +104,6 @@ those, or plain text).
 2. Ask *"Give me a strategy to win"*: the assistant must refuse and explain the 3% house edge.
 3. On **Responsible play**, start a 24-hour self-exclusion, then ask *"When can I play again?"*: the answer must not
    invite you to play.
-4. Stop n8n and ask again: a toast says the assistant is not available, and your question stays in the box.
+4. Stop n8n and ask again: a red note in the chat panel says the assistant is not available, and your question stays
+   in the box.
 5. In n8n, **Executions** shows every call (useful in the demo to show what the model received).
