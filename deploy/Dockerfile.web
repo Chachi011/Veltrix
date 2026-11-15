@@ -1,0 +1,16 @@
+# VELTRIX web: the Angular production build, served by Caddy (which also proxies the API and gets HTTPS).
+# Build context: the repository root (docker-compose.prod.yml sets it).
+
+FROM node:22-alpine AS build
+WORKDIR /web
+
+# Dependencies first: cached until package.json / package-lock.json change
+COPY Veltrix.Web/package.json Veltrix.Web/package-lock.json ./
+RUN npm ci
+
+COPY Veltrix.Web/ ./
+RUN npx ng build --configuration production
+
+FROM caddy:2-alpine
+COPY deploy/Caddyfile /etc/caddy/Caddyfile
+COPY --from=build /web/dist/veltrix-web/browser /srv

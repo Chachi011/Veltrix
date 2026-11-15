@@ -16,6 +16,13 @@
 *.scss     text eol=lf
 *.json     text eol=lf
 
+# Production server files (read on Linux, where a CRLF breaks a shell script or the Caddyfile)
+*.sh          text eol=lf
+*.yml         text eol=lf
+Dockerfile.*  text eol=lf
+Caddyfile     text eol=lf
+.env.example  text eol=lf
+
 # Binary files: never convert, never diff as text
 *.png      binary
 *.jpg      binary

@@ -1,0 +1,102 @@
+# VELTRIX in production on one server: SQL Server + API + Caddy (web app, reverse proxy, HTTPS).
+# Start: docker compose -f docker-compose.prod.yml up -d --build     (guide: docs/DEPLOY.md)
+# Every secret comes from the .env file next to this file (never committed; template: .env.example).
+# ${NAME:?...} stops the start with that message when a required value is missing.
+
+name: veltrix
+
+# Every container keeps at most 5 × 10 MB of logs (Docker's default keeps everything, until the disk is full)
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+      # Express: free for production use (Developer is not licensed for production)
+      MSSQL_PID: Express
+      MSSQL_SA_PASSWORD: ${SA_PASSWORD:?Set SA_PASSWORD in .env}
+      # Leaves room for the API and Caddy on a 4 GB server
+      MSSQL_MEMORY_LIMIT_MB: "2048"
+    volumes:
+      - sqldata:/var/opt/mssql
+    # No "ports:" on purpose: SQL Server is reachable only from the API, inside the Docker network
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -b -Q \"SELECT 1\" > /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    logging: *logging
+
+  api:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.api
+    restart: unless-stopped
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__DefaultConnection: ${CONNECTION_STRING:?Set CONNECTION_STRING in .env}
+      Jwt__Key: ${JWT_KEY:?Set JWT_KEY in .env}
+      # The ONE admin account, created on the first start only (appsettings.Production.json: migrations on, no test data)
+      Database__AdminEmail: ${ADMIN_EMAIL:?Set ADMIN_EMAIL in .env}
+      Database__AdminPassword: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in .env}
+      Database__AdminNickname: ${ADMIN_NICKNAME:-admin}
+      # Browsers may call the API only from the site itself
+      Cors__AllowedOrigins__0: https://${DOMAIN:?Set DOMAIN in .env}
+      # The API is reachable only through Caddy, so Caddy's X-Forwarded-For / -Proto headers can be trusted
+      ReverseProxy__TrustForwardedHeaders: "true"
+      # AI assistant (optional; empty = off)
+      Assistant__WebhookUrl: ${N8N_WEBHOOK_URL:-}
+      Assistant__Secret: ${N8N_SECRET:-}
+    volumes:
+      - uploads:/app/uploads
+    # No "ports:" either: only Caddy talks to the API
+    networks:
+      - backend
+      - frontend
+    logging: *logging
+
+  caddy:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.web
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      SITE_ADDRESS: ${DOMAIN:?Set DOMAIN in .env}
+      ACME_EMAIL: ${ACME_EMAIL:?Set ACME_EMAIL in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      # The certificates must survive a restart (Let's Encrypt limits how often you may ask for new ones)
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - frontend
+    logging: *logging
+
+networks:
+  # internal: no way in or out of this network except through the API container
+  backend:
+    internal: true
+  frontend:
+
+volumes:
+  sqldata:
+  uploads:
+  caddy_data:
+  caddy_config:

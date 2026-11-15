@@ -365,9 +365,26 @@ There are 134 Jasmine tests:
 - Crash math: the browser reproduces 7 real server rounds (seed → SHA-256 hash → crash point), proving both implementations are identical
 - App shell: sidebar / top bar / bottom nav, guest navigation, collapsible sidebar, theme toggle
 
+## Production (one server, Docker Compose)
+
+Step-by-step guide: **[docs/DEPLOY.md](docs/DEPLOY.md)** (DigitalOcean Droplet, Ubuntu 24.04, 4 GB RAM).
+
+| Container | What | Reachable from |
+|---|---|---|
+| `caddy` | The Angular production build + reverse proxy for `/api`, `/hubs` (WebSockets), `/uploads`; HTTPS from Let's Encrypt | the internet (80, 443) |
+| `api` | The ASP.NET Core 8 API (`deploy/Dockerfile.api`) | Caddy only |
+| `sqlserver` | SQL Server 2022 Express, data in a named volume | the API only (internal network, no published port) |
+
+```bash
+cp .env.example .env        # fill in (docs/DEPLOY.md step 6); .env is never committed
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+In production there are no test accounts and no demo data: migrations run on start and ONE admin account is created from `.env` on the first start. Swagger is off and CORS allows only the site itself. Backups: `sh deploy/backup.sh`.
+
 ## Development notes
 
-- The password reset code is "emailed" to the API console and log file (`Veltrix.API/Logs/`) in development.
+- The password reset code is "emailed" to the API console and log file (`Veltrix.API/Logs/`) in development (and, as there is no email service yet, in production too: `docker compose -f docker-compose.prod.yml logs api`).
 - Logs: console + daily rolling file via Serilog.
 - Git flow: `main` ← `develop` ← `feature/*`.
 

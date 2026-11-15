@@ -52,7 +52,7 @@ public static class DependencyInjection
         services.AddScoped<IWalletService, WalletService>();
         services.AddScoped<IFairnessService, FairnessService>();
 
-        // Phase 4: player tools and admin panel
+        // Player tools and admin panel
         services.AddMemoryCache(); // leaderboard cache
         services.AddScoped<ILeaderboardService, LeaderboardService>();
         services.AddScoped<IStatsService, StatsService>();

@@ -82,7 +82,7 @@ describe('CrashHub (one shared SignalR connection per tab)', () => {
     expect(hub.status()).toBe('connected');
   });
 
-  // Bug found while testing Phase 4: the Crash page showed "0 online", because the server's count
+  // Regression: the Crash page showed "0 online", because the server's count
   // arrived when the user's connection opened, before the game page was listening
   it('gives a game page that joins later the last online count', async () => {
     await hub.startUserSession(userHandlers());

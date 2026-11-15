@@ -2,7 +2,7 @@
 
 Audit of the project against the specification **VELTRIX-პროექტის-აღწერა.pdf** (14 pages, Oct 23, 2026), a copy of which is kept in this repository as [`docs/SPEC.pdf`](SPEC.pdf), section by section.
 
-- Audited on **2026-10-27** as **Phase 5 · Step 1**, branch `feature/phase5` (Phases 1–4 done and merged into `develop`). Updated at the end of every Phase 5 step; last update: **2026-10-30, `v1.1-diploma`: responsible-play review of achievements and XP**, see [§ Responsible-play review](#responsible-play-review-of-achievements-and-xp-v11-diploma). The first submitted version is the tag `v1.0-diploma` (frozen).
+- Audited on **2026-10-27** as **Phase 5 · Step 1**, branch `feature/phase5` (Phases 1–4 done and merged into `develop`). Updated at the end of every Phase 5 step; last update: **2026-11-07, production hosting with Docker Compose** (after `v1.1-diploma`; see [docs/DEPLOY.md](DEPLOY.md)); before that **2026-10-30, `v1.1-diploma`: responsible-play review of achievements and XP**, see [§ Responsible-play review](#responsible-play-review-of-achievements-and-xp-v11-diploma). The first submitted version is the tag `v1.0-diploma` (frozen).
 - **Status:** ✅ done · 🟡 partial · ❌ missing.
 - Items marked **(\*)** in the spec are optional ("after the main part"); they are listed separately in [§ Optional (\*) items](#optional--items).
 - **Added in this pass** = the gap was found by this audit and closed in Step 1 (see [§ Gaps closed in this pass](#gaps-closed-in-this-pass)).
@@ -13,7 +13,7 @@ Audit of the project against the specification **VELTRIX-პროექტი�
 | | ✅ Done | 🟡 Partial | ❌ Missing |
 |---|---|---|---|
 | Required (non-\*) items | 151 | 1 | 0 |
-| Optional (\*) items | 6 | 1 | 11 |
+| Optional (\*) items | 7 | 1 | 10 |
 
 The one partial required item is a deliberate decision, not a missing feature: plain CSS via Tailwind CSS v4 instead of SCSS (DESIGN.md). Details in [§ Still open](#still-open-non-).
 
@@ -72,7 +72,7 @@ The one partial required item is a deliberate decision, not a missing feature: p
 |---|---|---|
 | Git + GitHub, branches per feature | ✅ | `main` ← `develop` ← `feature/*`, remote `origin` |
 | Postman for API checking | ✅ | `docs/api/openapi.json` imports straight into Postman (README → API in Postman) — **added in this pass** |
-| Docker Compose (\*) | ❌ | see optional items |
+| Docker Compose (\*) | ✅ | `docker-compose.prod.yml` (production; see optional items) |
 | GitHub Actions (\*) | ❌ | see optional items |
 
 ## 3. User roles
@@ -309,7 +309,7 @@ Beyond the spec: 20 supporting tables (31 in total, incl. `AssistantMessages`), 
 |---|---|---|
 | `main` and `develop` branches, `feature/*` branches | ✅ | `main` ← `develop` ← `feature/*` (merged with `--no-ff`); `master` was renamed to `main` when the diploma version was locked; tag `v1.0-diploma` on `main` |
 | Clear, small, frequent commits | ✅ | `git log` |
-| `.gitignore`; secrets (connection string, JWT key) not in the repository | ✅ | JWT key in user-secrets; the connection string uses Windows authentication (no password) |
+| `.gitignore`; secrets (connection string, JWT key) not in the repository | ✅ | JWT key in user-secrets; the connection string uses Windows authentication (no password). Production: every secret in the server's `.env` (in `.gitignore` and `.dockerignore`); only `.env.example` is committed |
 
 ### Delivery
 
@@ -359,7 +359,7 @@ Beyond the spec: 20 supporting tables (31 in total, incl. `AssistantMessages`), 
 | `GET /api/admin/reports/export` | 5 | ❌ | |
 | SignalR `ChatMessage` / `SendChatMessage` | 5 | ❌ | |
 | Integration tests (WebApplicationFactory) | 7 | ✅ | `Veltrix.Tests/Integration` (39 tests): auth, bets, cash-out, refunds, admin role checks, preferences, achievements and their responsible-play rules, demo data — Steps 2 and 3 |
-| Docker Compose (SQL Server + API + Angular) | 2 | ❌ | Step 3 (8), not in `v1.0-diploma` |
+| Docker Compose (SQL Server + API + Angular) | 2 | ✅ | `docker-compose.prod.yml`: SQL Server 2022 Express + API + Caddy (serves the Angular build, HTTPS, proxies `/api` `/hubs` `/uploads`); `deploy/`, guide `docs/DEPLOY.md`. Added after `v1.1-diploma` (not in either tag); `AdminBootstrapTests` |
 | GitHub Actions (build + tests on every push) | 2 | ❌ | Step 3 (8), not in `v1.0-diploma` |
 
 The author's Step 3 list also had (7) PWA, which is not an item of the spec; it is not in `v1.0-diploma` either.
@@ -497,6 +497,14 @@ Choices made while working without the author. Each one follows the spec and DES
 | The freeze rule is written into CLAUDE.md in the tagged commit itself | So that anyone who checks out `v1.0-diploma` reads the rule too | — |
 | The AI assistant is for players only, and operators keep the moderator role (no new Moderator role) | The author's choice: the assistant explains the player's game and tools; the spec gives chat moderation to the operator | If staff need it, add `Operator` to `AssistantController`'s roles |
 | The model's rules live in `AssistantPrompts.cs`, not in the n8n workflow | Reviewed in Git and tested; the workflow only passes them on, so editing it cannot weaken them | — |
+| **Production** SQL Server 2022 **Express** (not Developer) | Developer is not licensed for production; Express is free. Limits: 10 GB per database, ~1.4 GB buffer memory, no backup compression; far above what the game needs | `MSSQL_PID` in `docker-compose.prod.yml` (Standard needs a licence) |
+| **Production** the API logs in to SQL Server as `sa` | One container, one database, reachable only from the API on an internal network; a separate login would need an extra setup script | Create a `veltrix` login with `db_owner` on `Veltrix` and use it in `CONNECTION_STRING` |
+| **Production** the API trusts `X-Forwarded-For` / `-Proto` from any sender (`ReverseProxy:TrustForwardedHeaders`, only set in the compose file) | Docker gives Caddy a changing IP, so a fixed "known proxy" would break; the API has no published port, so Caddy is the only sender. Without it every user would share Caddy's IP in the rate limit, and HTTPS redirection would loop | Set `KnownNetworks` to the frontend network's subnet |
+| **Production** the admin from `.env` is created only when NO admin exists, must pass the registration rules, never promotes an existing account, and starts with 0 VLX | A weak or half-set admin should stop the start, not slip through; staff do not bet. Later changes to `ADMIN_*` are ignored (change the password in the app) | `DatabaseInitializer.EnsureAdminAsync` |
+| **Production** HSTS for one year, without `includeSubDomains` / `preload` | Other subdomains of the author's domain may not have HTTPS | `deploy/Caddyfile` |
+| **Production** password reset codes are only written to the API log (no email service) | There is no email provider yet (spec: email notifications are optional); the admin can read the code with `docker compose logs api` | Add an SMTP `IEmailSender` |
+| **Production** the API exits with code 1 when the start fails (before: 0) | So Docker restarts it and `docker compose ps` shows the failure | `Program.cs` |
+| **Production** the server deploys `main` without the AI assistant | The author's choice: `feature/ai-assistant` stays separate until n8n is set up; `N8N_*` in `.env` stay empty and do nothing on `main` | Merge `feature/ai-assistant` and fill in `N8N_*` |
 
 ## Still open (non-\*)
 

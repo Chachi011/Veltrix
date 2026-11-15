@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Options;
@@ -24,6 +25,9 @@ public static class ApiServiceExtensions
     public const string AssistantRateLimitPolicy = "assistant";
     public const string HubsPath = "/hubs";
 
+    /// <summary>Set to true only when the API is reachable through a reverse proxy alone (production: Caddy).</summary>
+    public const string TrustForwardedHeadersKey = "ReverseProxy:TrustForwardedHeaders";
+
     public static IServiceCollection AddApiServices(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddControllers(options => options.Filters.Add<FluentValidationFilter>())
@@ -41,8 +45,31 @@ public static class ApiServiceExtensions
         services.AddAngularCors(configuration);
         services.AddRateLimiting();
         services.AddRealtime();
+        services.AddReverseProxySupport(configuration);
 
         return services;
+    }
+
+    /// <summary>
+    /// Behind Caddy every request arrives from Caddy's address over plain HTTP; the real client IP and "https" come in
+    /// X-Forwarded-For / X-Forwarded-Proto. Without them the auth rate limit (10 per minute per IP) would be shared by
+    /// ALL users, and HTTPS redirection would loop. Trusted only when configured: with no proxy in front, anyone could
+    /// fake these headers to dodge the rate limits.
+    /// </summary>
+    private static void AddReverseProxySupport(this IServiceCollection services, IConfiguration configuration)
+    {
+        if (!configuration.GetValue<bool>(TrustForwardedHeadersKey))
+            return;
+
+        services.Configure<ForwardedHeadersOptions>(options =>
+        {
+            options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+            // Docker assigns the proxy's address, so it is not known in advance; the API has no public port,
+            // so the only one who can send these headers is the proxy. Only its own (last) entry is used.
+            options.KnownNetworks.Clear();
+            options.KnownProxies.Clear();
+            options.ForwardLimit = 1;
+        });
     }
 
     private static void AddRealtime(this IServiceCollection services)
@@ -150,7 +177,7 @@ public static class ApiServiceExtensions
             policy.WithOrigins(origins)
                 .AllowAnyHeader()
                 .AllowAnyMethod()
-                // SignalR (Phase 2) needs credentials
+                // SignalR needs credentials
                 .AllowCredentials()));
     }
 

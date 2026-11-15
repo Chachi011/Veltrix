@@ -64,7 +64,7 @@ public class RefreshTokenTests
         Assert.True(token.ReplayLooksLikeTheft(Now + RefreshToken.ReuseGracePeriod + TimeSpan.FromSeconds(1)));
     }
 
-    // Bug found in Phase 4: an open tab of a just-blocked player refreshed its token, which was reported
+    // Regression: an open tab of a just-blocked player refreshed its token, which was reported
     // as "token theft" (warning + revoke everything) instead of "your account is blocked".
     [Theory]
     [InlineData(RefreshToken.ReasonBlocked)]

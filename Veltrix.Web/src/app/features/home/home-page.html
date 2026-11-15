@@ -52,7 +52,6 @@
 <div class="mt-4 grid gap-4 md:mt-6 md:gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
   <vx-live-round-card />
 
-  <!-- Short leaderboard -->
   <vx-card [title]="'Top today' | t" [subtitle]="'Best cash-outs, last 24 hours.' | t">
     <a card-actions routerLink="/leaderboard" class="text-[13px] font-medium">{{ 'See all' | t }}</a>
     @if (leaders(); as list) {
@@ -82,7 +81,6 @@
   </vx-card>
 </div>
 
-<!-- Games -->
 <section class="mt-8 md:mt-10" aria-labelledby="games-title">
   <div class="mb-4 flex items-end justify-between gap-4">
     <div>

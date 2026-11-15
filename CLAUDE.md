@@ -71,7 +71,6 @@ Veltrix.Web            Angular client: core/ (api, auth, http, realtime, state, 
 - **The model's rules live in `AssistantPrompts.cs`**, never only in the n8n workflow, so they are reviewed and tested. They follow the responsible play rules above: no strategies or crash-point predictions, no invitation to play more, and **nothing that invites play while `canPlayNow` is false** (the prompt gets the same `PlayerLimit` rule). A new rule gets a test.
 - n8n is only the carrier (`docs/n8n/`): the API posts `{ sessionId, language, systemPrompt, history, message }` with the `X-Veltrix-Secret` header and reads `{ reply }`. Webhook URL and secret are in user-secrets (`Assistant:WebhookUrl`, `Assistant:Secret`), never in Git.
 - Not set up (no webhook URL) = 503 `N8nAssistantClient.NotConfiguredMessage`, and `GET /api/assistant/status` lets the drawer say "The assistant is not configured" before anyone asks (box disabled). Every other failure (down, timeout, bad answer) = ONE friendly 503 (`UnavailableMessage`). Nothing is saved; the client puts the question back in the box and shows the reason INSIDE the drawer (no toast). Never log the question text.
-- Toasts must stay above the CDK overlay (`z-[1100]` > 1000, `toast-container.spec.ts`): an error toast under an open drawer or dialog is invisible.
 - Rate limit `assistant` (10/min/player) on POST only; 500 characters per question.
 
 ## Security rules learned the hard way
@@ -82,6 +81,17 @@ Veltrix.Web            Angular client: core/ (api, auth, http, realtime, state, 
 - Admins cannot change their own role, block themselves or adjust their own balance (Domain rules).
 - The `auth` rate limit (10/min/IP) covers login/register/forgot/reset only, not refresh/logout (`RateLimitAttributeTests`).
 - Secrets (JWT key) live in user-secrets, never in Git.
+
+## Production hosting (one Droplet, Docker Compose)
+
+Guide: [docs/DEPLOY.md](docs/DEPLOY.md). Files: `docker-compose.prod.yml` (sqlserver + api + caddy), `deploy/` (`Dockerfile.api`, `Dockerfile.web`, `Caddyfile`, `backup.sh`), `Veltrix.API/appsettings.Production.json`, `.env.example`.
+
+- **Every production secret is in the server's `.env`** (ignored by Git and `.dockerignore`); only `.env.example` is committed. A new secret = a new `${VAR}` in the compose file + a line in `.env.example`.
+- **SQL Server never gets a published port** and stays on the `internal` backend network; only Caddy publishes 80/443.
+- Production: migrations on, **no test users, no demo data**, Swagger off, CORS = `https://${DOMAIN}` only. The ONE admin comes from `Database:AdminEmail/AdminPassword/AdminNickname` on the first start only (registration rules; an existing account is never promoted; `AdminBootstrapTests`).
+- `ReverseProxy:TrustForwardedHeaders` is set ONLY in the compose file (the API is reachable only through Caddy). Never turn it on where clients reach the API directly: they could fake `X-Forwarded-For` and dodge the rate limit.
+- A failed start exits with code 1 (Docker restarts it and shows it). No email service yet: reset codes are only in the API log.
+- `main` is what the server deploys; the AI assistant (`feature/ai-assistant`) is not in it until n8n is set up.
 
 ## Phase plan
 
@@ -97,7 +107,7 @@ Veltrix.Web            Angular client: core/ (api, auth, http, realtime, state, 
 
 1. **Spec audit** — `docs/SPEC-COVERAGE.md` (item / status / where in the code, (*) items separately) and every missing non-(*) item: Home, Games catalog, public player profile, Rules, Settings (sound, animations), Moq service tests, more Jasmine, OpenAPI for Postman. **Done.**
 2. **Quality** — Jasmine tests for the stores and key services (auth, wallet, round/crash, limits); integration tests with WebApplicationFactory (auth, bets, admin role checks); no build warnings (`dotnet build`, `ng build`) — **done** (28 integration tests, 112 Jasmine, 0 warnings at the end of Step 2; at `v1.0-diploma`: 285 xUnit incl. 34 integration, 125 Jasmine); Development demo seed (~15 players with bet history, so the leaderboard, charts and admin dashboard are not empty) — **done** (`DemoDataSeeder`).
-3. **Optional (*) features, in this order** — (1) Georgian + English UI, ka default, switch in Settings — **done**; (2) achievements + XP levels — **done**; (3) auto-bet (number of rounds, stop on loss/profit); (4) two bets per round in the UI; (5) global chat with operator moderation; (6) CSV export in the admin panel; (7) PWA; (8) Docker Compose + GitHub Actions — (3)–(8) **not done**: the author locked the version after (2). If they are built later, it is on new branches. 2FA and email verification only if time remains.
+3. **Optional (*) features, in this order** — (1) Georgian + English UI, ka default, switch in Settings — **done**; (2) achievements + XP levels — **done**; (3) auto-bet (number of rounds, stop on loss/profit); (4) two bets per round in the UI; (5) global chat with operator moderation; (6) CSV export in the admin panel; (7) PWA; (8) Docker Compose + GitHub Actions — (3)–(8) **not done**: the author locked the version after (2). If they are built later, it is on new branches. Later, on `feature/production-docker`: production Docker Compose **done** (see Production hosting); GitHub Actions still not done. 2FA and email verification only if time remains.
 4. **Delivery** — README (overview, screenshots, architecture diagram, clean-PC setup, test accounts per role); `/database`: migrations + seed as one SQL script; `docs/PRESENTATION.md`: 10-minute demo script and the 10 most likely exam questions with short answers. **Done** (`database/veltrix.sql` is guarded by `DatabaseScriptTests`: regenerate it when a migration is added).
 
 Optional (*) features only after the MVP: auto-bet, two bets per round (backend supports slot 2), achievements/XP, chat with moderation, 2FA, email verification, ka/en, CSV export, Docker Compose, GitHub Actions.
@@ -114,6 +124,10 @@ cd Veltrix.Web && npm run i18n:check                       # every UI text has G
 dotnet ef migrations add <Name> --project Veltrix.Infrastructure --startup-project Veltrix.API --output-dir Persistence/Migrations
 dotnet ef migrations has-pending-model-changes --project Veltrix.Infrastructure --startup-project Veltrix.API
 npx n8n                                                    # AI assistant workflow on http://localhost:5678 (setup: docs/n8n/README.md)
+# On the production server (in ~/veltrix):
+docker compose -f docker-compose.prod.yml up -d --build    # start / update
+docker compose -f docker-compose.prod.yml logs -f api      # API log
+sh deploy/backup.sh                                        # database + avatars into ~/backups
 ```
 
 Test accounts (development seed): `admin@veltrix.dev / Admin123!`, `operator@veltrix.dev / Operator123!`, `player1@veltrix.dev`, `player2@veltrix.dev / Player123!`. The login page has quick-fill buttons in development. Demo players (`Database:SeedDemoData`, first Development start, once): 15 accounts `<nickname>@demo.veltrix.dev / Player123!` (e.g. `nova`) with 30 days of history.
@@ -123,7 +137,7 @@ Stop the running API before `dotnet build` (it locks the DLLs). Check that port 
 ## Conventions
 
 - **Git:** `main` ← `develop` ← `feature/<phase-or-topic>` (`master` was renamed to `main` when the diploma version was locked). Small, logical commits with clear messages. Merge features into `develop` with `--no-ff`. Do not push unless asked. The tag `v1.0-diploma` is frozen (see the top of this file).
-- **Line endings:** `.gitattributes` (CRLF for `.cs/.csproj/.slnx`, LF for `.ts/.html/.scss/.json`). Seed text in `HasData` is normalized with `ReplaceLineEndings("\n")`.
+- **Line endings:** `.gitattributes` (CRLF for `.cs/.csproj/.slnx`, LF for `.ts/.html/.scss/.json` and the server files `.sh/.yml/Dockerfile.*/Caddyfile/.env.example`). Seed text in `HasData` is normalized with `ReplaceLineEndings("\n")`.
 - **EF:** after model changes run `has-pending-model-changes`; never edit an applied migration (add a new one). Data fixes go in the migration (`migrationBuilder.Sql`).
 - **Query DTOs:** computed values are methods, not properties (properties become query parameters; see `PageQuery.Offset()`).
 - **Angular:** standalone components, OnPush, signals; stores are NgRx SignalStores. Components that show reactive-form errors use Default change detection. Interceptor order: loading → error → auth.
@@ -131,6 +145,8 @@ Stop the running API before `dotnet build` (it locks the DLLs). Check that port 
 - **Real-time:** ONE SignalR connection per tab (`CrashHub`): the user session (balance, notifications) and a game page share it. Don't open a second connection (the online counter would count the tab twice).
 - **Bundle:** `ng build` must stay under the 500 kB initial budget (about 417 kB; the top-bar dropdowns load on demand). Heavy libraries (Chart.js, SignalR, CDK Overlay/Menu/Dialog) load with dynamic `import()`; eager code (layout, core) imports single `shared/ui` files, not the barrel, and never a CDK overlay module (see `layout/top-bar-popups.ts`).
 - **Shell + backticks:** never write files containing backticks through bash `node -e` / heredocs (the shell eats them and has corrupted files); use the Write/Edit tools.
+- **Toasts stay above the CDK overlay** (`z-[1100]` > 1000, `toast-container.spec.ts`): a toast under an open drawer or dialog is invisible, so the action looks like it did nothing.
+- **Plain HTTP works too** (the server reached by its IP address): no secure-context-only browser API without a fallback. IDs the server reads as a Guid come from `newUuid()` (`shared/uuid.ts`, `crypto.getRandomValues`), never `crypto.randomUUID()`, which does not exist on plain HTTP.
 - **Tests:** every bug fix gets a test that fails without the fix. Integration tests (`Veltrix.Tests/Integration`) share ONE `VeltrixApiFactory` (collection "api"): a throwaway SQL Server database, the engine loop off (tests move rounds with `RoundSettlementService`), a `TestClock` that can freeze/advance (keep total advances well under the 30 s JWT clock skew), and one fake IP per client (`X-Test-Client-IP`) so the auth rate limit does not bleed between tests.
 - **Demo data:** `DemoDataSeeder` must keep using the real domain and settlement code (`GameRound.Create`, `Bet.Place`, wallet `Debit`/`Credit`, `RoundSettlementService`) with a past clock; never insert bets, rounds or balances directly. Nothing may be dated after "now". `DemoDataSeederTests` guards the rules.
 - **Languages (ka default, en):** the code is written in English and the English text is the key: templates use `{{ 'Place bet' | t }}` (`t: { name: value }` for `{name}` placeholders), TypeScript uses `i18n.t('...')`, texts in constants use `mark('...')` and are translated where shown (`| t`, `| tLabels` for tab/select items). Translate each branch of a ternary (`cond ? ('A' | t) : ('B' | t)`), never `(cond ? 'A' : 'B') | t` (the checker cannot see it). A sentence with a styled value uses `tSplit`. API messages: `| serverText` / `i18n.server()`; free text that may be a server text: `| knownText`. Dates: `| vxDate` (not `date`). ALL Georgian text is in `Veltrix.Web/src/i18n/ka.json` (`ui`, `server`, `pages`); keep Crash, Cash out and VLX untranslated. Every new text: add it to ka.json in natural Georgian and run `npm run i18n:check` (0 missing, 0 unused). Server messages are guarded by `GeorgianTranslationTests` (xUnit) and ka.json by `i18n.spec.ts` (placeholders, terms). Avoid apostrophes inside single-quoted template strings (rephrase).
