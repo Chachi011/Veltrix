@@ -14,16 +14,10 @@ import { ROLE_LABELS, TRANSACTION_TYPE_LABELS } from '../../shared/labels';
 import { ToastStore } from '../../core/ui/toast.store';
 import { MultiplierPipe, VlxPipe } from '../../shared/pipes';
 import { Avatar, Badge, BadgeTone, Button, DrawerShell, Field, Icons, ModalService, Skeleton, TabItem, Tabs } from '../../shared/ui';
+import { newUuid } from '../../shared/uuid';
 import { twoDecimals } from '../../shared/validators';
 
 export const ROLE_TONES: Record<UserRole, BadgeTone> = { Player: 'neutral', Operator: 'accent', Admin: 'primary' };
-
-/** A new idempotency key for the next adjustment (one per submitted form). */
-function newRequestId(): string {
-  return typeof crypto !== 'undefined' && 'randomUUID' in crypto
-    ? crypto.randomUUID()
-    : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
 
 /**
  * Everything about one user, and the admin actions: change role, block / unblock, adjust the balance.
@@ -87,7 +81,11 @@ export class UserDrawer {
     reason: ['', [Validators.required, Validators.minLength(5), Validators.maxLength(500)]]
   });
   protected readonly adjusting = signal(false);
-  private requestId = newRequestId();
+  /**
+   * The idempotency key of the next adjustment (one per submitted form). Always a real UUID: the server reads it as a
+   * Guid, and the old fallback for plain HTTP ("1731…-ab12") made every adjustment fail with 400 there.
+   */
+  private requestId = newUuid();
 
   constructor() {
     void this.load();
@@ -208,7 +206,7 @@ export class UserDrawer {
       const result = await firstValueFrom(
         this.api.adjustBalance(user.id, { amount: signed, reason: reason.trim(), requestId: this.requestId })
       );
-      this.requestId = newRequestId();
+      this.requestId = newUuid();
       this.adjustForm.reset({ amount: null, reason: '' });
       this.toasts.success(
         this.i18n.t('Balance of {nickname}: {before} → {after} VLX.', {
