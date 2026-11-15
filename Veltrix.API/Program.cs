@@ -48,7 +48,7 @@ try
             options.DocumentTitle = "VELTRIX API";
         });
     }
-    else
+    else if (app.Configuration.GetValue("ReverseProxy:RedirectToHttps", true))
     {
         app.UseHttpsRedirection();
     }
