@@ -5,14 +5,19 @@ import { ToastKind, ToastStore } from '../../core/ui/toast.store';
 import { Button } from './button';
 import { Icons } from './icons';
 
-/** Toasts: top of the screen on mobile (above the bottom nav and bet sheet), bottom-right on desktop. */
+/**
+ * Toasts: top of the screen on mobile (above the bottom nav and bet sheet), bottom-right on desktop.
+ * z-[1100] keeps them above the CDK overlay container (z-index 1000: dialogs, drawers, menus). With an equal
+ * z-index the overlay, which comes later in the page, covered them, so an error shown while a drawer or dialog was
+ * open was invisible (e.g. the AI assistant "did nothing").
+ */
 @Component({
   selector: 'vx-toast-container',
   imports: [LucideAngularModule, Button, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
-      class="pointer-events-none fixed inset-x-4 top-4 z-[1000] flex flex-col gap-2 md:inset-x-auto md:top-auto md:right-6 md:bottom-6 md:w-[380px]"
+      class="pointer-events-none fixed inset-x-4 top-4 z-[1100] flex flex-col gap-2 md:inset-x-auto md:top-auto md:right-6 md:bottom-6 md:w-[380px]"
     >
       @for (toast of store.toasts(); track toast.id) {
         <div
