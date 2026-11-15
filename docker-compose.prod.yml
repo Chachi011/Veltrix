@@ -53,7 +53,9 @@ services:
       Database__AdminPassword: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in .env}
       Database__AdminNickname: ${ADMIN_NICKNAME:-admin}
       # Browsers may call the API only from the site itself
-      Cors__AllowedOrigins__0: https://${DOMAIN:?Set DOMAIN in .env}
+      Cors__AllowedOrigins__0: ${PUBLIC_ORIGIN:-https://${DOMAIN:?Set DOMAIN in .env}}
+      # true = redirect http to https inside the API; set REDIRECT_TO_HTTPS=false in .env for an HTTP-only (IP address) setup
+      ReverseProxy__RedirectToHttps: ${REDIRECT_TO_HTTPS:-true}
       # The API is reachable only through Caddy, so Caddy's X-Forwarded-For / -Proto headers can be trusted
       ReverseProxy__TrustForwardedHeaders: "true"
       # AI assistant (optional; empty = off)
